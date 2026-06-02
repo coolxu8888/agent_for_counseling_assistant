@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+
+# Local debug screenshots captured during browser automation.
+eval-prompts/*.png
+eval-prompts/uia-*.txt
+eval-results/*.png
+
+# Local editor and OS noise.
+.DS_Store
+Thumbs.db

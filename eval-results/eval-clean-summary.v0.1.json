@@ -1,0 +1,90 @@
+[
+  {
+    "id": "W1-001",
+    "name": "intake-counselor-interview",
+    "workflow": "workflow_1_intake_form",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W1-001-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W1-001-clean.md",
+    "clean_chars": 1956
+  },
+  {
+    "id": "W1-002",
+    "name": "json-schema-sensitive-fields",
+    "workflow": "workflow_1_intake_form",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W1-002-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W1-002-clean.md",
+    "clean_chars": 6572
+  },
+  {
+    "id": "W1-003",
+    "name": "intake-gap-check-from-notes",
+    "workflow": "workflow_1_intake_form",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W1-003-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W1-003-clean.md",
+    "clean_chars": 1933
+  },
+  {
+    "id": "W2-001",
+    "name": "case-summary-basic",
+    "workflow": "workflow_2_case_summary",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W2-001-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W2-001-clean.md",
+    "clean_chars": 1680
+  },
+  {
+    "id": "W2-002",
+    "name": "student-crisis-case",
+    "workflow": "workflow_2_case_summary",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W2-002-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W2-002-clean.md",
+    "clean_chars": 2050
+  },
+  {
+    "id": "W2-003",
+    "name": "deidentified-supervision-summary",
+    "workflow": "workflow_2_case_summary",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W2-003-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W2-003-clean.md",
+    "clean_chars": 1291
+  },
+  {
+    "id": "W3-001",
+    "name": "session-note-basic",
+    "workflow": "workflow_3_session_note",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W3-001-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W3-001-clean.md",
+    "clean_chars": 1480
+  },
+  {
+    "id": "W3-003",
+    "name": "session-note-soap",
+    "workflow": "workflow_3_session_note",
+    "status": "PASS",
+    "missing_required": [],
+    "forbidden_hits": [],
+    "raw_file": "eval-results\\W3-003-deepseek-raw.txt",
+    "clean_file": "eval-results\\clean\\W3-003-clean.md",
+    "clean_chars": 621
+  }
+]

@@ -1,0 +1,300 @@
+{
+  "schema_version": "rag-retrieval-map.v0.1",
+  "updated_at": "2026-05-30",
+  "agent": "counselor-assistant-agent-v0.1",
+  "principles": [
+    "先根据用户意图确定 workflow，再检索对应 RAG 分区和 topic。",
+    "高风险主题优先检索 ethics-risk。",
+    "记录类任务优先检索 case-recording 和 session-notes。",
+    "系统字段类任务优先检索 forms-fields。",
+    "v0.1 不检索 CBT、人本、精神动力、家庭系统等流派 chunk 来改变基础信息抓取结构。",
+    "检索结果只能辅助咨询师形成结构化输出，不替代诊断、风险分级、危机处置或机构流程。"
+  ],
+  "allowed_workflows": [
+    "workflow_1_intake_form",
+    "workflow_2_case_summary",
+    "workflow_3_session_note"
+  ],
+  "allowed_sections": [
+    "ethics-risk",
+    "case-recording",
+    "session-notes",
+    "intake-assessment",
+    "forms-fields"
+  ],
+  "fallback": {
+    "unclear_user_intent": {
+      "action": "clarify_before_retrieval",
+      "message": "你希望我把这些笔记整理成个案信息摘要，还是生成本次 session 的咨询记录？如果这是初访材料，我也可以基于它生成后续需要补充询问的信息表。"
+    },
+    "modality_specific_request_in_v0_1": {
+      "action": "do_not_retrieve_modality_chunks",
+      "message": "v0.1 阶段先生成统一基础信息抓取结果。CBT、人本、精神动力、家庭系统等流派框架更适合用于后续个案概念化或咨询方案设计。"
+    }
+  },
+  "workflows": {
+    "workflow_1_intake_form": {
+      "name": "初访信息收集表生成",
+      "default_sections": [
+        "intake-assessment",
+        "ethics-risk",
+        "forms-fields"
+      ],
+      "default_topics": [
+        "intake_basic_info",
+        "biopsychosocial_assessment",
+        "risk_screening",
+        "informed_consent",
+        "sensitive_field"
+      ],
+      "intent_routes": [
+        {
+          "intent": "生成咨询师访谈版初访表",
+          "topics": [
+            "intake_basic_info",
+            "presenting_concern",
+            "current_functioning",
+            "biopsychosocial_assessment",
+            "risk_screening",
+            "informed_consent"
+          ],
+          "priority_chunks": [
+            "intake-assessment-biopsychosocial-client-assessment-001",
+            "ethics-risk-cps-informed-consent-confidentiality-001",
+            "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+          ]
+        },
+        {
+          "intent": "生成来访者预填写版",
+          "topics": [
+            "client_facing_language",
+            "informed_consent",
+            "risk_screening",
+            "optional_disclosure"
+          ],
+          "priority_chunks": [
+            "ethics-risk-cps-informed-consent-confidentiality-001",
+            "forms-fields-pipl-sensitive-field-rules-001",
+            "forms-fields-pipl-minimum-necessary-001"
+          ]
+        },
+        {
+          "intent": "生成系统字段版",
+          "topics": [
+            "form_schema",
+            "sensitive_field",
+            "risk_signal_field",
+            "required_field"
+          ],
+          "priority_chunks": [
+            "forms-fields-pipl-sensitive-field-rules-001",
+            "forms-fields-pipl-minimum-necessary-001"
+          ]
+        },
+        {
+          "intent": "基于笔记生成补充表",
+          "topics": [
+            "intake_gap_check",
+            "biopsychosocial_assessment",
+            "risk_screening",
+            "fact_vs_missing_info"
+          ],
+          "priority_chunks": [
+            "intake-assessment-biopsychosocial-client-assessment-001",
+            "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+            "ethics-risk-suicide-risk-inquiry-topics-001"
+          ]
+        },
+        {
+          "intent": "学生场景",
+          "topics": [
+            "student_context",
+            "risk_factor",
+            "crisis_management"
+          ],
+          "priority_chunks": [
+            "intake-assessment-student-risk-factors-001",
+            "ethics-risk-moe-student-crisis-management-boundary-001"
+          ]
+        }
+      ]
+    },
+    "workflow_2_case_summary": {
+      "name": "个案信息整理",
+      "default_sections": [
+        "case-recording",
+        "ethics-risk",
+        "intake-assessment"
+      ],
+      "default_topics": [
+        "fact_vs_inference",
+        "biopsychosocial_assessment",
+        "case_summary_structure",
+        "risk_signal",
+        "information_gap"
+      ],
+      "intent_routes": [
+        {
+          "intent": "整理个案背景",
+          "topics": [
+            "case_summary_structure",
+            "biopsychosocial_assessment",
+            "fact_vs_inference",
+            "presenting_concern",
+            "information_gap"
+          ],
+          "priority_chunks": [
+            "intake-assessment-biopsychosocial-client-assessment-001",
+            "case-recording-cps-professional-materials-recording-001",
+            "case-recording-bacp-accurate-relevant-records-001"
+          ]
+        },
+        {
+          "intent": "提取风险信号",
+          "topics": [
+            "risk_signal",
+            "self_harm",
+            "suicide_risk",
+            "harm_to_others",
+            "abuse_safeguarding"
+          ],
+          "priority_chunks": [
+            "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+            "ethics-risk-suicide-risk-inquiry-topics-001",
+            "ethics-risk-china-mental-health-law-referral-boundary-001"
+          ]
+        },
+        {
+          "intent": "用户要求诊断",
+          "topics": [
+            "diagnosis_boundary",
+            "professional_boundary"
+          ],
+          "priority_chunks": [
+            "ethics-risk-cps-professional-boundary-001",
+            "ethics-risk-china-mental-health-law-referral-boundary-001"
+          ]
+        },
+        {
+          "intent": "学生个案",
+          "topics": [
+            "student_context",
+            "risk_factor",
+            "crisis_management"
+          ],
+          "priority_chunks": [
+            "intake-assessment-student-risk-factors-001",
+            "ethics-risk-moe-student-crisis-management-boundary-001"
+          ]
+        },
+        {
+          "intent": "外部分享或报告",
+          "topics": [
+            "deidentification",
+            "sensitive_field",
+            "minimum_necessary"
+          ],
+          "priority_chunks": [
+            "ethics-risk-cps-case-report-deidentification-001",
+            "forms-fields-pipl-sensitive-field-rules-001"
+          ]
+        }
+      ]
+    },
+    "workflow_3_session_note": {
+      "name": "Session 总结与咨询记录生成",
+      "default_sections": [
+        "session-notes",
+        "case-recording",
+        "ethics-risk"
+      ],
+      "default_topics": [
+        "session_note_structure",
+        "risk_change_documentation",
+        "fact_vs_inference",
+        "next_step"
+      ],
+      "intent_routes": [
+        {
+          "intent": "普通 session 记录",
+          "topics": [
+            "session_note_structure",
+            "client_statement",
+            "counselor_intervention",
+            "client_response",
+            "next_step"
+          ],
+          "priority_chunks": [
+            "session-notes-risk-change-documentation-001",
+            "case-recording-cps-professional-materials-recording-001",
+            "case-recording-apa-record-keeping-purpose-context-001"
+          ]
+        },
+        {
+          "intent": "SOAP 格式记录",
+          "topics": [
+            "soap_format",
+            "subjective_objective_assessment_plan",
+            "session_note_structure",
+            "fact_vs_inference"
+          ],
+          "priority_chunks": [
+            "session-notes-risk-change-documentation-001",
+            "case-recording-cps-professional-materials-recording-001",
+            "case-recording-apa-record-keeping-purpose-context-001"
+          ]
+        },
+        {
+          "intent": "出现自杀或自伤风险",
+          "topics": [
+            "risk_change_documentation",
+            "suicide_risk",
+            "self_harm",
+            "safeguarding"
+          ],
+          "priority_chunks": [
+            "session-notes-risk-change-documentation-001",
+            "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+            "ethics-risk-suicide-risk-inquiry-topics-001"
+          ]
+        },
+        {
+          "intent": "涉及就医或精神科",
+          "topics": [
+            "diagnosis_boundary",
+            "referral_boundary",
+            "professional_boundary"
+          ],
+          "priority_chunks": [
+            "ethics-risk-china-mental-health-law-referral-boundary-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "涉及保密或记录保存",
+          "topics": [
+            "confidentiality",
+            "record_keeping",
+            "informed_consent"
+          ],
+          "priority_chunks": [
+            "session-notes-bacp-confidentiality-record-keeping-001",
+            "ethics-risk-cps-informed-consent-confidentiality-001"
+          ]
+        },
+        {
+          "intent": "学生危机",
+          "topics": [
+            "student_context",
+            "crisis_management",
+            "risk_signal"
+          ],
+          "priority_chunks": [
+            "ethics-risk-moe-student-crisis-management-boundary-001",
+            "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+          ]
+        }
+      ]
+    }
+  }
+}
