@@ -38,7 +38,7 @@ v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系
 | `scripts/build-crisis-eval-prompt.ps1` | 从危机等级评测数据生成单题 prompt package |
 | `scripts/build-workflow-eval-prompts.ps1` | 生成三个 P0 workflow 的典型回归测试 prompt 文件 |
 | `scripts/run-deepseek-workflow-evals.ps1` | 通过外部 Edge 自动发送 workflow eval prompt 并保存 raw output |
-| `scripts/clean-eval-outputs.ps1` | 清洗 raw output，提取最终回答，并生成自动规则检查汇总 |
+| `scripts/clean-eval-outputs.ps1` | 清洗 raw output，提取最终回答，并生成自动规则检查与分维度 rubric 汇总 |
 | `eval-prompts/` | 三个 P0 workflow 的回归测试 prompt 文件 |
 | `eval-results/` | DeepSeek Web 回归测试的 raw output、clean output 和检查汇总 |
 | `counseling-agent-mvp.md` | 初访信息收集表三版本的早期 MVP 内容 |
@@ -60,7 +60,7 @@ v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系
 13. 用 `model-eval-v0.1.md` 记录人工模型评测结果。
 14. 用 `scripts/build-workflow-eval-prompts.ps1` 生成 workflow 回归测试 prompt。
 15. 用 `scripts/run-deepseek-workflow-evals.ps1` 或人工复制方式跑模型输出。
-16. 用 `scripts/clean-eval-outputs.ps1` 清洗 raw output 并生成规则检查汇总。
+16. 用 `scripts/clean-eval-outputs.ps1` 清洗 raw output，生成基础规则检查和分维度 rubric 汇总。
 17. 参考 `agent-runtime-architecture.md` 接入路由、检索、提示词组装和输出检查。
 18. 根据测试结果微调系统提示词、RAG 文档和输出模板。
 
@@ -108,7 +108,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-workflow-eval-
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-deepseek-workflow-evals.ps1 -Ids W1-001,W2-003
 ```
 
-清洗 raw output 并生成自动规则检查汇总：
+清洗 raw output，并生成自动规则检查与分维度 rubric 汇总：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-eval-outputs.ps1
@@ -125,6 +125,14 @@ eval-results/clean/
 ```text
 eval-results/eval-clean-summary.v0.1.md
 eval-results/eval-clean-summary.v0.1.json
+eval-results/eval-rubric-summary.v0.1.md
+eval-results/eval-rubric-summary.v0.1.json
+```
+
+`eval-rubric-summary.v0.1.md` 会按以下维度给每条 eval 评分，并在 WARN / FAIL 时生成“问题、原因、修正建议”：
+
+```text
+路由正确、结构正确、RAG 使用合理、无诊断、无编造、风险处理、边界清晰、隐私最小化、v0.1 范围
 ```
 
 ## v0.1 不做的事

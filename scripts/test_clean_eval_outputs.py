@@ -1,6 +1,11 @@
 import unittest
 
-from clean_eval_outputs import clean_ui_text, extract_final_answer, run_rule_checks
+from clean_eval_outputs import (
+    clean_ui_text,
+    extract_final_answer,
+    run_dimension_rubric,
+    run_rule_checks,
+)
 
 
 class CleanEvalOutputsTest(unittest.TestCase):
@@ -39,11 +44,12 @@ At the very end, output exactly one separate line: EVAL_DONE_W2_003
 我们需要把小林、北师大、研二、父母离异泛化。
 个案信息整理（督导/外部分享版）
 去识别摘要
+已泛化可识别信息，仅保留最小必要内容。
 已知事实
 • 来访者为某高校研究生阶段学生。
 • 近期经历重要家庭结构变化。
 风险信号
-• 材料中未见明确风险信息。
+• 材料中未见明确风险信息，建议咨询师按需进一步评估。
 EVAL_DONE_W2_003
 """
         answer = extract_final_answer(raw, "W2-003")
@@ -66,6 +72,47 @@ EVAL_DONE_W2_003
         self.assertEqual(result["status"], "FAIL")
         self.assertIn("研究生二年级", result["forbidden_hits"])
         self.assertIn("父母离异", result["forbidden_hits"])
+
+    def test_dimension_rubric_generates_issue_reason_and_fix(self):
+        answer = """
+个案信息整理（督导/外部分享版）
+已知事实
+• 来访者为某高校研究生二年级学生。
+• 父母离异。
+风险信号
+• 材料中未见明确风险信息。
+"""
+        result = run_dimension_rubric("W2-003", clean_ui_text(answer))
+        privacy = result["dimensions"]["隐私最小化"]
+
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(privacy["status"], "FAIL")
+        self.assertTrue(privacy["issues"])
+        self.assertIn("问题", privacy["issues"][0])
+        self.assertIn("原因", privacy["issues"][0])
+        self.assertIn("修正建议", privacy["issues"][0])
+        reasons = "\n".join(issue["原因"] for issue in privacy["issues"])
+        self.assertIn("研究生二年级", reasons)
+
+    def test_dimension_rubric_passes_clean_deidentified_answer(self):
+        answer = """
+个案信息整理（督导/外部分享版）
+去识别摘要
+已知事实
+• 来访者为某高校研究生阶段学生。
+• 近期经历重要家庭结构变化。
+风险信号
+• 材料中未见明确风险信息。
+信息缺口
+• 材料未提供失眠持续时间。
+建议进一步询问的问题
+1. 失眠持续多久？
+"""
+        result = run_dimension_rubric("W2-003", clean_ui_text(answer))
+
+        self.assertEqual(result["dimensions"]["隐私最小化"]["status"], "PASS")
+        privacy_issues = result["dimensions"]["隐私最小化"]["issues"]
+        self.assertEqual(privacy_issues, [])
 
 
 if __name__ == "__main__":

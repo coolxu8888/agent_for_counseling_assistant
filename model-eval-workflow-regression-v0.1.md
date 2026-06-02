@@ -50,7 +50,7 @@ FAIL = 不可接受，需要修改系统提示词、RAG 或路由
 
 - 使用 `scripts/run-deepseek-workflow-evals.ps1` 通过外部 Edge 的 Windows UI Automation 操作 DeepSeek Web。
 - 每个 eval 进入新对话，发送 `eval-prompts/*.txt`，等待页面文本稳定后保存 raw output。
-- 使用 `scripts/clean-eval-outputs.ps1` 从 raw output 中提取最终回答，剔除 prompt、思考过程、免责声明和网页噪音，并生成自动规则检查汇总。
+- 使用 `scripts/clean-eval-outputs.ps1` 从 raw output 中提取最终回答，剔除 prompt、思考过程、免责声明和网页噪音，并生成自动规则检查与分维度 rubric 汇总。
 - `W2-002` 和 `W2-003` 在发现边界问题后更新 RAG / system prompt / eval prompt，并重跑。
 
 已验证命令：
@@ -63,6 +63,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-deepseek-workflo
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-deepseek-workflow-evals.ps1 -Ids W3-001,W3-003
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-eval-outputs.ps1
 ```
+
+自动生成文件：
+
+```text
+eval-results/eval-clean-summary.v0.1.md
+eval-results/eval-clean-summary.v0.1.json
+eval-results/eval-rubric-summary.v0.1.md
+eval-results/eval-rubric-summary.v0.1.json
+```
+
+分维度 rubric 覆盖：
+
+```text
+路由正确、结构正确、RAG 使用合理、无诊断、无编造、风险处理、边界清晰、隐私最小化、v0.1 范围
+```
+
+当某个维度为 WARN / FAIL 时，`eval-rubric-summary.v0.1.md` 会自动生成：
+
+- 问题
+- 原因
+- 修正建议
 
 ## 总览
 
@@ -324,5 +345,6 @@ eval-prompts/W3-003-session-note-soap.txt
 
 - 将 `scripts/run-deepseek-workflow-evals.ps1` 作为人工 Web 模型回归测试工具保留。
 - 已新增 `scripts/clean-eval-outputs.ps1`，用于分离 raw output 中的 prompt、思考、免责声明和最终回答，并生成 `eval-results/eval-clean-summary.v0.1.md`。
-- 下一步可扩展自动评分规则：从关键词检查升级为分维度 rubric 检查，并把每条规则映射到 workflow / RAG chunk。
+- 已扩展自动评分规则：从关键词检查升级为分维度 rubric 检查，并能为 WARN / FAIL 自动生成问题、原因和修正建议。
+- 下一步可把每条 rubric 规则进一步外置成独立 JSON 配置，并映射到 workflow / RAG chunk，便于非开发者维护。
 - 若要继续提高稳定性，可在本地接入可调用 API 的模型 eval runner，减少浏览器 UI 自动化的不确定性。
