@@ -9,3 +9,6 @@ eval-results/*.png
 # Local editor and OS noise.
 .DS_Store
 Thumbs.db
+
+# Local git worktrees.
+.worktrees/
