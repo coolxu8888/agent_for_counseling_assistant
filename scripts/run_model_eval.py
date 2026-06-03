@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import time
@@ -13,6 +14,8 @@ DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEFAULT_DEEPSEEK_TIMEOUT = 120
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = ROOT / ".env"
+DEFAULT_RESULT_DIR = ROOT / "eval-results" / "api"
+DEFAULT_MANIFEST = ROOT / "eval-prompts" / "manifest.json"
 
 
 class EvalSelectionError(ValueError):
@@ -239,6 +242,13 @@ def load_manifest_items(path):
     raise ValueError("Manifest must be a list or an object with an items list")
 
 
+def parse_ids(ids_arg):
+    if not ids_arg:
+        return None
+    ids = [item.strip() for item in ids_arg.split(",")]
+    return [item for item in ids if item] or None
+
+
 def select_eval_items(items, ids=None, run_all=False):
     if run_all:
         return list(items)
@@ -254,3 +264,85 @@ def select_eval_items(items, ids=None, run_all=False):
             raise EvalSelectionError(f"Unknown eval id: {item_id}")
         selected.append(items_by_id[item_id])
     return selected
+
+
+def run_cleaner(result_dir, manifest_path):
+    import clean_eval_outputs
+
+    result_path = Path(result_dir)
+    rows = clean_eval_outputs.clean_all(
+        result_path,
+        result_path / "clean",
+        Path(manifest_path),
+    )
+    clean_eval_outputs.write_reports(rows, result_path)
+    return rows
+
+
+def run_batch(
+    items,
+    config,
+    result_dir,
+    dry_run,
+    stop_on_error,
+    http_post_json=post_json,
+):
+    results = []
+    for item in items:
+        result = run_single_eval(
+            item,
+            config,
+            result_dir,
+            dry_run=dry_run,
+            http_post_json=http_post_json,
+        )
+        print(f"{result.eval_id}: {result.status}")
+        results.append(result)
+        if result.status == "error" and stop_on_error:
+            break
+    return results
+
+
+def build_arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ids")
+    parser.add_argument("--all", action="store_true", dest="run_all")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--no-clean", action="store_true")
+    parser.add_argument("--stop-on-error", action="store_true")
+    parser.add_argument("--result-dir", default=str(DEFAULT_RESULT_DIR))
+    parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
+    return parser
+
+
+def main(argv=None):
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+    result_dir = Path(args.result_dir)
+    manifest_path = Path(args.manifest)
+
+    try:
+        items = load_manifest_items(manifest_path)
+        selected = select_eval_items(items, parse_ids(args.ids), run_all=args.run_all)
+        config = load_deepseek_config()
+    except (EvalSelectionError, OSError, ValueError, json.JSONDecodeError) as exc:
+        print(str(exc))
+        return 2
+
+    results = run_batch(
+        selected,
+        config,
+        result_dir,
+        dry_run=args.dry_run,
+        stop_on_error=args.stop_on_error,
+    )
+
+    has_success = any(result.status == "success" for result in results)
+    if not args.dry_run and not args.no_clean and has_success:
+        run_cleaner(result_dir, manifest_path)
+
+    return 1 if any(result.status == "error" for result in results) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

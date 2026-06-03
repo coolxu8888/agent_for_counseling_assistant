@@ -334,12 +334,35 @@ def load_manifest(path: Path) -> list[dict]:
     return data.get("items", data) if isinstance(data, dict) else data
 
 
+def _discover_raw_outputs(result_dir: Path) -> list[tuple[Path, str]]:
+    raw_outputs = {}
+    for priority, pattern, suffix in (
+        (0, "*-deepseek-raw.txt", "-deepseek-raw.txt"),
+        (1, "*-deepseek-api-raw.txt", "-deepseek-api-raw.txt"),
+    ):
+        for raw_path in result_dir.glob(pattern):
+            eval_id = raw_path.name.removesuffix(suffix)
+            current = raw_outputs.get(eval_id)
+            if current is None or priority > current[0]:
+                raw_outputs[eval_id] = (priority, raw_path)
+    return [
+        (raw_path, eval_id)
+        for eval_id, (_priority, raw_path) in sorted(raw_outputs.items())
+    ]
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def clean_all(result_dir: Path, clean_dir: Path, manifest_path: Path) -> list[dict]:
     clean_dir.mkdir(parents=True, exist_ok=True)
     manifest = {item["id"]: item for item in load_manifest(manifest_path)}
     rows = []
-    for raw_path in sorted(result_dir.glob("*-deepseek-raw.txt")):
-        eval_id = raw_path.name.replace("-deepseek-raw.txt", "")
+    for raw_path, eval_id in _discover_raw_outputs(result_dir):
         raw = raw_path.read_text(encoding="utf-8")
         answer = extract_final_answer(raw, eval_id)
         clean_path = clean_dir / f"{eval_id}-clean.md"
@@ -357,8 +380,8 @@ def clean_all(result_dir: Path, clean_dir: Path, manifest_path: Path) -> list[di
                 "forbidden_hits": checks["forbidden_hits"],
                 "dimensions": rubric["dimensions"],
                 "issues": rubric["issues"],
-                "raw_file": str(raw_path.relative_to(ROOT)),
-                "clean_file": str(clean_path.relative_to(ROOT)),
+                "raw_file": display_path(raw_path),
+                "clean_file": display_path(clean_path),
                 "clean_chars": len(answer),
             }
         )

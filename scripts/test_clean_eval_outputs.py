@@ -1,7 +1,11 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from clean_eval_outputs import (
+    clean_all,
     clean_ui_text,
+    display_path,
     extract_final_answer,
     run_dimension_rubric,
     run_rule_checks,
@@ -113,6 +117,87 @@ EVAL_DONE_W2_003
         self.assertEqual(result["dimensions"]["隐私最小化"]["status"], "PASS")
         privacy_issues = result["dimensions"]["隐私最小化"]["issues"]
         self.assertEqual(privacy_issues, [])
+
+
+    def test_clean_all_supports_deepseek_api_raw_file(self):
+        with TemporaryDirectory(dir=Path.cwd()) as tmp:
+            tmp_path = Path(tmp)
+            result_dir = tmp_path / "results"
+            clean_dir = result_dir / "clean"
+            result_dir.mkdir()
+            manifest_path = tmp_path / "manifest.json"
+            manifest_path.write_text(
+                '{"items":[{"id":"W1-001","name":"API Eval","workflow":"w1"}]}',
+                encoding="utf-8",
+            )
+            raw_path = result_dir / "W1-001-deepseek-api-raw.txt"
+            raw_path.write_text(
+                "API clean answer\nEVAL_DONE_W1_001\n",
+                encoding="utf-8",
+            )
+
+            rows = clean_all(result_dir, clean_dir, manifest_path)
+            clean_text = (clean_dir / "W1-001-clean.md").read_text(encoding="utf-8")
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["id"], "W1-001")
+        self.assertEqual(rows[0]["name"], "API Eval")
+        self.assertIn("API clean answer", clean_text)
+
+    def test_clean_all_supports_external_deepseek_api_raw_file(self):
+        with TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            result_dir = tmp_path / "results"
+            clean_dir = result_dir / "clean"
+            result_dir.mkdir()
+            manifest_path = tmp_path / "manifest.json"
+            manifest_path.write_text(
+                '{"items":[{"id":"W1-002","name":"External API Eval","workflow":"w1"}]}',
+                encoding="utf-8",
+            )
+            raw_path = result_dir / "W1-002-deepseek-api-raw.txt"
+            raw_path.write_text(
+                "External API clean answer\nEVAL_DONE_W1_002\n",
+                encoding="utf-8",
+            )
+
+            rows = clean_all(result_dir, clean_dir, manifest_path)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["id"], "W1-002")
+        self.assertEqual(rows[0]["raw_file"], str(raw_path))
+        self.assertEqual(rows[0]["clean_file"], str(clean_dir / "W1-002-clean.md"))
+
+    def test_clean_all_prefers_api_raw_when_legacy_raw_has_same_eval_id(self):
+        with TemporaryDirectory(dir=Path.cwd()) as tmp:
+            tmp_path = Path(tmp)
+            result_dir = tmp_path / "results"
+            clean_dir = result_dir / "clean"
+            result_dir.mkdir()
+            manifest_path = tmp_path / "manifest.json"
+            manifest_path.write_text(
+                '{"items":[{"id":"W1-001","name":"API Eval","workflow":"w1"}]}',
+                encoding="utf-8",
+            )
+            legacy_raw_path = result_dir / "W1-001-deepseek-raw.txt"
+            api_raw_path = result_dir / "W1-001-deepseek-api-raw.txt"
+            legacy_raw_path.write_text(
+                "Legacy web answer\nEVAL_DONE_W1_001\n",
+                encoding="utf-8",
+            )
+            api_raw_path.write_text(
+                "Preferred API answer\nEVAL_DONE_W1_001\n",
+                encoding="utf-8",
+            )
+
+            rows = clean_all(result_dir, clean_dir, manifest_path)
+            clean_text = (clean_dir / "W1-001-clean.md").read_text(encoding="utf-8")
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["id"], "W1-001")
+        self.assertEqual(rows[0]["raw_file"], display_path(api_raw_path))
+        self.assertIn("Preferred API answer", clean_text)
+        self.assertNotIn("Legacy web answer", clean_text)
 
 
 if __name__ == "__main__":

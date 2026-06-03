@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import os
 import tempfile
@@ -9,10 +11,13 @@ import run_model_eval
 from run_model_eval import (
     DeepSeekConfig,
     EvalSelectionError,
+    EvalRunResult,
     build_chat_payload,
     load_deepseek_config,
     load_env_file,
     load_manifest_items,
+    parse_ids,
+    run_batch,
     run_single_eval,
     select_eval_items,
 )
@@ -144,6 +149,58 @@ class RunModelEvalTest(unittest.TestCase):
 
         with self.assertRaisesRegex(EvalSelectionError, "W9-999"):
             select_eval_items(items, ["W9-999"], run_all=False)
+
+    def test_parse_ids_trims_comma_separated_values_and_skips_empty_items(self):
+        self.assertIsNone(parse_ids(None))
+        self.assertIsNone(parse_ids(""))
+        self.assertEqual(parse_ids(" W1-001, ,W2-001 "), ["W1-001", "W2-001"])
+
+    def test_run_batch_continues_after_error_by_default(self):
+        calls = []
+
+        def fake_single(item, config, result_dir, dry_run=False, http_post_json=None):
+            calls.append(item["id"])
+            status = "error" if item["id"] == "W1-001" else "success"
+            return EvalRunResult(item["id"], status, None, Path("meta.json"))
+
+        stdout = io.StringIO()
+        with patch.object(
+            run_model_eval, "run_single_eval", fake_single
+        ), contextlib.redirect_stdout(stdout):
+            results = run_batch(
+                [{"id": "W1-001"}, {"id": "W1-002"}],
+                DeepSeekConfig(api_key="key"),
+                Path("results"),
+                dry_run=False,
+                stop_on_error=False,
+                http_post_json=lambda *_args: None,
+            )
+
+        self.assertEqual(calls, ["W1-001", "W1-002"])
+        self.assertEqual([result.status for result in results], ["error", "success"])
+
+    def test_run_batch_stops_after_error_when_requested(self):
+        calls = []
+
+        def fake_single(item, config, result_dir, dry_run=False, http_post_json=None):
+            calls.append(item["id"])
+            return EvalRunResult(item["id"], "error", None, Path("meta.json"))
+
+        stdout = io.StringIO()
+        with patch.object(
+            run_model_eval, "run_single_eval", fake_single
+        ), contextlib.redirect_stdout(stdout):
+            results = run_batch(
+                [{"id": "W1-001"}, {"id": "W1-002"}],
+                DeepSeekConfig(api_key="key"),
+                Path("results"),
+                dry_run=False,
+                stop_on_error=True,
+                http_post_json=lambda *_args: None,
+            )
+
+        self.assertEqual(calls, ["W1-001"])
+        self.assertEqual([result.eval_id for result in results], ["W1-001"])
 
     def test_load_manifest_items_accepts_object_with_items_list(self):
         with tempfile.TemporaryDirectory() as tmp:
