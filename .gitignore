@@ -12,3 +12,8 @@ Thumbs.db
 
 # Local git worktrees.
 .worktrees/
+
+# Local API secrets.
+.env
+.env.*
+!.env.example
