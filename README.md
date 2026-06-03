@@ -155,3 +155,21 @@ v0.2 可以继续扩展：
 - 访谈问题提纲
 - 阶段性 Road Map
 - 报告生成与机构模板适配
+
+## DeepSeek API Eval Runner
+
+Create a local `.env` from `.env.example` and set `DEEPSEEK_API_KEY`.
+
+Dry-run selected evals:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-model-eval.ps1 -Ids W1-001,W3-001 -DryRun
+```
+
+Run selected evals against the API:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-model-eval.ps1 -Ids W1-001,W3-001
+```
+
+API results are written to `eval-results/api/`.
