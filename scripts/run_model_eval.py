@@ -236,10 +236,24 @@ def load_manifest_items(path):
     manifest_path = Path(path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if isinstance(manifest, list):
-        return manifest
-    if isinstance(manifest, dict) and isinstance(manifest.get("items"), list):
-        return manifest["items"]
-    raise ValueError("Manifest must be a list or an object with an items list")
+        items = manifest
+    elif isinstance(manifest, dict) and isinstance(manifest.get("items"), list):
+        items = manifest["items"]
+    else:
+        raise ValueError("Manifest must be a list or an object with an items list")
+
+    resolved_items = []
+    for item in items:
+        resolved_item = dict(item)
+        prompt_file = resolved_item.get("prompt_file")
+        if prompt_file:
+            prompt_path = Path(prompt_file)
+            if not prompt_path.is_absolute():
+                resolved_item["prompt_file"] = str(
+                    (manifest_path.parent / prompt_path).resolve()
+                )
+        resolved_items.append(resolved_item)
+    return resolved_items
 
 
 def parse_ids(ids_arg):

@@ -226,6 +226,73 @@ class RunModelEvalTest(unittest.TestCase):
 
         self.assertEqual([item["id"] for item in items], ["W1-001", "W1-002"])
 
+    def test_load_manifest_items_resolves_object_relative_prompt_files_from_manifest_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest_path = tmp_path / "manifests" / "manifest.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text(
+                json.dumps(
+                    {
+                        "items": [
+                            {
+                                "id": "W1-001",
+                                "prompt_file": "../prompts/prompt.txt",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            original_cwd = Path.cwd()
+            os.chdir(tmp_path)
+            try:
+                items = load_manifest_items(manifest_path)
+            finally:
+                os.chdir(original_cwd)
+
+        self.assertEqual(
+            items[0]["prompt_file"],
+            str((manifest_path.parent / "../prompts/prompt.txt").resolve()),
+        )
+
+    def test_load_manifest_items_resolves_list_relative_prompt_files_from_manifest_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest_path = tmp_path / "manifests" / "manifest.json"
+            manifest_path.parent.mkdir()
+            manifest_path.write_text(
+                json.dumps([{"id": "W1-001", "prompt_file": "../prompts/prompt.txt"}]),
+                encoding="utf-8",
+            )
+
+            original_cwd = Path.cwd()
+            os.chdir(tmp_path)
+            try:
+                items = load_manifest_items(manifest_path)
+            finally:
+                os.chdir(original_cwd)
+
+        self.assertEqual(
+            items[0]["prompt_file"],
+            str((manifest_path.parent / "../prompts/prompt.txt").resolve()),
+        )
+
+    def test_load_manifest_items_keeps_absolute_prompt_files_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            prompt_path = tmp_path / "prompts" / "prompt.txt"
+            manifest_path = tmp_path / "manifest.json"
+            manifest_path.write_text(
+                json.dumps([{"id": "W1-001", "prompt_file": str(prompt_path)}]),
+                encoding="utf-8",
+            )
+
+            items = load_manifest_items(manifest_path)
+
+        self.assertEqual(items[0]["prompt_file"], str(prompt_path))
+
     def test_run_single_eval_dry_run_writes_only_metadata_and_never_calls_http(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
