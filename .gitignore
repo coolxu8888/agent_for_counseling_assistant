@@ -17,3 +17,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Local agent run artifacts. May contain sensitive counseling material.
+agent-runs/
