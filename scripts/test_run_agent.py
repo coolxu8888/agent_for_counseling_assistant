@@ -15,6 +15,7 @@ from run_agent import (
     run_agent_once,
     selected_chunk_ids_for_workflow,
 )
+from run_model_eval import DeepSeekConfig
 
 
 class RunAgentTest(unittest.TestCase):
@@ -190,6 +191,93 @@ class RunAgentTest(unittest.TestCase):
             ["session-notes-risk-change-documentation-001"],
         )
         self.assertIn("来访者本次谈到很委屈。", prompt)
+
+    def test_run_agent_once_api_success_writes_clean_output_and_safety_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
+            run_root = tmp_path / "agent-runs"
+            calls = []
+
+            def fake_post_json(url, headers, payload, timeout):
+                calls.append((url, headers, payload, timeout))
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    "本次咨询记录\n"
+                                    "本次主题\n"
+                                    "来访者状态\n"
+                                    "咨询师干预\n"
+                                    "风险变化\n"
+                                    "材料中未提供风险相关信息，建议咨询师按需进一步评估。\n"
+                                    "下次咨询重点\n"
+                                    "咨询记录\n"
+                                    "AGENT_DONE_W3\n"
+                                )
+                            },
+                            "finish_reason": "stop",
+                        }
+                    ],
+                    "usage": {"total_tokens": 123},
+                }
+
+            result = run_agent_once(
+                workflow_value="W3",
+                inline_input="来访者本次谈到很委屈。",
+                input_file=None,
+                run_root=run_root,
+                retrieval_map_path=retrieval_map_path,
+                rag_root=rag_root,
+                dry_run=False,
+                config=DeepSeekConfig(api_key="secret-key", model="deepseek-test"),
+                http_post_json=fake_post_json,
+                now=datetime(2026, 6, 9, 14, 30, 12, tzinfo=timezone.utc),
+            )
+
+            raw_output = (result.run_dir / "raw_output.txt").read_text(encoding="utf-8")
+            clean_output = (result.run_dir / "clean_output.md").read_text(encoding="utf-8")
+            metadata = json.loads((result.run_dir / "metadata.json").read_text(encoding="utf-8"))
+            safety = json.loads((result.run_dir / "safety_check.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "success")
+        self.assertEqual(calls[0][2]["model"], "deepseek-test")
+        self.assertIn("AGENT_DONE_W3", raw_output)
+        self.assertNotIn("AGENT_DONE_W3", clean_output)
+        self.assertEqual(metadata["status"], "success")
+        self.assertEqual(metadata["usage"], {"total_tokens": 123})
+        self.assertEqual(safety["rubric_status"], "PASS")
+
+    def test_run_agent_once_api_error_redacts_key_and_skips_raw_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
+
+            def fake_post_json(_url, _headers, _payload, _timeout):
+                raise RuntimeError("boom secret-key")
+
+            result = run_agent_once(
+                workflow_value="W3",
+                inline_input="来访者本次谈到很委屈。",
+                input_file=None,
+                run_root=tmp_path / "agent-runs",
+                retrieval_map_path=retrieval_map_path,
+                rag_root=rag_root,
+                dry_run=False,
+                config=DeepSeekConfig(api_key="secret-key", model="deepseek-test"),
+                http_post_json=fake_post_json,
+            )
+
+            metadata_text = (result.run_dir / "metadata.json").read_text(encoding="utf-8")
+            metadata = json.loads(metadata_text)
+
+        self.assertEqual(result.status, "error")
+        self.assertEqual(metadata["status"], "error")
+        self.assertEqual(metadata["error_type"], "api_error")
+        self.assertIn("[REDACTED]", metadata_text)
+        self.assertNotIn("secret-key", metadata_text)
+        self.assertFalse((result.run_dir / "raw_output.txt").exists())
 
 
 if __name__ == "__main__":

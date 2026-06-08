@@ -6,6 +6,15 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from clean_eval_outputs import run_dimension_rubric, run_rule_checks
+from run_model_eval import (
+    build_chat_payload,
+    deepseek_chat_completions_url,
+    extract_answer_text,
+    load_deepseek_config,
+    post_json,
+)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RETRIEVAL_MAP = ROOT / "rag" / "retrieval-map.v0.1.json"
@@ -207,6 +216,18 @@ def write_json(path, data):
     )
 
 
+def _safe_error_message(error):
+    message = str(error).replace("\r", " ").replace("\n", " ")
+    return message[:500]
+
+
+def _redact_secret(message, secret):
+    sanitized = _safe_error_message(message)
+    if secret:
+        sanitized = sanitized.replace(secret, "[REDACTED]")
+    return sanitized
+
+
 def _metadata_rag_chunks(chunks):
     return [
         {
@@ -215,6 +236,28 @@ def _metadata_rag_chunks(chunks):
         }
         for chunk in chunks
     ]
+
+
+def strip_agent_marker(text, workflow):
+    lines = []
+    for line in text.splitlines():
+        if line.strip() == workflow.completion_marker:
+            break
+        lines.append(line)
+    return "\n".join(lines).strip() + "\n"
+
+
+def run_safety_check(workflow, clean_answer):
+    rule_result = run_rule_checks(workflow.eval_id, clean_answer)
+    rubric_result = run_dimension_rubric(workflow.eval_id, clean_answer)
+    return {
+        "status": rule_result["status"],
+        "rubric_status": rubric_result["status"],
+        "missing_required": rule_result["missing_required"],
+        "forbidden_hits": rule_result["forbidden_hits"],
+        "issues": rubric_result["issues"],
+        "dimensions": rubric_result["dimensions"],
+    }
 
 
 def run_agent_once(
@@ -228,6 +271,7 @@ def run_agent_once(
     dry_run=False,
     no_clean=False,
     model_override=None,
+    config=None,
     http_post_json=None,
     now=None,
 ):
@@ -268,4 +312,65 @@ def run_agent_once(
         )
         return AgentRunResult(workflow.workflow_id, "dry_run", output_dir)
 
-    raise NotImplementedError("API execution is implemented in the next task.")
+    api_config = config or load_deepseek_config()
+    if model_override:
+        api_config = type(api_config)(
+            api_key=api_config.api_key,
+            model=model_override,
+            base_url=api_config.base_url,
+            timeout_seconds=api_config.timeout_seconds,
+        )
+    http_post_json = http_post_json or post_json
+    payload = build_chat_payload(api_config.model, prompt_package)
+    url = deepseek_chat_completions_url(api_config.base_url)
+    headers = {"Authorization": f"Bearer {api_config.api_key}"}
+    started = time.monotonic()
+
+    try:
+        response_json = http_post_json(url, headers, payload, api_config.timeout_seconds)
+        answer = extract_answer_text(response_json)
+    except Exception as exc:
+        write_json(
+            output_dir / "metadata.json",
+            {
+                "status": "error",
+                "error_type": "api_error",
+                "error_message": _redact_secret(exc, api_config.api_key),
+                "workflow": workflow.workflow_id,
+                "workflow_name": workflow.name,
+                "provider": "deepseek",
+                "model": api_config.model,
+                "selected_rag_chunks": chunk_ids,
+                "rag_chunks": _metadata_rag_chunks(chunks),
+                "created_at": _isoformat(created_at),
+                "latency_seconds": time.monotonic() - started,
+            },
+        )
+        return AgentRunResult(workflow.workflow_id, "error", output_dir)
+
+    (output_dir / "raw_output.txt").write_text(answer.rstrip("\n") + "\n", encoding="utf-8")
+    clean_answer = strip_agent_marker(answer, workflow)
+    safety_check = None
+    if not no_clean:
+        (output_dir / "clean_output.md").write_text(clean_answer, encoding="utf-8")
+        safety_check = run_safety_check(workflow, clean_answer)
+        write_json(output_dir / "safety_check.json", safety_check)
+
+    metadata = {
+        "status": "success",
+        "workflow": workflow.workflow_id,
+        "workflow_name": workflow.name,
+        "provider": "deepseek",
+        "model": api_config.model,
+        "selected_rag_chunks": chunk_ids,
+        "rag_chunks": _metadata_rag_chunks(chunks),
+        "created_at": _isoformat(created_at),
+        "latency_seconds": time.monotonic() - started,
+    }
+    if "usage" in response_json:
+        metadata["usage"] = response_json["usage"]
+    if safety_check is not None:
+        metadata["safety_status"] = safety_check["status"]
+        metadata["rubric_status"] = safety_check["rubric_status"]
+    write_json(output_dir / "metadata.json", metadata)
+    return AgentRunResult(workflow.workflow_id, "success", output_dir)
