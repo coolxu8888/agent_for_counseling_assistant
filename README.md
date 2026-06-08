@@ -39,6 +39,7 @@ v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系
 | `scripts/build-workflow-eval-prompts.ps1` | 生成三个 P0 workflow 的典型回归测试 prompt 文件 |
 | `scripts/run-deepseek-workflow-evals.ps1` | 通过外部 Edge 自动发送 workflow eval prompt 并保存 raw output |
 | `scripts/clean-eval-outputs.ps1` | 清洗 raw output，提取最终回答，并生成自动规则检查与分维度 rubric 汇总 |
+| `scripts/run-agent.ps1` | 本地 v0.1 Agent Runner：指定 W1/W2/W3，组装 RAG prompt，调用 DeepSeek，并保存运行产物 |
 | `eval-prompts/` | 三个 P0 workflow 的回归测试 prompt 文件 |
 | `eval-results/` | DeepSeek Web 回归测试的 raw output、clean output 和检查汇总 |
 | `counseling-agent-mvp.md` | 初访信息收集表三版本的早期 MVP 内容 |
@@ -134,6 +135,32 @@ eval-results/eval-rubric-summary.v0.1.json
 ```text
 路由正确、结构正确、RAG 使用合理、无诊断、无编造、风险处理、边界清晰、隐私最小化、v0.1 范围
 ```
+
+本地运行 v0.1 Agent Runner dry run，不调用 API，只生成 prompt package：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。" -DryRun
+```
+
+本地运行 v0.1 Agent Runner 并调用 DeepSeek API：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。"
+```
+
+从文本文件读取输入：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -InputFile notes.md -DryRun
+```
+
+运行产物会保存到：
+
+```text
+agent-runs/<timestamp>-<workflow>/
+```
+
+每次运行会保存 `input.json`、`prompt_package.txt`、`metadata.json`；真实 API 调用成功后还会保存 `raw_output.txt`、`clean_output.md` 和 `safety_check.json`。
 
 ## v0.1 不做的事
 

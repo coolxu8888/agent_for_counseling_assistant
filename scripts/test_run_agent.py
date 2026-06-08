@@ -1,8 +1,11 @@
 import tempfile
 import unittest
 import json
-from datetime import datetime, timezone
+import contextlib
+import io
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from run_agent import (
     AgentInputError,
@@ -11,11 +14,16 @@ from run_agent import (
     load_rag_chunks,
     load_retrieval_map,
     normalize_workflow,
+    main,
+    parse_args,
     read_user_input,
     run_agent_once,
     selected_chunk_ids_for_workflow,
 )
 from run_model_eval import DeepSeekConfig
+
+
+LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 
 
 class RunAgentTest(unittest.TestCase):
@@ -174,7 +182,7 @@ class RunAgentTest(unittest.TestCase):
                 retrieval_map_path=retrieval_map_path,
                 rag_root=rag_root,
                 dry_run=True,
-                now=datetime(2026, 6, 9, 14, 30, 12, tzinfo=timezone.utc),
+                now=datetime(2026, 6, 9, 14, 30, 12, tzinfo=LOCAL_TIMEZONE),
             )
 
             input_data = json.loads((result.run_dir / "input.json").read_text(encoding="utf-8"))
@@ -233,7 +241,7 @@ class RunAgentTest(unittest.TestCase):
                 dry_run=False,
                 config=DeepSeekConfig(api_key="secret-key", model="deepseek-test"),
                 http_post_json=fake_post_json,
-                now=datetime(2026, 6, 9, 14, 30, 12, tzinfo=timezone.utc),
+                now=datetime(2026, 6, 9, 14, 30, 12, tzinfo=LOCAL_TIMEZONE),
             )
 
             raw_output = (result.run_dir / "raw_output.txt").read_text(encoding="utf-8")
@@ -278,6 +286,36 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn("[REDACTED]", metadata_text)
         self.assertNotIn("secret-key", metadata_text)
         self.assertFalse((result.run_dir / "raw_output.txt").exists())
+
+    def test_parse_args_accepts_dry_run_command(self):
+        args = parse_args(["--workflow", "W3", "--input", "text", "--dry-run"])
+
+        self.assertEqual(args.workflow, "W3")
+        self.assertEqual(args.input, "text")
+        self.assertTrue(args.dry_run)
+
+    def test_main_returns_nonzero_for_unknown_workflow(self):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            code = main(["--workflow", "nope", "--input", "text", "--dry-run"])
+
+        self.assertEqual(code, 2)
+        self.assertIn("Accepted workflows", stderr.getvalue())
+
+    def test_main_prints_run_dir_on_success(self):
+        stdout = io.StringIO()
+
+        class Result:
+            workflow_id = "W3"
+            status = "dry_run"
+            run_dir = Path("agent-runs/fake-W3")
+
+        with patch("run_agent.run_agent_once", return_value=Result()):
+            with contextlib.redirect_stdout(stdout):
+                code = main(["--workflow", "W3", "--input", "text", "--dry-run"])
+
+        self.assertEqual(code, 0)
+        self.assertIn("agent-runs", stdout.getvalue())
 
 
 if __name__ == "__main__":

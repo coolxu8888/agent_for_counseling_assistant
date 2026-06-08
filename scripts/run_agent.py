@@ -1,9 +1,10 @@
 import argparse
 import json
 import re
+import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from clean_eval_outputs import run_dimension_rubric, run_rule_checks
@@ -20,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RETRIEVAL_MAP = ROOT / "rag" / "retrieval-map.v0.1.json"
 DEFAULT_RUN_ROOT = ROOT / "agent-runs"
 DEFAULT_RAG_ROOT = ROOT / "rag"
+LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 
 
 class AgentInputError(ValueError):
@@ -198,11 +200,11 @@ def build_prompt_package(workflow, user_input, rag_chunks):
 
 
 def _isoformat(dt):
-    return dt.astimezone(timezone.utc).isoformat()
+    return dt.astimezone(LOCAL_TIMEZONE).isoformat()
 
 
 def create_run_dir(run_root=DEFAULT_RUN_ROOT, workflow_id="W", now=None):
-    timestamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    timestamp = (now or datetime.now(LOCAL_TIMEZONE)).astimezone(LOCAL_TIMEZONE)
     dirname = timestamp.strftime("%Y-%m-%d-%H%M%S") + f"-{workflow_id}"
     run_dir = Path(run_root) / dirname
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -277,7 +279,7 @@ def run_agent_once(
 ):
     workflow = normalize_workflow(workflow_value)
     input_source, user_input = read_user_input(inline_input, input_file)
-    created_at = now or datetime.now(timezone.utc)
+    created_at = now or datetime.now(LOCAL_TIMEZONE)
     output_dir = Path(run_dir) if run_dir else create_run_dir(run_root, workflow.workflow_id, created_at)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -374,3 +376,49 @@ def run_agent_once(
         metadata["rubric_status"] = safety_check["rubric_status"]
     write_json(output_dir / "metadata.json", metadata)
     return AgentRunResult(workflow.workflow_id, "success", output_dir)
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Run counselor assistant v0.1 workflows locally.")
+    parser.add_argument("--workflow", required=True, help="Workflow: W1/intake, W2/case, W3/session.")
+    parser.add_argument("--input", dest="input", default=None, help="Inline user input.")
+    parser.add_argument("--input-file", dest="input_file", default=None, help="UTF-8 text/markdown input file.")
+    parser.add_argument("--run-root", dest="run_root", default=str(DEFAULT_RUN_ROOT), help="Root folder for timestamped agent runs.")
+    parser.add_argument("--run-dir", dest="run_dir", default=None, help="Explicit output folder for this run.")
+    parser.add_argument("--retrieval-map", dest="retrieval_map_path", default=str(DEFAULT_RETRIEVAL_MAP), help="Path to retrieval-map JSON.")
+    parser.add_argument("--rag-root", dest="rag_root", default=str(DEFAULT_RAG_ROOT), help="Path to RAG root folder.")
+    parser.add_argument("--dry-run", action="store_true", help="Build prompt package without calling DeepSeek.")
+    parser.add_argument("--no-clean", action="store_true", help="Save raw output only; skip clean output and safety check.")
+    parser.add_argument("--model", dest="model", default=None, help="Override DEEPSEEK_MODEL for this run.")
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        result = run_agent_once(
+            workflow_value=args.workflow,
+            inline_input=args.input,
+            input_file=args.input_file,
+            run_root=Path(args.run_root),
+            run_dir=Path(args.run_dir) if args.run_dir else None,
+            retrieval_map_path=Path(args.retrieval_map_path),
+            rag_root=Path(args.rag_root),
+            dry_run=args.dry_run,
+            no_clean=args.no_clean,
+            model_override=args.model,
+        )
+    except AgentInputError as exc:
+        print(f"Input error: {exc}", file=sys.stderr)
+        return 2
+    except (AgentRunError, ValueError) as exc:
+        print(f"Run error: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"Agent run status: {result.status}")
+    print(f"Run directory: {result.run_dir}")
+    return 0 if result.status in {"success", "dry_run"} else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
