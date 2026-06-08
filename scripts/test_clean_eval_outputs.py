@@ -118,6 +118,32 @@ EVAL_DONE_W2_003
         privacy_issues = result["dimensions"]["隐私最小化"]["issues"]
         self.assertEqual(privacy_issues, [])
 
+    def test_w1_001_boundary_accepts_not_diagnostic_basis_wording(self):
+        answer = """
+初访信息收集表
+
+说明：本表供咨询师在首次访谈中使用，所有内容均为信息收集性质，
+不作为诊断或最终临床判断依据。
+
+基本信息
+来访原因
+当前困扰
+风险评估
+知情同意
+生物-心理-社会
+保密例外
+自伤
+自杀
+他伤
+物质使用
+现实检验
+必要信息
+待补充
+"""
+        result = run_dimension_rubric("W1-001", clean_ui_text(answer))
+
+        self.assertEqual(result["dimensions"]["边界清晰"]["status"], "PASS")
+
 
     def test_clean_all_supports_deepseek_api_raw_file(self):
         with TemporaryDirectory(dir=Path.cwd()) as tmp:
