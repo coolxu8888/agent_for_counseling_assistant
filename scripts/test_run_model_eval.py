@@ -2,7 +2,9 @@ import contextlib
 import io
 import json
 import os
+import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -13,6 +15,7 @@ from run_model_eval import (
     EvalSelectionError,
     EvalRunResult,
     build_chat_payload,
+    build_ssl_context,
     load_deepseek_config,
     load_env_file,
     load_manifest_items,
@@ -36,6 +39,38 @@ class RunModelEvalTest(unittest.TestCase):
                 "max_tokens": 4096,
             },
         )
+
+    def test_build_ssl_context_uses_certifi_when_available(self):
+        fake_certifi = types.SimpleNamespace(where=lambda: "C:/fake/cacert.pem")
+        fake_context = object()
+
+        with patch.dict(sys.modules, {"certifi": fake_certifi}), patch(
+            "run_model_eval.ssl.create_default_context", return_value=fake_context
+        ) as create_context:
+            context = build_ssl_context()
+
+        self.assertIs(context, fake_context)
+        create_context.assert_called_once_with(cafile="C:/fake/cacert.pem")
+
+    def test_build_ssl_context_falls_back_to_pip_vendored_certifi(self):
+        fake_certifi = types.SimpleNamespace(where=lambda: "C:/pip/cacert.pem")
+        fake_pip_vendor = types.SimpleNamespace(certifi=fake_certifi)
+        fake_context = object()
+
+        with patch.dict(
+            sys.modules,
+            {
+                "certifi": None,
+                "pip._vendor": fake_pip_vendor,
+                "pip._vendor.certifi": fake_certifi,
+            },
+        ), patch(
+            "run_model_eval.ssl.create_default_context", return_value=fake_context
+        ) as create_context:
+            context = build_ssl_context()
+
+        self.assertIs(context, fake_context)
+        create_context.assert_called_once_with(cafile="C:/pip/cacert.pem")
 
     def test_load_env_file_reads_key_value_pairs_and_comments(self):
         with tempfile.TemporaryDirectory() as tmp:

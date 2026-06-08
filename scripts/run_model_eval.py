@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -73,6 +74,18 @@ def _safe_error_message(error):
     return message[:500]
 
 
+def build_ssl_context():
+    certifi_module = None
+    try:
+        import certifi as certifi_module
+    except ImportError:
+        try:
+            from pip._vendor import certifi as certifi_module
+        except ImportError:
+            return None
+    return ssl.create_default_context(cafile=certifi_module.where())
+
+
 def post_json(url, headers, payload, timeout):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     request = urllib.request.Request(
@@ -81,8 +94,12 @@ def post_json(url, headers, payload, timeout):
         headers={**headers, "Content-Type": "application/json"},
         method="POST",
     )
+    urlopen_kwargs = {"timeout": timeout}
+    ssl_context = build_ssl_context()
+    if ssl_context is not None:
+        urlopen_kwargs["context"] = ssl_context
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(request, **urlopen_kwargs) as response:
             response_body = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"HTTP {exc.code}: {_safe_error_message(exc.reason)}") from exc
