@@ -1,5 +1,7 @@
 import tempfile
 import unittest
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 from run_agent import (
@@ -10,11 +12,42 @@ from run_agent import (
     load_retrieval_map,
     normalize_workflow,
     read_user_input,
+    run_agent_once,
     selected_chunk_ids_for_workflow,
 )
 
 
 class RunAgentTest(unittest.TestCase):
+    def make_rag_fixture(self, tmp_path):
+        rag_root = tmp_path / "rag"
+        chunk_path = rag_root / "session-notes" / "risk-change-documentation.md"
+        chunk_path.parent.mkdir(parents=True)
+        chunk_path.write_text(
+            "---\nchunk_id: session-notes-risk-change-documentation-001\n---\n\n# 核心规则\n风险变化必须单独列出。\n",
+            encoding="utf-8",
+        )
+        retrieval_map_path = tmp_path / "retrieval-map.json"
+        retrieval_map_path.write_text(
+            json.dumps(
+                {
+                    "workflows": {
+                        "workflow_3_session_note": {
+                            "intent_routes": [
+                                {
+                                    "intent": "普通 session 记录",
+                                    "priority_chunks": [
+                                        "session-notes-risk-change-documentation-001"
+                                    ],
+                                }
+                            ]
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        return rag_root, retrieval_map_path
+
     def test_normalize_workflow_accepts_aliases(self):
         self.assertEqual(normalize_workflow("W1").workflow_id, "W1")
         self.assertEqual(normalize_workflow("intake").workflow_id, "W1")
@@ -125,6 +158,38 @@ class RunAgentTest(unittest.TestCase):
             loaded = load_retrieval_map(path)
 
         self.assertEqual(loaded, {"workflows": {}})
+
+    def test_run_agent_once_dry_run_persists_prompt_package(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
+            run_root = tmp_path / "agent-runs"
+
+            result = run_agent_once(
+                workflow_value="W3",
+                inline_input="来访者本次谈到很委屈。",
+                input_file=None,
+                run_root=run_root,
+                retrieval_map_path=retrieval_map_path,
+                rag_root=rag_root,
+                dry_run=True,
+                now=datetime(2026, 6, 9, 14, 30, 12, tzinfo=timezone.utc),
+            )
+
+            input_data = json.loads((result.run_dir / "input.json").read_text(encoding="utf-8"))
+            metadata = json.loads((result.run_dir / "metadata.json").read_text(encoding="utf-8"))
+            prompt = (result.run_dir / "prompt_package.txt").read_text(encoding="utf-8")
+
+        self.assertEqual(result.status, "dry_run")
+        self.assertEqual(result.run_dir.name, "2026-06-09-143012-W3")
+        self.assertEqual(input_data["workflow"], "W3")
+        self.assertEqual(input_data["input_source"], "inline")
+        self.assertEqual(metadata["status"], "dry_run")
+        self.assertEqual(
+            metadata["selected_rag_chunks"],
+            ["session-notes-risk-change-documentation-001"],
+        )
+        self.assertIn("来访者本次谈到很委屈。", prompt)
 
 
 if __name__ == "__main__":

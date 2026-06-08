@@ -30,6 +30,13 @@ class WorkflowSpec:
     completion_marker: str
 
 
+@dataclass(frozen=True)
+class AgentRunResult:
+    workflow_id: str
+    status: str
+    run_dir: Path
+
+
 WORKFLOWS = {
     "W1": WorkflowSpec(
         workflow_id="W1",
@@ -179,3 +186,86 @@ def build_prompt_package(workflow, user_input, rag_chunks):
             f"回答末尾单独输出一行：{workflow.completion_marker}",
         ]
     )
+
+
+def _isoformat(dt):
+    return dt.astimezone(timezone.utc).isoformat()
+
+
+def create_run_dir(run_root=DEFAULT_RUN_ROOT, workflow_id="W", now=None):
+    timestamp = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    dirname = timestamp.strftime("%Y-%m-%d-%H%M%S") + f"-{workflow_id}"
+    run_dir = Path(run_root) / dirname
+    run_dir.mkdir(parents=True, exist_ok=False)
+    return run_dir
+
+
+def write_json(path, data):
+    Path(path).write_text(
+        json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _metadata_rag_chunks(chunks):
+    return [
+        {
+            "chunk_id": chunk["chunk_id"],
+            "path": str(chunk["path"]),
+        }
+        for chunk in chunks
+    ]
+
+
+def run_agent_once(
+    workflow_value,
+    inline_input=None,
+    input_file=None,
+    run_root=DEFAULT_RUN_ROOT,
+    run_dir=None,
+    retrieval_map_path=DEFAULT_RETRIEVAL_MAP,
+    rag_root=DEFAULT_RAG_ROOT,
+    dry_run=False,
+    no_clean=False,
+    model_override=None,
+    http_post_json=None,
+    now=None,
+):
+    workflow = normalize_workflow(workflow_value)
+    input_source, user_input = read_user_input(inline_input, input_file)
+    created_at = now or datetime.now(timezone.utc)
+    output_dir = Path(run_dir) if run_dir else create_run_dir(run_root, workflow.workflow_id, created_at)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    retrieval_map = load_retrieval_map(retrieval_map_path)
+    chunk_ids = selected_chunk_ids_for_workflow(workflow, retrieval_map)
+    chunks = load_rag_chunks(chunk_ids, rag_root)
+    prompt_package = build_prompt_package(workflow, user_input, chunks)
+
+    write_json(
+        output_dir / "input.json",
+        {
+            "workflow": workflow.workflow_id,
+            "workflow_name": workflow.name,
+            "input_source": input_source,
+            "user_input": user_input,
+            "created_at": _isoformat(created_at),
+        },
+    )
+    (output_dir / "prompt_package.txt").write_text(prompt_package, encoding="utf-8")
+
+    if dry_run:
+        write_json(
+            output_dir / "metadata.json",
+            {
+                "status": "dry_run",
+                "workflow": workflow.workflow_id,
+                "workflow_name": workflow.name,
+                "selected_rag_chunks": chunk_ids,
+                "rag_chunks": _metadata_rag_chunks(chunks),
+                "created_at": _isoformat(created_at),
+            },
+        )
+        return AgentRunResult(workflow.workflow_id, "dry_run", output_dir)
+
+    raise NotImplementedError("API execution is implemented in the next task.")
