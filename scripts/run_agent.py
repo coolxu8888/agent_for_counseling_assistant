@@ -288,6 +288,43 @@ def run_safety_check(workflow, clean_answer):
     }
 
 
+def structured_failure(workflow, message, path="structured_output"):
+    return {
+        "status": "FAIL",
+        "workflow": workflow.workflow_id,
+        "issues": [
+            {
+                "level": "ERROR",
+                "path": path,
+                "message": message,
+            }
+        ],
+    }
+
+
+def _text_before_marker(text, workflow):
+    lines = []
+    for line in text.splitlines():
+        normalized = line.strip().strip("*_` ")
+        if normalized == workflow.completion_marker:
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def extract_structured_json(raw_text, workflow):
+    text = _text_before_marker(raw_text, workflow)
+    blocks = re.findall(r"```json\s*(.*?)\s*```", text, flags=re.IGNORECASE | re.DOTALL)
+    if not blocks:
+        return None, structured_failure(workflow, "No fenced JSON block found")
+    block = blocks[-1]
+    try:
+        data = json.loads(block)
+    except json.JSONDecodeError as exc:
+        return None, structured_failure(workflow, f"JSON parse error: {exc}", path="json")
+    return data, {"status": "PASS", "workflow": workflow.workflow_id, "issues": []}
+
+
 def run_agent_once(
     workflow_value,
     inline_input=None,

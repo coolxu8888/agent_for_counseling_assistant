@@ -11,6 +11,7 @@ from run_agent import (
     AgentInputError,
     AgentRunError,
     build_prompt_package,
+    extract_structured_json,
     load_rag_chunks,
     load_retrieval_map,
     normalize_workflow,
@@ -20,6 +21,7 @@ from run_agent import (
     run_agent_once,
     selected_chunk_ids_for_workflow,
     strip_agent_marker,
+    structured_failure,
 )
 from run_model_eval import DeepSeekConfig
 
@@ -183,6 +185,52 @@ class RunAgentTest(unittest.TestCase):
         clean = strip_agent_marker("正文\n**AGENT_DONE_W3**\n", normalize_workflow("W3"))
 
         self.assertEqual(clean, "正文\n")
+
+    def test_extract_structured_json_parses_last_fenced_json_block(self):
+        workflow = normalize_workflow("W3")
+        raw = """
+正文
+```json
+{"workflow": "old"}
+```
+更多正文
+```json
+{"workflow": "W3", "document_type": "session_note"}
+```
+AGENT_DONE_W3
+"""
+
+        data, check = extract_structured_json(raw, workflow)
+
+        self.assertEqual(data["workflow"], "W3")
+        self.assertEqual(data["document_type"], "session_note")
+        self.assertEqual(check["status"], "PASS")
+
+    def test_extract_structured_json_handles_markdown_wrapped_marker(self):
+        workflow = normalize_workflow("W3")
+        raw = '正文\n```json\n{"workflow": "W3"}\n```\n**AGENT_DONE_W3**\n'
+
+        data, check = extract_structured_json(raw, workflow)
+
+        self.assertEqual(data, {"workflow": "W3"})
+        self.assertEqual(check["status"], "PASS")
+
+    def test_extract_structured_json_missing_block_returns_fail_check(self):
+        workflow = normalize_workflow("W3")
+
+        data, check = extract_structured_json("正文\nAGENT_DONE_W3\n", workflow)
+
+        self.assertIsNone(data)
+        self.assertEqual(check["status"], "FAIL")
+        self.assertIn("No fenced JSON block", check["issues"][0]["message"])
+
+    def test_structured_failure_uses_issue_shape(self):
+        check = structured_failure(normalize_workflow("W3"), "bad json", path="json")
+
+        self.assertEqual(check["status"], "FAIL")
+        self.assertEqual(check["workflow"], "W3")
+        self.assertEqual(check["issues"][0]["level"], "ERROR")
+        self.assertEqual(check["issues"][0]["path"], "json")
 
     def test_load_retrieval_map_reads_json(self):
         with tempfile.TemporaryDirectory() as tmp:
