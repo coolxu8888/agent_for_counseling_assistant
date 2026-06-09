@@ -10,6 +10,7 @@ from run_model_eval import (
     build_chat_payload,
     deepseek_chat_completions_url,
     extract_answer_text,
+    load_deepseek_config,
     post_json,
 )
 
@@ -707,6 +708,7 @@ def parse_args(argv=None):
     parser.add_argument("--source-paths-output", default=None, help="Optional path to write source_paths.json.")
     parser.add_argument("--mapping-output", default=None, help="Optional path to write deterministic template_mapping.json.")
     parser.add_argument("--mapping-input", default=None, help="Optional reviewed template_mapping.json to use for filling.")
+    parser.add_argument("--llm-map", action="store_true", help="Use DeepSeek to map unresolved slots to allowed source paths.")
     return parser.parse_args(argv)
 
 
@@ -737,6 +739,13 @@ def write_mapping_artifacts(args):
         mapping = json.loads(Path(args.mapping_input).read_text(encoding="utf-8"))
     else:
         mapping = build_template_mapping(slots, source_paths)
+        if args.llm_map:
+            llm_result = run_deepseek_template_mapping(mapping, source_paths, load_deepseek_config())
+            mapping = llm_result["mapping"]
+            if llm_result["llm_status"] == "error":
+                mapping.setdefault("llm_issues", []).extend(llm_result["llm_issues"])
+            else:
+                mapping["llm_status"] = llm_result["llm_status"]
 
     if args.mapping_output:
         write_json_file(args.mapping_output, mapping)

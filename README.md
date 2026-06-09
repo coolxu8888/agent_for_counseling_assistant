@@ -239,4 +239,12 @@ These files are the stable interface for the later model-assisted mapper:
 
 - `template_slots.json`: fillable locations detected in the uploaded Word template.
 - `source_paths.json`: structured JSON paths that are allowed to be used as sources.
-- `template_mapping.json`: deterministic slot-to-source mapping; later this can be reviewed or produced for unmapped fields by a constrained model call.
+- `template_mapping.json`: slot-to-source mapping used by the deterministic DOCX filler.
+
+To let DeepSeek map only the unresolved slots, add `-LlmMap`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx -MappingOutput path\template_mapping.json -LlmMap
+```
+
+The model is constrained to choose from `source_paths.json` entries or return `unmapped`; it does not write final Word content directly. The code still performs the final fill and writes `template_fill_report.json` for review.

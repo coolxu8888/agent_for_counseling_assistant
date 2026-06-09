@@ -519,6 +519,7 @@ class FillDocxTemplateTest(unittest.TestCase):
                 "template_mapping.json",
                 "--mapping-input",
                 "reviewed_mapping.json",
+                "--llm-map",
             ]
         )
 
@@ -530,6 +531,7 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(args.source_paths_output, "source_paths.json")
         self.assertEqual(args.mapping_output, "template_mapping.json")
         self.assertEqual(args.mapping_input, "reviewed_mapping.json")
+        self.assertTrue(args.llm_map)
 
     def test_main_writes_output_and_default_report(self):
         with tempfile.TemporaryDirectory() as tmp:

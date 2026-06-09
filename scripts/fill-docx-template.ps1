@@ -9,7 +9,8 @@ param(
   [string]$SlotsOutput = "",
   [string]$SourcePathsOutput = "",
   [string]$MappingOutput = "",
-  [string]$MappingInput = ""
+  [string]$MappingInput = "",
+  [switch]$LlmMap
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,6 +37,9 @@ if (-not [string]::IsNullOrWhiteSpace($MappingOutput)) {
 if (-not [string]::IsNullOrWhiteSpace($MappingInput)) {
   $argsList += "--mapping-input"
   $argsList += $MappingInput
+}
+if ($LlmMap) {
+  $argsList += "--llm-map"
 }
 
 python @argsList
