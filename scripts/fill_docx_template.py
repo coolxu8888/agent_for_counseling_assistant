@@ -254,6 +254,45 @@ def extract_template_slots(template_path):
         return extract_template_slots_from_xml(package.read("word/document.xml"))
 
 
+def _slot_targets(root):
+    targets = {}
+    for table_index, table in enumerate(root.iter(TBL_TAG)):
+        for row_index, row in enumerate(table.iter(TR_TAG)):
+            cells = list(row.iter(TC_TAG))
+            for cell_index, cell in enumerate(cells[:-1]):
+                label = element_text(cell).strip()
+                target = cells[cell_index + 1]
+                target_text = element_text(target)
+                if label and is_placeholder_text(target_text):
+                    location = f"table[{table_index}].row[{row_index}].cell[{cell_index + 1}]"
+                    targets[location] = {
+                        "element": target,
+                        "label": label,
+                        "location": location,
+                        "slot_type": "table_adjacent_cell",
+                        "current_text": target_text,
+                    }
+
+    paragraph_slot_index = 0
+    for paragraph in root.iter(P_TAG):
+        text = element_text(paragraph)
+        parsed = _paragraph_label_and_placeholder(text)
+        if not parsed:
+            continue
+        label, separator = parsed
+        location = f"paragraph[{paragraph_slot_index}]"
+        targets[location] = {
+            "element": paragraph,
+            "label": label,
+            "separator": separator,
+            "location": location,
+            "slot_type": "paragraph_placeholder",
+            "current_text": text,
+        }
+        paragraph_slot_index += 1
+    return targets
+
+
 def element_text(element):
     return "".join(text_node.text or "" for text_node in element.iter(TEXT_TAG))
 
@@ -385,11 +424,85 @@ def fill_paragraphs(root, source_map, report):
         _record_filled(report, label, match, location)
 
 
-def fill_document_xml(document_xml, data, report):
+def _source_values_by_path(data):
+    return {item["source_path"]: item["value"] for item in build_source_paths(data)}
+
+
+def fill_slots_by_mapping(root, source_values, mapping, report):
+    targets = _slot_targets(root)
+    for item in mapping.get("mappings", []):
+        slot_id = item.get("slot_id")
+        template_label = item.get("template_label", "")
+        if item.get("fill_status") != "ready" or item.get("source_path") == "unmapped":
+            report["unfilled_fields"].append(
+                {
+                    "template_label": template_label,
+                    "reason": item.get("reason", "Mapping is not ready to fill."),
+                    "location": slot_id,
+                }
+            )
+            continue
+
+        target = targets.get(slot_id)
+        if not target:
+            report["unfilled_fields"].append(
+                {
+                    "template_label": template_label,
+                    "reason": "Mapped slot was not found in the template.",
+                    "location": slot_id,
+                }
+            )
+            continue
+
+        source_path = item.get("source_path")
+        value = source_values.get(source_path)
+        if not value:
+            report["unfilled_fields"].append(
+                {
+                    "template_label": template_label,
+                    "reason": "Mapped source path was not found in structured output.",
+                    "location": slot_id,
+                }
+            )
+            continue
+
+        current_text = element_text(target["element"])
+        if not is_placeholder_text(current_text) and target["slot_type"] != "paragraph_placeholder":
+            report["issues"].append(
+                {
+                    "level": "WARN",
+                    "message": "Target slot already contains non-placeholder text.",
+                    "template_label": template_label,
+                    "location": slot_id,
+                }
+            )
+            continue
+
+        if target["slot_type"] == "paragraph_placeholder":
+            text = f"{target['label']}{target.get('separator', '：')}{value}"
+        else:
+            text = value
+        set_element_text(target["element"], text)
+        _record_filled(
+            report,
+            template_label or target["label"],
+            {
+                "source_path": source_path,
+                "value": value,
+                "confidence": item.get("confidence", "medium"),
+            },
+            slot_id,
+        )
+
+
+def fill_document_xml(document_xml, data, report, mapping=None):
     root = ET.fromstring(document_xml)
-    source_map = build_source_map(data)
-    fill_tables(root, source_map, report)
-    fill_paragraphs(root, source_map, report)
+    if mapping is not None:
+        fill_slots_by_mapping(root, _source_values_by_path(data), mapping, report)
+    else:
+        source_map = build_source_map(data)
+        fill_tables(root, source_map, report)
+        fill_paragraphs(root, source_map, report)
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
@@ -400,7 +513,7 @@ def report_failure(message, template_path=None, structured_path=None, output_pat
     return report
 
 
-def fill_docx_template(template_path, structured_path, output_path, report_path):
+def fill_docx_template(template_path, structured_path, output_path, report_path, mapping_path=None):
     template = Path(template_path)
     structured = Path(structured_path)
     output = Path(output_path)
@@ -408,12 +521,13 @@ def fill_docx_template(template_path, structured_path, output_path, report_path)
 
     try:
         data = json.loads(structured.read_text(encoding="utf-8"))
+        mapping = json.loads(Path(mapping_path).read_text(encoding="utf-8")) if mapping_path else None
         with zipfile.ZipFile(template, "r") as source_package:
             if "word/document.xml" not in source_package.namelist():
                 report = report_failure("DOCX template is missing word/document.xml.", template, structured, output)
             else:
                 document_xml = source_package.read("word/document.xml")
-                filled_xml = fill_document_xml(document_xml, data, report)
+                filled_xml = fill_document_xml(document_xml, data, report, mapping=mapping)
                 output.parent.mkdir(parents=True, exist_ok=True)
                 with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as output_package:
                     for item in source_package.infolist():

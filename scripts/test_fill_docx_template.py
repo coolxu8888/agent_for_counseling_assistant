@@ -231,6 +231,78 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertIn("word/document.xml", report["issues"][0]["message"])
 
+    def test_fill_docx_template_uses_mapping_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            mapping_path = tmp_path / "template_mapping.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.template_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+            mapping_path.write_text(
+                json.dumps(
+                    {
+                        "mappings": [
+                            {
+                                "slot_id": "table[0].row[0].cell[1]",
+                                "template_label": "风险变化",
+                                "source_path": "risk_change.content",
+                                "confidence": "high",
+                                "fill_status": "ready",
+                                "reason": "Reviewed mapping.",
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path, mapping_path=mapping_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertIn("出现被动自杀意念，无具体计划。", document_xml)
+        self.assertEqual(report["filled_fields"][0]["source_path"], "risk_change.content")
+
+    def test_fill_docx_template_does_not_fill_skipped_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            mapping_path = tmp_path / "template_mapping.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.template_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+            mapping_path.write_text(
+                json.dumps(
+                    {
+                        "mappings": [
+                            {
+                                "slot_id": "paragraph[0]",
+                                "template_label": "下次咨询重点",
+                                "source_path": "next_session_focus",
+                                "confidence": "low",
+                                "fill_status": "skipped",
+                                "reason": "Needs review.",
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path, mapping_path=mapping_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "WARN")
+        self.assertNotIn("继续评估安全情况", document_xml)
+        self.assertEqual(report["unfilled_fields"][0]["reason"], "Needs review.")
+
     def test_parse_args_accepts_template_structured_output_and_report(self):
         args = parse_args(
             [
