@@ -4,7 +4,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from render_docx import render_docx
+from render_docx import main, parse_args, render_docx
 
 
 class RenderDocxTest(unittest.TestCase):
@@ -118,6 +118,30 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("本次主题", document_xml)
         self.assertIn("风险变化", document_xml)
         self.assertIn("下次咨询重点", document_xml)
+
+    def test_parse_args_accepts_input_output_and_check_path(self):
+        args = parse_args(["--input", "in.json", "--output", "out.docx", "--check-output", "check.json"])
+
+        self.assertEqual(args.input, "in.json")
+        self.assertEqual(args.output, "out.docx")
+        self.assertEqual(args.check_output, "check.json")
+
+    def test_main_writes_docx_and_check_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            input_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "output.docx"
+            check_path = tmp_path / "docx_check.json"
+            input_path.write_text(json.dumps(self.minimal_w3(), ensure_ascii=False), encoding="utf-8")
+
+            code = main(["--input", str(input_path), "--output", str(output_path), "--check-output", str(check_path)])
+
+            check = json.loads(check_path.read_text(encoding="utf-8"))
+            output_exists = output_path.exists()
+
+        self.assertEqual(code, 0)
+        self.assertTrue(output_exists)
+        self.assertEqual(check["status"], "PASS")
 
 
 if __name__ == "__main__":

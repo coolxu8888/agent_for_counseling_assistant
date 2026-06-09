@@ -209,3 +209,44 @@ def render_docx(data, output_path):
         return docx_failure("Input data must be a JSON object.")
     write_docx_package(output_path, build_document_xml(data))
     return docx_success(output_path)
+
+
+def write_json(path, data):
+    Path(path).write_text(
+        json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Render counselor structured JSON as DOCX.")
+    parser.add_argument("--input", required=True, help="Path to structured_output.json.")
+    parser.add_argument("--output", required=True, help="Path to output .docx.")
+    parser.add_argument(
+        "--check-output",
+        default=None,
+        help="Path to docx_check.json. Defaults to output directory/docx_check.json.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    output_path = Path(args.output)
+    check_path = Path(args.check_output) if args.check_output else output_path.with_name("docx_check.json")
+    try:
+        data = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        check = render_docx(data, output_path)
+    except Exception as exc:
+        check = docx_failure(str(exc))
+    write_json(check_path, check)
+    if check["status"] == "PASS":
+        print(f"DOCX written: {output_path}")
+        print(f"Check written: {check_path}")
+        return 0
+    print(f"DOCX render failed: {check['issues'][0]['message']}", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
