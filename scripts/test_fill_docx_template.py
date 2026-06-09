@@ -6,6 +6,8 @@ from pathlib import Path
 
 from fill_docx_template import (
     build_source_map,
+    build_source_paths,
+    build_template_mapping,
     extract_template_slots_from_xml,
     fill_docx_template,
     find_source_match,
@@ -63,6 +65,37 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(slots[1]["slot_id"], "paragraph[0]")
         self.assertEqual(slots[1]["label"], "下次咨询重点")
         self.assertEqual(slots[1]["slot_type"], "paragraph_placeholder")
+
+    def test_build_source_paths_exports_structured_values(self):
+        source_paths = build_source_paths(self.sample_w3())
+
+        paths = [item["source_path"] for item in source_paths]
+
+        self.assertIn("risk_change.content", paths)
+        self.assertIn("next_session_focus", paths)
+
+    def test_build_template_mapping_maps_known_slots_to_source_paths(self):
+        slots = extract_template_slots_from_xml(self.template_xml())
+        source_paths = build_source_paths(self.sample_w3())
+
+        mapping = build_template_mapping(slots, source_paths)
+
+        self.assertEqual(mapping["mappings"][0]["slot_id"], "table[0].row[0].cell[1]")
+        self.assertEqual(mapping["mappings"][0]["source_path"], "risk_change.content")
+        self.assertEqual(mapping["mappings"][0]["fill_status"], "ready")
+        self.assertEqual(mapping["mappings"][1]["slot_id"], "paragraph[0]")
+        self.assertEqual(mapping["mappings"][1]["source_path"], "next_session_focus")
+        self.assertEqual(mapping["mappings"][1]["fill_status"], "ready")
+
+    def test_build_template_mapping_marks_unknown_slots_unmapped(self):
+        slots = extract_template_slots_from_xml(self.unknown_placeholder_xml())
+        source_paths = build_source_paths(self.sample_w3())
+
+        mapping = build_template_mapping(slots, source_paths)
+
+        self.assertEqual(mapping["mappings"][0]["source_path"], "unmapped")
+        self.assertEqual(mapping["mappings"][0]["confidence"], "none")
+        self.assertEqual(mapping["mappings"][0]["fill_status"], "skipped")
 
     def template_xml(self):
         return (

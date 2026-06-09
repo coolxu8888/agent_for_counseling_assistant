@@ -146,6 +146,62 @@ def find_source_match(template_label, source_map):
     return medium_match
 
 
+def build_source_paths(data):
+    source_paths = []
+    for entry in build_source_map(data):
+        source_paths.append(
+            {
+                "source_path": entry["source_path"],
+                "value": entry["value"],
+                "aliases": entry["aliases"],
+            }
+        )
+    return source_paths
+
+
+def _source_path_match(template_label, source_paths):
+    source_map = []
+    for item in source_paths:
+        source_map.append(
+            {
+                "source_path": item["source_path"],
+                "value": item.get("value", ""),
+                "aliases": item.get("aliases", []),
+                "normalized_aliases": [normalize_label(alias) for alias in item.get("aliases", [])],
+            }
+        )
+    return find_source_match(template_label, source_map)
+
+
+def build_template_mapping(slots, source_paths):
+    mappings = []
+    for slot in slots:
+        match = _source_path_match(slot.get("label", ""), source_paths)
+        if match:
+            mappings.append(
+                {
+                    "slot_id": slot["slot_id"],
+                    "template_label": slot.get("label", ""),
+                    "source_path": match["source_path"],
+                    "confidence": match["confidence"],
+                    "fill_status": "ready",
+                    "reason": "Rule match.",
+                }
+            )
+        else:
+            mappings.append(
+                {
+                    "slot_id": slot["slot_id"],
+                    "template_label": slot.get("label", ""),
+                    "source_path": "unmapped",
+                    "confidence": "none",
+                    "fill_status": "skipped",
+                    "reason": "No deterministic source path match.",
+                }
+            )
+    return {"mappings": mappings}
+
+
 def extract_template_slots_from_xml(document_xml):
     root = ET.fromstring(document_xml)
     slots = []
