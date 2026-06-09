@@ -62,6 +62,33 @@ class FillDocxTemplateTest(unittest.TestCase):
             "</w:document>"
         )
 
+    def unknown_placeholder_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:p><w:r><w:t>咨询目标：____</w:t></w:r></w:p>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
+    def non_placeholder_table_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:tbl>"
+            "<w:tr>"
+            "<w:tc><w:p><w:r><w:t>风险变化</w:t></w:r></w:p></w:tc>"
+            "<w:tc><w:p><w:r><w:t>人工已有内容</w:t></w:r></w:p></w:tc>"
+            "</w:tr>"
+            "</w:tbl>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
     def read_document_xml(self, docx_path):
         with zipfile.ZipFile(docx_path) as package:
             return package.read("word/document.xml").decode("utf-8")
@@ -86,6 +113,71 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertIn("出现被动自杀意念，无具体计划。", document_xml)
         self.assertIn("下次咨询重点：继续评估安全情况", document_xml)
         self.assertEqual(len(saved_report["filled_fields"]), 2)
+
+    def test_unmatched_paragraph_placeholder_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.unknown_placeholder_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+
+        self.assertEqual(report["status"], "WARN")
+        self.assertEqual(report["unfilled_fields"][0]["template_label"], "咨询目标")
+        self.assertEqual(report["unfilled_fields"][0]["reason"], "No matching structured field")
+
+    def test_non_placeholder_target_cell_is_not_overwritten_and_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.non_placeholder_table_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "WARN")
+        self.assertIn("人工已有内容", document_xml)
+        self.assertEqual(report["issues"][0]["level"], "WARN")
+        self.assertEqual(report["issues"][0]["template_label"], "风险变化")
+
+    def test_invalid_json_returns_fail_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.template_xml())
+            structured_path.write_text("{bad json", encoding="utf-8")
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["issues"][0]["level"], "ERROR")
+
+    def test_docx_without_document_xml_returns_fail_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            with zipfile.ZipFile(template_path, "w") as package:
+                package.writestr("[Content_Types].xml", "")
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("word/document.xml", report["issues"][0]["message"])
 
 
 if __name__ == "__main__":
