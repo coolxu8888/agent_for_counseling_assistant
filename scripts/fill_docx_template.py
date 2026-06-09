@@ -1,8 +1,20 @@
+import json
 import re
+import zipfile
+from pathlib import Path
+from xml.etree import ElementTree as ET
 
 
 PLACEHOLDER_CHARS = "_＿—-"
 PUNCTUATION_PATTERN = re.compile(r"[\s：:（）()\[\]【】{}<>《》、，,。.;；/\\|]+")
+WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+NS = {"w": WORD_NS}
+P_TAG = f"{{{WORD_NS}}}p"
+TBL_TAG = f"{{{WORD_NS}}}tbl"
+TR_TAG = f"{{{WORD_NS}}}tr"
+TC_TAG = f"{{{WORD_NS}}}tc"
+TEXT_TAG = f"{{{WORD_NS}}}t"
+ET.register_namespace("w", WORD_NS)
 
 
 def normalize_label(label):
@@ -130,3 +142,176 @@ def find_source_match(template_label, source_map):
                     "confidence": "medium",
                 }
     return medium_match
+
+
+def element_text(element):
+    return "".join(text_node.text or "" for text_node in element.iter(TEXT_TAG))
+
+
+def set_element_text(element, text):
+    text_nodes = list(element.iter(TEXT_TAG))
+    if text_nodes:
+        text_nodes[0].text = text
+        for extra_node in text_nodes[1:]:
+            extra_node.text = ""
+        return
+
+    paragraph = element.find(f".//{P_TAG}")
+    if paragraph is None:
+        paragraph = ET.SubElement(element, f"{{{WORD_NS}}}p")
+    run = ET.SubElement(paragraph, f"{{{WORD_NS}}}r")
+    text_node = ET.SubElement(run, f"{{{WORD_NS}}}t")
+    text_node.text = text
+
+
+def is_placeholder_text(value):
+    stripped = (value or "").strip()
+    if not stripped:
+        return True
+    if stripped in {"待填写", "待补充", "未提供", "空", "N/A"}:
+        return True
+    return all(char in PLACEHOLDER_CHARS or char.isspace() for char in stripped)
+
+
+def _base_report(template_path, structured_path, output_path):
+    return {
+        "status": "WARN",
+        "template_file": str(template_path),
+        "structured_file": str(structured_path),
+        "output_file": str(output_path),
+        "filled_fields": [],
+        "unfilled_fields": [],
+        "issues": [],
+    }
+
+
+def _finalize_report(report):
+    if any(issue.get("level") == "ERROR" for issue in report["issues"]):
+        report["status"] = "FAIL"
+    elif report["filled_fields"] and not report["unfilled_fields"] and not report["issues"]:
+        report["status"] = "PASS"
+    elif report["filled_fields"]:
+        report["status"] = "WARN"
+    else:
+        report["status"] = "WARN"
+    return report
+
+
+def write_report(path, report):
+    report_path = Path(path)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _record_filled(report, template_label, match, location):
+    report["filled_fields"].append(
+        {
+            "template_label": template_label,
+            "source_path": match["source_path"],
+            "confidence": match["confidence"],
+            "location": location,
+        }
+    )
+
+
+def fill_tables(root, source_map, report):
+    for table_index, table in enumerate(root.iter(TBL_TAG)):
+        for row_index, row in enumerate(table.iter(TR_TAG)):
+            cells = list(row.iter(TC_TAG))
+            for cell_index, cell in enumerate(cells[:-1]):
+                label = element_text(cell).strip()
+                match = find_source_match(label, source_map)
+                if not match:
+                    continue
+                target = cells[cell_index + 1]
+                target_text = element_text(target)
+                location = f"table[{table_index}].row[{row_index}].cell[{cell_index + 1}]"
+                if not is_placeholder_text(target_text):
+                    report["issues"].append(
+                        {
+                            "level": "WARN",
+                            "message": "Target cell already contains non-placeholder text.",
+                            "template_label": label,
+                            "location": location,
+                        }
+                    )
+                    continue
+                set_element_text(target, match["value"])
+                _record_filled(report, label, match, location)
+
+
+def _paragraph_label_and_placeholder(text):
+    match = re.match(r"^\s*(?P<label>[^：:\n]{1,40})(?P<sep>[：:])(?P<value>.*)$", text or "")
+    if not match:
+        return None
+    value = match.group("value")
+    if not is_placeholder_text(value):
+        return None
+    return match.group("label").strip(), match.group("sep")
+
+
+def fill_paragraphs(root, source_map, report):
+    for paragraph_index, paragraph in enumerate(root.iter(P_TAG)):
+        text = element_text(paragraph)
+        parsed = _paragraph_label_and_placeholder(text)
+        if not parsed:
+            continue
+        label, separator = parsed
+        match = find_source_match(label, source_map)
+        location = f"paragraph[{paragraph_index}]"
+        if not match:
+            report["unfilled_fields"].append(
+                {
+                    "template_label": label,
+                    "reason": "No matching structured field",
+                    "location": location,
+                }
+            )
+            continue
+        set_element_text(paragraph, f"{label}{separator}{match['value']}")
+        _record_filled(report, label, match, location)
+
+
+def fill_document_xml(document_xml, data, report):
+    root = ET.fromstring(document_xml)
+    source_map = build_source_map(data)
+    fill_tables(root, source_map, report)
+    fill_paragraphs(root, source_map, report)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
+def report_failure(message, template_path=None, structured_path=None, output_path=None):
+    report = _base_report(template_path or "", structured_path or "", output_path or "")
+    report["status"] = "FAIL"
+    report["issues"].append({"level": "ERROR", "message": message})
+    return report
+
+
+def fill_docx_template(template_path, structured_path, output_path, report_path):
+    template = Path(template_path)
+    structured = Path(structured_path)
+    output = Path(output_path)
+    report = _base_report(template, structured, output)
+
+    try:
+        data = json.loads(structured.read_text(encoding="utf-8"))
+        with zipfile.ZipFile(template, "r") as source_package:
+            if "word/document.xml" not in source_package.namelist():
+                report = report_failure("DOCX template is missing word/document.xml.", template, structured, output)
+            else:
+                document_xml = source_package.read("word/document.xml")
+                filled_xml = fill_document_xml(document_xml, data, report)
+                output.parent.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as output_package:
+                    for item in source_package.infolist():
+                        content = filled_xml if item.filename == "word/document.xml" else source_package.read(item.filename)
+                        output_package.writestr(item, content)
+                _finalize_report(report)
+    except Exception as exc:
+        report = report_failure(str(exc), template, structured, output)
+
+    write_report(report_path, report)
+    return report

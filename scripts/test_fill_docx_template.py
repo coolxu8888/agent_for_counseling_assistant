@@ -1,6 +1,11 @@
+import json
+import tempfile
 import unittest
+import zipfile
+from pathlib import Path
 
-from fill_docx_template import build_source_map, find_source_match, normalize_label
+from fill_docx_template import build_source_map, fill_docx_template, find_source_match, normalize_label
+from render_docx import WORD_NS, write_docx_package
 
 
 class FillDocxTemplateTest(unittest.TestCase):
@@ -39,6 +44,48 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(match["confidence"], "medium")
         self.assertIn("继续评估安全情况", match["value"])
+
+    def template_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:tbl>"
+            "<w:tr>"
+            "<w:tc><w:p><w:r><w:t>风险变化</w:t></w:r></w:p></w:tc>"
+            "<w:tc><w:p><w:r><w:t>____</w:t></w:r></w:p></w:tc>"
+            "</w:tr>"
+            "</w:tbl>"
+            "<w:p><w:r><w:t>下次咨询重点：____</w:t></w:r></w:p>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
+    def read_document_xml(self, docx_path):
+        with zipfile.ZipFile(docx_path) as package:
+            return package.read("word/document.xml").decode("utf-8")
+
+    def test_fill_docx_template_updates_table_cell_and_paragraph_placeholder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.template_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+
+            document_xml = self.read_document_xml(output_path)
+            saved_report = json.loads(report_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(saved_report["status"], "PASS")
+        self.assertIn("出现被动自杀意念，无具体计划。", document_xml)
+        self.assertIn("下次咨询重点：继续评估安全情况", document_xml)
+        self.assertEqual(len(saved_report["filled_fields"]), 2)
 
 
 if __name__ == "__main__":
