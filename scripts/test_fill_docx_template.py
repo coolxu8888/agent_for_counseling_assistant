@@ -314,6 +314,14 @@ class FillDocxTemplateTest(unittest.TestCase):
                 "filled_template.docx",
                 "--report",
                 "template_fill_report.json",
+                "--slots-output",
+                "template_slots.json",
+                "--source-paths-output",
+                "source_paths.json",
+                "--mapping-output",
+                "template_mapping.json",
+                "--mapping-input",
+                "reviewed_mapping.json",
             ]
         )
 
@@ -321,6 +329,10 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(args.structured, "structured_output.json")
         self.assertEqual(args.output, "filled_template.docx")
         self.assertEqual(args.report, "template_fill_report.json")
+        self.assertEqual(args.slots_output, "template_slots.json")
+        self.assertEqual(args.source_paths_output, "source_paths.json")
+        self.assertEqual(args.mapping_output, "template_mapping.json")
+        self.assertEqual(args.mapping_input, "reviewed_mapping.json")
 
     def test_main_writes_output_and_default_report(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -349,6 +361,44 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertTrue(output_exists)
         self.assertEqual(report["status"], "PASS")
+
+    def test_main_writes_mapping_artifact_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            slots_path = tmp_path / "template_slots.json"
+            source_paths_path = tmp_path / "source_paths.json"
+            mapping_path = tmp_path / "template_mapping.json"
+            write_docx_package(template_path, self.template_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            code = main(
+                [
+                    "--template",
+                    str(template_path),
+                    "--structured",
+                    str(structured_path),
+                    "--output",
+                    str(output_path),
+                    "--slots-output",
+                    str(slots_path),
+                    "--source-paths-output",
+                    str(source_paths_path),
+                    "--mapping-output",
+                    str(mapping_path),
+                ]
+            )
+
+            slots = json.loads(slots_path.read_text(encoding="utf-8"))
+            source_paths = json.loads(source_paths_path.read_text(encoding="utf-8"))
+            mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(slots["slots"][0]["slot_id"], "table[0].row[0].cell[1]")
+        self.assertIn("risk_change.content", [item["source_path"] for item in source_paths["source_paths"]])
+        self.assertEqual(mapping["mappings"][0]["source_path"], "risk_change.content")
 
 
 if __name__ == "__main__":

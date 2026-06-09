@@ -355,6 +355,15 @@ def write_report(path, report):
     )
 
 
+def write_json_file(path, data):
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _record_filled(report, template_label, match, location):
     report["filled_fields"].append(
         {
@@ -551,14 +560,61 @@ def parse_args(argv=None):
         default=None,
         help="Path to template_fill_report.json. Defaults to output directory/template_fill_report.json.",
     )
+    parser.add_argument("--slots-output", default=None, help="Optional path to write template_slots.json.")
+    parser.add_argument("--source-paths-output", default=None, help="Optional path to write source_paths.json.")
+    parser.add_argument("--mapping-output", default=None, help="Optional path to write deterministic template_mapping.json.")
+    parser.add_argument("--mapping-input", default=None, help="Optional reviewed template_mapping.json to use for filling.")
     return parser.parse_args(argv)
+
+
+def write_mapping_artifacts(args):
+    data = json.loads(Path(args.structured).read_text(encoding="utf-8"))
+    slots = extract_template_slots(args.template)
+    source_paths = build_source_paths(data)
+
+    if args.slots_output:
+        write_json_file(
+            args.slots_output,
+            {
+                "template_file": str(args.template),
+                "slots": slots,
+            },
+        )
+    if args.source_paths_output:
+        write_json_file(
+            args.source_paths_output,
+            {
+                "structured_file": str(args.structured),
+                "source_paths": source_paths,
+            },
+        )
+
+    mapping_path = args.mapping_input
+    if args.mapping_input:
+        mapping = json.loads(Path(args.mapping_input).read_text(encoding="utf-8"))
+    else:
+        mapping = build_template_mapping(slots, source_paths)
+
+    if args.mapping_output:
+        write_json_file(args.mapping_output, mapping)
+        mapping_path = args.mapping_output
+
+    return mapping_path
 
 
 def main(argv=None):
     args = parse_args(argv)
     output_path = Path(args.output)
     report_path = Path(args.report) if args.report else output_path.with_name("template_fill_report.json")
-    report = fill_docx_template(args.template, args.structured, output_path, report_path)
+    try:
+        mapping_path = write_mapping_artifacts(args)
+    except Exception as exc:
+        report = report_failure(str(exc), args.template, args.structured, output_path)
+        write_report(report_path, report)
+        print(f"DOCX template fill failed: {exc}", file=sys.stderr)
+        return 1
+
+    report = fill_docx_template(args.template, args.structured, output_path, report_path, mapping_path=mapping_path)
     if report["status"] == "FAIL":
         message = report["issues"][0]["message"] if report["issues"] else "Unknown error"
         print(f"DOCX template fill failed: {message}", file=sys.stderr)

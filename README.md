@@ -228,3 +228,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.p
 ```
 
 The v0.1 filler supports ordinary `.docx` tables and paragraphs with recognizable labels, such as `风险变化` followed by an empty cell or `下次咨询重点：____`. It also writes `template_fill_report.json`; review this report before using the generated document because unmatched fields and skipped non-empty cells are listed there.
+
+To inspect and review the template mapping layer, write the intermediate artifact files too:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx -SlotsOutput path\template_slots.json -SourcePathsOutput path\source_paths.json -MappingOutput path\template_mapping.json
+```
+
+These files are the stable interface for the later model-assisted mapper:
+
+- `template_slots.json`: fillable locations detected in the uploaded Word template.
+- `source_paths.json`: structured JSON paths that are allowed to be used as sources.
+- `template_mapping.json`: deterministic slot-to-source mapping; later this can be reviewed or produced for unmapped fields by a constrained model call.

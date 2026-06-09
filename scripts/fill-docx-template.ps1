@@ -5,7 +5,11 @@ param(
   [string]$StructuredPath,
   [Parameter(Mandatory = $true)]
   [string]$OutputPath,
-  [string]$ReportPath = ""
+  [string]$ReportPath = "",
+  [string]$SlotsOutput = "",
+  [string]$SourcePathsOutput = "",
+  [string]$MappingOutput = "",
+  [string]$MappingInput = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +20,22 @@ $argsList = @($scriptPath, "--template", $TemplatePath, "--structured", $Structu
 if (-not [string]::IsNullOrWhiteSpace($ReportPath)) {
   $argsList += "--report"
   $argsList += $ReportPath
+}
+if (-not [string]::IsNullOrWhiteSpace($SlotsOutput)) {
+  $argsList += "--slots-output"
+  $argsList += $SlotsOutput
+}
+if (-not [string]::IsNullOrWhiteSpace($SourcePathsOutput)) {
+  $argsList += "--source-paths-output"
+  $argsList += $SourcePathsOutput
+}
+if (-not [string]::IsNullOrWhiteSpace($MappingOutput)) {
+  $argsList += "--mapping-output"
+  $argsList += $MappingOutput
+}
+if (-not [string]::IsNullOrWhiteSpace($MappingInput)) {
+  $argsList += "--mapping-input"
+  $argsList += $MappingInput
 }
 
 python @argsList
