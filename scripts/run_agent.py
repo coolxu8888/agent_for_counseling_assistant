@@ -112,6 +112,63 @@ OUTPUT_CONTRACTS = {
     ],
 }
 
+STRUCTURED_OUTPUT_CONTRACTS = {
+    "W1": {
+        "workflow": "W1",
+        "document_type": "intake_form",
+        "title": "初访信息收集表",
+        "sections": [
+            {
+                "id": "risk",
+                "heading": "风险评估",
+                "fields": [
+                    {
+                        "id": "suicide_ideation",
+                        "label": "自杀意念",
+                        "value": "",
+                        "required": False,
+                        "sensitive": True,
+                        "risk_signal": True,
+                        "notes": "可按来访者愿意提供的程度填写",
+                    }
+                ],
+            }
+        ],
+        "boundary_notes": ["本表不构成诊断，需结合咨询师专业判断。"],
+    },
+    "W2": {
+        "workflow": "W2",
+        "document_type": "case_summary",
+        "title": "个案信息整理",
+        "known_facts": [],
+        "bio_psycho_social": {
+            "biological": [],
+            "psychological": [],
+            "social": [],
+        },
+        "risk_signals": [],
+        "information_gaps": [],
+        "suggested_questions": [],
+        "boundary_notes": [],
+    },
+    "W3": {
+        "workflow": "W3",
+        "document_type": "session_note",
+        "title": "本次咨询记录",
+        "sections": [
+            {"id": "theme", "heading": "本次主题", "content": ""},
+            {"id": "client_status", "heading": "来访者状态", "content": ""},
+            {"id": "intervention", "heading": "咨询师干预", "content": ""},
+            {"id": "risk_change", "heading": "风险变化", "content": ""},
+            {"id": "next_session_focus", "heading": "下次咨询重点", "content": ""},
+        ],
+        "risk_change": {"content": ""},
+        "next_session_focus": [],
+        "missing_information": [],
+        "boundary_notes": [],
+    },
+}
+
 
 def normalize_workflow(value):
     alias = (value or "").strip().lower()
@@ -190,7 +247,7 @@ def load_rag_chunks(chunk_ids, rag_root=DEFAULT_RAG_ROOT):
     return chunks
 
 
-def build_prompt_package(workflow, user_input, rag_chunks):
+def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
     rag_sections = []
     for chunk in rag_chunks:
         rag_sections.append(
@@ -204,16 +261,33 @@ def build_prompt_package(workflow, user_input, rag_chunks):
             )
         )
 
-    return "\n\n".join(
+    parts = [
+        "# 角色",
+        "你是咨询师助理，帮助咨询师整理材料、生成结构化文档和标记信息缺口。你不能替代咨询师诊断、风险分级、危机处置或机构流程。",
+        "# 当前 Workflow",
+        f"{workflow.workflow_id}: {workflow.name}",
+        "# 输出要求",
+        "严格基于用户提供的材料作答。未提供的信息写“未提供”“未提及”或“待补充”。风险相关内容需要单独列出。避免确定性诊断措辞。",
+        "# Workflow 固定输出结构",
+        "\n".join(f"- {line}" for line in OUTPUT_CONTRACTS[workflow.workflow_id]),
+    ]
+    if structured:
+        parts.extend(
+            [
+                "# 结构化 JSON 输出要求",
+                "先输出给咨询师阅读的 Markdown 正文。随后输出一个 fenced JSON block，格式必须是 ```json 开头、``` 结束。JSON 必须能被 json.loads 解析，不要在 JSON 中写注释。",
+                "JSON block 必须尽量贴合下面的字段结构；缺失信息用“未提供”“未提及”或空数组表示，不要编造。",
+                "```json\n"
+                + json.dumps(
+                    STRUCTURED_OUTPUT_CONTRACTS[workflow.workflow_id],
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n```",
+            ]
+        )
+    parts.extend(
         [
-            "# 角色",
-            "你是咨询师助理，帮助咨询师整理材料、生成结构化文档和标记信息缺口。你不能替代咨询师诊断、风险分级、危机处置或机构流程。",
-            "# 当前 Workflow",
-            f"{workflow.workflow_id}: {workflow.name}",
-            "# 输出要求",
-            "严格基于用户提供的材料作答。未提供的信息写“未提供”“未提及”或“待补充”。风险相关内容需要单独列出。避免确定性诊断措辞。",
-            "# Workflow 固定输出结构",
-            "\n".join(f"- {line}" for line in OUTPUT_CONTRACTS[workflow.workflow_id]),
             "# RAG 参考资料",
             "\n\n".join(rag_sections),
             "# 用户输入",
@@ -222,6 +296,7 @@ def build_prompt_package(workflow, user_input, rag_chunks):
             f"回答末尾单独输出一行：{workflow.completion_marker}",
         ]
     )
+    return "\n\n".join(parts)
 
 
 def _isoformat(dt):
@@ -442,6 +517,7 @@ def run_agent_once(
     config=None,
     http_post_json=None,
     now=None,
+    structured=False,
 ):
     workflow = normalize_workflow(workflow_value)
     input_source, user_input = read_user_input(inline_input, input_file)
@@ -452,7 +528,7 @@ def run_agent_once(
     retrieval_map = load_retrieval_map(retrieval_map_path)
     chunk_ids = selected_chunk_ids_for_workflow(workflow, retrieval_map)
     chunks = load_rag_chunks(chunk_ids, rag_root)
-    prompt_package = build_prompt_package(workflow, user_input, chunks)
+    prompt_package = build_prompt_package(workflow, user_input, chunks, structured=structured)
 
     write_json(
         output_dir / "input.json",
@@ -475,6 +551,7 @@ def run_agent_once(
                 "workflow_name": workflow.name,
                 "selected_rag_chunks": chunk_ids,
                 "rag_chunks": _metadata_rag_chunks(chunks),
+                "structured": structured,
                 "created_at": _isoformat(created_at),
             },
         )
@@ -524,6 +601,16 @@ def run_agent_once(
         safety_check = run_safety_check(workflow, clean_answer)
         write_json(output_dir / "safety_check.json", safety_check)
 
+    structured_check = None
+    if structured:
+        structured_data, extraction_check = extract_structured_json(answer, workflow)
+        if structured_data is None:
+            structured_check = extraction_check
+        else:
+            write_json(output_dir / "structured_output.json", structured_data)
+            structured_check = validate_structured_output(workflow, structured_data)
+        write_json(output_dir / "structured_check.json", structured_check)
+
     metadata = {
         "status": "success",
         "workflow": workflow.workflow_id,
@@ -532,6 +619,7 @@ def run_agent_once(
         "model": api_config.model,
         "selected_rag_chunks": chunk_ids,
         "rag_chunks": _metadata_rag_chunks(chunks),
+        "structured": structured,
         "created_at": _isoformat(created_at),
         "latency_seconds": time.monotonic() - started,
     }
@@ -540,6 +628,8 @@ def run_agent_once(
     if safety_check is not None:
         metadata["safety_status"] = safety_check["status"]
         metadata["rubric_status"] = safety_check["rubric_status"]
+    if structured_check is not None:
+        metadata["structured_status"] = structured_check["status"]
     write_json(output_dir / "metadata.json", metadata)
     return AgentRunResult(workflow.workflow_id, "success", output_dir)
 
