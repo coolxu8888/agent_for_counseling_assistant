@@ -6,6 +6,7 @@ from pathlib import Path
 
 from fill_docx_template import (
     build_source_map,
+    extract_template_slots_from_xml,
     fill_docx_template,
     find_source_match,
     main,
@@ -51,6 +52,17 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertEqual(match["confidence"], "medium")
         self.assertIn("继续评估安全情况", match["value"])
+
+    def test_extract_template_slots_from_xml_finds_table_and_paragraph_slots(self):
+        slots = extract_template_slots_from_xml(self.template_xml())
+
+        self.assertEqual(slots[0]["slot_id"], "table[0].row[0].cell[1]")
+        self.assertEqual(slots[0]["label"], "风险变化")
+        self.assertEqual(slots[0]["slot_type"], "table_adjacent_cell")
+        self.assertEqual(slots[0]["current_text"], "____")
+        self.assertEqual(slots[1]["slot_id"], "paragraph[0]")
+        self.assertEqual(slots[1]["label"], "下次咨询重点")
+        self.assertEqual(slots[1]["slot_type"], "paragraph_placeholder")
 
     def template_xml(self):
         return (

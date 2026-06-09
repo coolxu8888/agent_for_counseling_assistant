@@ -146,6 +146,58 @@ def find_source_match(template_label, source_map):
     return medium_match
 
 
+def extract_template_slots_from_xml(document_xml):
+    root = ET.fromstring(document_xml)
+    slots = []
+
+    for table_index, table in enumerate(root.iter(TBL_TAG)):
+        for row_index, row in enumerate(table.iter(TR_TAG)):
+            cells = list(row.iter(TC_TAG))
+            for cell_index, cell in enumerate(cells[:-1]):
+                label = element_text(cell).strip()
+                target = cells[cell_index + 1]
+                target_text = element_text(target)
+                if label and is_placeholder_text(target_text):
+                    location = f"table[{table_index}].row[{row_index}].cell[{cell_index + 1}]"
+                    slots.append(
+                        {
+                            "slot_id": location,
+                            "label": label,
+                            "location": location,
+                            "slot_type": "table_adjacent_cell",
+                            "current_text": target_text,
+                        }
+                    )
+
+    paragraph_slot_index = 0
+    for paragraph in root.iter(P_TAG):
+        text = element_text(paragraph)
+        parsed = _paragraph_label_and_placeholder(text)
+        if not parsed:
+            continue
+        label, _separator = parsed
+        location = f"paragraph[{paragraph_slot_index}]"
+        slots.append(
+            {
+                "slot_id": location,
+                "label": label,
+                "location": location,
+                "slot_type": "paragraph_placeholder",
+                "current_text": text,
+            }
+        )
+        paragraph_slot_index += 1
+
+    return slots
+
+
+def extract_template_slots(template_path):
+    with zipfile.ZipFile(template_path, "r") as package:
+        if "word/document.xml" not in package.namelist():
+            raise ValueError("DOCX template is missing word/document.xml.")
+        return extract_template_slots_from_xml(package.read("word/document.xml"))
+
+
 def element_text(element):
     return "".join(text_node.text or "" for text_node in element.iter(TEXT_TAG))
 
