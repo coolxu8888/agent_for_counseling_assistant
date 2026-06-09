@@ -202,7 +202,7 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn('"boundary_notes"', prompt)
         self.assertIn("本记录不替代咨询师专业判断", prompt)
 
-    def test_build_prompt_package_w1_structured_contract_matches_initial_interview_template(self):
+    def test_build_prompt_package_w1_default_contract_is_pre_intake_guide(self):
         prompt = build_prompt_package(
             normalize_workflow("W1"),
             "请生成初访信息收集表",
@@ -217,12 +217,37 @@ class RunAgentTest(unittest.TestCase):
         )
 
         for label in [
+            "初访信息收集表（咨询师访谈辅助版）",
+            "咨询目的与个人需求",
+            "生物-心理-社会信息",
+            "知情同意与边界说明",
+            "咨询师初步记录",
+        ]:
+            self.assertIn(label, prompt)
+        self.assertIn("默认任务是帮助咨询师在初访前梳理需要了解的信息和可提问的问题", prompt)
+        self.assertIn("不是把用户上传的某个 Word 模板固定成 W1 输出标准", prompt)
+        self.assertNotIn('"title": "心理咨询初始访谈表"', prompt)
+
+    def test_build_prompt_package_w1_includes_separate_initial_session_summary_mode(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W1"),
+            "这是初始访谈材料，请整理",
+            [
+                {
+                    "chunk_id": "forms-fields-pipl-minimum-necessary-fields-001",
+                    "path": "rag/forms-fields/pipl-minimum-necessary-fields.md",
+                    "content": "# 表单字段规则\n遵循最小必要原则。",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("W1 初始访谈材料总结模式", prompt)
+        self.assertIn("若无法判断用户想要“初访前提问表”还是“已有初访材料总结”，先追问确认", prompt)
+        for label in [
             "来访者主要困扰",
             "来访者基本情况",
             "来访者认知、情感、行为及社会功能的基本状况",
-            "来访者主要社会支持和应对方式",
-            "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况",
-            "来访者心理测试结果",
             "危机评估情况",
             "处理建议",
             "其他备注",
@@ -307,18 +332,30 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
-    def test_validate_structured_output_w1_accepts_initial_interview_template_sections(self):
+    def test_validate_structured_output_w1_accepts_pre_intake_guide_sections(self):
         data = {
             "workflow": "W1",
             "document_type": "intake_form",
-            "title": "心理咨询初始访谈表",
+            "title": "初访信息收集表（咨询师访谈辅助版）",
             "sections": [
                 {
-                    "heading": "来访者主要困扰",
+                    "heading": "基本信息",
                     "fields": [
                         {
-                            "label": "来访者主要困扰",
-                            "value": "近期情绪低落。",
+                            "label": "来访者识别信息",
+                            "value": "",
+                            "required": True,
+                            "sensitive": True,
+                            "risk_signal": False,
+                        }
+                    ],
+                },
+                {
+                    "heading": "咨询目的与个人需求",
+                    "fields": [
+                        {
+                            "label": "咨询期待与目标",
+                            "value": "",
                             "required": True,
                             "sensitive": False,
                             "risk_signal": False,
@@ -326,23 +363,11 @@ AGENT_DONE_W3
                     ],
                 },
                 {
-                    "heading": "来访者基本情况",
+                    "heading": "风险评估",
                     "fields": [
                         {
-                            "label": "来访者基本情况",
-                            "value": "家庭和人际信息待补充。",
-                            "required": False,
-                            "sensitive": True,
-                            "risk_signal": False,
-                        }
-                    ],
-                },
-                {
-                    "heading": "风险评估/危机评估情况",
-                    "fields": [
-                        {
-                            "label": "危机评估情况",
-                            "value": "未提供明确风险信息，建议进一步评估。",
+                            "label": "自伤/自杀/他伤及其他安全风险筛查",
+                            "value": "",
                             "required": True,
                             "sensitive": True,
                             "risk_signal": True,
@@ -350,7 +375,25 @@ AGENT_DONE_W3
                     ],
                 },
             ],
-            "boundary_notes": ["本表不构成诊断或最终风险判断。"],
+            "boundary_notes": ["本表不构成诊断、最终风险判断或治疗方案。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w1_accepts_initial_session_summary_mode(self):
+        data = {
+            "workflow": "W1",
+            "document_type": "initial_session_summary",
+            "title": "初始访谈材料总结",
+            "sections": [
+                {"heading": "来访者主要困扰", "content": "近期情绪低落。"},
+                {"heading": "来访者基本情况", "content": "材料中未提供。"},
+                {"heading": "危机评估情况", "content": "材料中未提供明确风险信息，建议进一步评估。"},
+                {"heading": "处理建议", "content": "下次继续补充评估。"},
+            ],
+            "boundary_notes": ["仅整理用户已提供材料；不输出最终诊断或最终风险等级。"],
         }
 
         check = validate_structured_output(normalize_workflow("W1"), data)

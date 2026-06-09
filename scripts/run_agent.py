@@ -323,6 +323,186 @@ STRUCTURED_OUTPUT_CONTRACTS["W1"] = {
     "boundary_notes": ["本表仅用于初访信息收集辅助，不构成诊断或最终风险判断，需结合咨询师专业判断。"],
 }
 
+# W1 has two product modes:
+# 1. Default: generate a pre-intake information collection / interview guide.
+# 2. Confirmed summary mode: when the counselor provides completed initial
+#    interview material and asks for a summary, use the fixed initial-session
+#    summary structure below. Uploaded DOCX templates are handled by the
+#    independent template-filling pipeline and must not redefine W1 defaults.
+OUTPUT_CONTRACTS["W1"] = [
+    "标题：初访信息收集表（咨询师访谈辅助版）",
+    "默认任务是帮助咨询师在初访前梳理需要了解的信息和可提问的问题，而不是把用户上传的某个 Word 模板固定成 W1 输出标准。",
+    "必须包含栏目：基本信息、来访原因与当前困扰、咨询目的与个人需求、生物-心理-社会信息、风险评估、知情同意与边界说明、咨询师初步记录。",
+    "字段应体现访谈中需要收集的信息、建议提问、是否敏感、是否风险相关；未知内容保持空值或写待补充，不得替咨询师编造来访者事实。",
+    "如果用户直接丢来笔记或口述材料，且没有说明是要生成初访前提问表还是要总结已有初访内容，必须先追问确认。",
+    "如果用户明确说明材料来自初始访谈并要求整理/总结，使用“初始访谈材料总结模式”的固定结构，不把它误认为默认初访前信息收集表。",
+    "风险评估必须覆盖：自伤、自杀、他伤、物质使用、现实检验、不安全环境、保护因素；不得输出最终风险等级或替代机构危机处置。",
+    "边界说明必须写入正文：本表不构成诊断、最终风险判断或治疗方案，需结合咨询师专业判断和机构流程。",
+]
+
+STRUCTURED_OUTPUT_CONTRACTS["W1"] = {
+    "workflow": "W1",
+    "document_type": "intake_form",
+    "title": "初访信息收集表（咨询师访谈辅助版）",
+    "sections": [
+        {
+            "id": "basic_information",
+            "heading": "基本信息",
+            "fields": [
+                {
+                    "id": "client_identifier",
+                    "label": "来访者识别信息",
+                    "value": "",
+                    "suggested_questions": ["如何称呼来访者？是否需要记录年龄、身份或联系方式？"],
+                    "required": True,
+                    "sensitive": True,
+                    "risk_signal": False,
+                    "notes": "遵循最小必要原则，只收集本次服务所需信息。",
+                }
+            ],
+        },
+        {
+            "id": "presenting_concern",
+            "heading": "来访原因与当前困扰",
+            "fields": [
+                {
+                    "id": "main_concern",
+                    "label": "主要困扰/主诉",
+                    "value": "",
+                    "suggested_questions": ["这次最希望谈的是什么？这个困扰从什么时候开始？"],
+                    "required": True,
+                    "sensitive": False,
+                    "risk_signal": False,
+                    "notes": "记录来访者原话优先，区分事实与咨询师假设。",
+                }
+            ],
+        },
+        {
+            "id": "goals_needs",
+            "heading": "咨询目的与个人需求",
+            "fields": [
+                {
+                    "id": "consulting_goals",
+                    "label": "咨询期待与目标",
+                    "value": "",
+                    "suggested_questions": ["如果咨询有帮助，你希望首先发生什么变化？"],
+                    "required": True,
+                    "sensitive": False,
+                    "risk_signal": False,
+                    "notes": "用于帮助咨询师理解来访动机和合作目标。",
+                }
+            ],
+        },
+        {
+            "id": "bio_psycho_social",
+            "heading": "生物-心理-社会信息",
+            "fields": [
+                {
+                    "id": "biological_status",
+                    "label": "生物/身体状态",
+                    "value": "",
+                    "suggested_questions": ["近期睡眠、食欲、精力和身体健康状况如何？"],
+                    "required": False,
+                    "sensitive": True,
+                    "risk_signal": False,
+                    "notes": "仅收集与咨询目标和风险评估相关的信息。",
+                },
+                {
+                    "id": "psychological_status",
+                    "label": "情绪、认知与行为状态",
+                    "value": "",
+                    "suggested_questions": ["最近主要情绪、想法和行为变化是什么？"],
+                    "required": False,
+                    "sensitive": False,
+                    "risk_signal": False,
+                    "notes": "避免诊断化措辞。",
+                },
+                {
+                    "id": "social_status",
+                    "label": "家庭、人际、学习/工作与支持系统",
+                    "value": "",
+                    "suggested_questions": ["目前有哪些支持资源？学习、工作或家庭功能是否受影响？"],
+                    "required": False,
+                    "sensitive": True,
+                    "risk_signal": False,
+                    "notes": "关注支持资源、压力源与功能受损情况。",
+                },
+            ],
+        },
+        {
+            "id": "risk_assessment",
+            "heading": "风险评估",
+            "fields": [
+                {
+                    "id": "risk_screening",
+                    "label": "自伤/自杀/他伤及其他安全风险筛查",
+                    "value": "",
+                    "suggested_questions": ["近期是否有伤害自己、不想活、伤害他人或处于不安全环境的想法/行为？"],
+                    "required": True,
+                    "sensitive": True,
+                    "risk_signal": True,
+                    "notes": "不得输出最终风险等级；如出现风险线索，提示咨询师按机构流程进一步评估。",
+                }
+            ],
+        },
+        {
+            "id": "consent_boundary",
+            "heading": "知情同意与边界说明",
+            "fields": [
+                {
+                    "id": "informed_consent",
+                    "label": "保密例外、记录使用与服务边界",
+                    "value": "",
+                    "suggested_questions": ["是否已说明保密原则、保密例外、记录用途和服务边界？"],
+                    "required": True,
+                    "sensitive": False,
+                    "risk_signal": False,
+                    "notes": "本表不构成诊断、最终风险判断或治疗方案。",
+                }
+            ],
+        },
+        {
+            "id": "counselor_notes",
+            "heading": "咨询师初步记录",
+            "fields": [
+                {
+                    "id": "missing_information",
+                    "label": "待补充信息与后续追问",
+                    "value": "",
+                    "suggested_questions": ["哪些关键信息仍缺失？下次访谈需要优先追问什么？"],
+                    "required": False,
+                    "sensitive": False,
+                    "risk_signal": False,
+                    "notes": "用于咨询师访谈准备，不替代专业判断。",
+                }
+            ],
+        },
+    ],
+    "boundary_notes": ["本表仅用于初访前访谈准备和信息收集辅助，不构成诊断、最终风险判断或治疗方案。"],
+}
+
+W1_INITIAL_SESSION_SUMMARY_CONTRACT = {
+    "workflow": "W1",
+    "document_type": "initial_session_summary",
+    "title": "初始访谈材料总结",
+    "sections": [
+        {"id": "main_distress", "heading": "来访者主要困扰", "content": ""},
+        {
+            "id": "basic_situation",
+            "heading": "来访者基本情况（重大生活事件、家庭状况、人际关系、学习/工作、恋爱状况等）",
+            "content": "",
+        },
+        {"id": "functioning", "heading": "来访者认知、情感、行为及社会功能的基本状况", "content": ""},
+        {"id": "support_coping", "heading": "来访者主要社会支持和应对方式", "content": ""},
+        {"id": "history", "heading": "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况", "content": ""},
+        {"id": "psychological_tests", "heading": "来访者心理测试结果", "content": ""},
+        {"id": "risk_crisis", "heading": "危机评估情况（自伤、自杀或伤害他人情况）", "content": ""},
+        {"id": "handling_suggestion", "heading": "处理建议", "content": ""},
+        {"id": "other_notes", "heading": "其他备注", "content": ""},
+    ],
+    "boundary_notes": ["仅整理用户已提供材料；未提供的信息写未提供或待补充，不输出最终诊断或最终风险等级。"],
+}
+
 
 def normalize_workflow(value):
     alias = (value or "").strip().lower()
@@ -440,6 +620,20 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
                 + "\n```",
             ]
         )
+        if workflow.workflow_id == "W1":
+            parts.extend(
+                [
+                    "# W1 初始访谈材料总结模式",
+                    "仅当用户明确说明输入是已经完成的初始访谈材料、笔记或口述记录，并要求整理/总结时，才使用下面结构。若无法判断用户想要“初访前提问表”还是“已有初访材料总结”，先追问确认。",
+                    "```json\n"
+                    + json.dumps(
+                        W1_INITIAL_SESSION_SUMMARY_CONTRACT,
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                    + "\n```",
+                ]
+            )
     parts.extend(
         [
             "# RAG 参考资料",
@@ -593,12 +787,25 @@ def _check_common(workflow, data, expected_document_type):
 
 
 def _validate_w1(workflow, data):
-    issues = _check_common(workflow, data, "intake_form")
+    expected_document_type = data.get("document_type") if isinstance(data, dict) else "intake_form"
+    issues = _check_common(workflow, data, expected_document_type)
+    if not isinstance(data, dict):
+        return issues
+    document_type = data.get("document_type")
+    if document_type not in {"intake_form", "initial_session_summary"}:
+        issues.append(
+            _structured_issue(
+                "document_type",
+                "Expected document_type intake_form or initial_session_summary.",
+            )
+        )
     sections = data.get("sections")
     if not isinstance(sections, list) or not sections:
         issues.append(_structured_issue("sections", "sections must be a non-empty list."))
-    elif not any("风险" in str(section.get("heading", "")) for section in sections):
+    elif not any("风险" in str(section.get("heading", "")) or "危机" in str(section.get("heading", "")) for section in sections):
         issues.append(_structured_issue("sections", "At least one section heading must contain 风险."))
+    if document_type == "initial_session_summary":
+        return issues
     fields = list(_all_fields(data))
     if not any(field.get("sensitive") is True for field in fields):
         issues.append(_structured_issue("sections.fields", "At least one field must have sensitive: true."))
