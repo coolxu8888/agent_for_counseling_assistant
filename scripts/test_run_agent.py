@@ -19,6 +19,7 @@ from run_agent import (
     read_user_input,
     run_agent_once,
     selected_chunk_ids_for_workflow,
+    strip_agent_marker,
 )
 from run_model_eval import DeepSeekConfig
 
@@ -158,6 +159,30 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn("风险变化必须单独列出", prompt)
         self.assertIn("来访者本次谈到很委屈。", prompt)
         self.assertIn("AGENT_DONE_W3", prompt)
+
+    def test_build_prompt_package_includes_workflow_specific_output_contract(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W3"),
+            "来访者本次谈到很委屈。",
+            [
+                {
+                    "chunk_id": "session-notes-risk-change-documentation-001",
+                    "path": "rag/session-notes/risk-change-documentation.md",
+                    "content": "# 核心规则\n风险变化必须单独列出。",
+                }
+            ],
+        )
+
+        self.assertIn("本次主题", prompt)
+        self.assertIn("来访者状态", prompt)
+        self.assertIn("咨询师干预", prompt)
+        self.assertIn("风险变化", prompt)
+        self.assertIn("下次咨询重点", prompt)
+
+    def test_strip_agent_marker_removes_markdown_wrapped_marker(self):
+        clean = strip_agent_marker("正文\n**AGENT_DONE_W3**\n", normalize_workflow("W3"))
+
+        self.assertEqual(clean, "正文\n")
 
     def test_load_retrieval_map_reads_json(self):
         with tempfile.TemporaryDirectory() as tmp:

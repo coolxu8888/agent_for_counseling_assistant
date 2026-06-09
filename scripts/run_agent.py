@@ -89,6 +89,29 @@ WORKFLOW_ALIASES = {
     "workflow_3_session_note": "W3",
 }
 
+OUTPUT_CONTRACTS = {
+    "W1": [
+        "标题：初访信息收集表（咨询师访谈版）",
+        "必须包含栏目：基本信息、来访原因、当前困扰、生物-心理-社会评估、风险评估、知情同意、咨询师初步记录。",
+        "风险评估必须覆盖：自伤、自杀、他伤、物质使用、现实检验、不安全环境、保护因素。",
+        "隐私字段要体现最小必要原则，并提示敏感信息可按来访者愿意提供的程度填写。",
+        "边界说明必须写入正文：本表不构成诊断，需结合咨询师专业判断。",
+    ],
+    "W2": [
+        "标题：个案信息整理",
+        "必须包含栏目：已知事实、主诉与当前困扰、生物维度、心理维度、社会维度、资源与保护因素、风险信号、信息缺口、建议进一步询问的问题。",
+        "风险信号栏目必须说明材料中是否见到自伤、自杀、他伤、物质使用、现实检验或不安全环境信息。",
+        "若材料未见明确风险信号，必须写：材料中未见明确风险信号，建议咨询师按需进一步评估。",
+        "区分事实、推测和待验证内容；未提供的信息写未提供或未提及。",
+    ],
+    "W3": [
+        "标题：本次咨询记录",
+        "必须包含栏目：本次主题、来访者状态、关键内容、咨询师干预、来访者反应、风险变化、进展与阻滞、新增个案信息、咨询师判断或初步假设、待补充信息、下次咨询重点、咨询记录正文。",
+        "风险变化栏目必须单独列出。若材料未提供风险相关信息，必须写：材料中未提供风险相关信息，建议咨询师按需进一步评估。",
+        "未提供的观察、反应或判断不得编造，必须标注材料中未提供或待补充。",
+    ],
+}
+
 
 def normalize_workflow(value):
     alias = (value or "").strip().lower()
@@ -189,6 +212,8 @@ def build_prompt_package(workflow, user_input, rag_chunks):
             f"{workflow.workflow_id}: {workflow.name}",
             "# 输出要求",
             "严格基于用户提供的材料作答。未提供的信息写“未提供”“未提及”或“待补充”。风险相关内容需要单独列出。避免确定性诊断措辞。",
+            "# Workflow 固定输出结构",
+            "\n".join(f"- {line}" for line in OUTPUT_CONTRACTS[workflow.workflow_id]),
             "# RAG 参考资料",
             "\n\n".join(rag_sections),
             "# 用户输入",
@@ -243,7 +268,8 @@ def _metadata_rag_chunks(chunks):
 def strip_agent_marker(text, workflow):
     lines = []
     for line in text.splitlines():
-        if line.strip() == workflow.completion_marker:
+        normalized = line.strip().strip("*_` ")
+        if normalized == workflow.completion_marker:
             break
         lines.append(line)
     return "\n".join(lines).strip() + "\n"
