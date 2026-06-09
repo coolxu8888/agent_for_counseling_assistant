@@ -26,6 +26,15 @@ TC_TAG = f"{{{WORD_NS}}}tc"
 TEXT_TAG = f"{{{WORD_NS}}}t"
 ET.register_namespace("w", WORD_NS)
 
+BLOCK_SLOT_LABELS = {
+    "来访者主要困扰",
+    "来访者基本情况重大生活事件家庭状况人际关系状况学习状况恋爱状况等",
+    "来访者认知情感行为及社会功能的基本状况",
+    "来访者主要社会支持和应对方式",
+    "来访者既往咨询求助史精神疾病史和就诊服药情况",
+    "来访者心理测试结果",
+}
+
 
 def normalize_label(label):
     text = "" if label is None else str(label)
@@ -33,6 +42,13 @@ def normalize_label(label):
     for char in PLACEHOLDER_CHARS:
         text = text.replace(char, "")
     return text.strip()
+
+
+def is_table_block_label(text):
+    normalized = normalize_label(text)
+    if not normalized:
+        return False
+    return normalized in BLOCK_SLOT_LABELS
 
 
 def render_value(value):
@@ -353,6 +369,19 @@ def extract_template_slots_from_xml(document_xml):
     for table_index, table in enumerate(root.iter(TBL_TAG)):
         for row_index, row in enumerate(table.iter(TR_TAG)):
             cells = list(row.iter(TC_TAG))
+            if len(cells) == 1:
+                label = element_text(cells[0]).strip()
+                if is_table_block_label(label):
+                    location = f"table[{table_index}].row[{row_index}].cell[0]"
+                    slots.append(
+                        {
+                            "slot_id": location,
+                            "label": label,
+                            "location": location,
+                            "slot_type": "table_block_cell",
+                            "current_text": label,
+                        }
+                    )
             for cell_index, cell in enumerate(cells[:-1]):
                 label = element_text(cell).strip()
                 target = cells[cell_index + 1]
@@ -403,6 +432,17 @@ def _slot_targets(root):
     for table_index, table in enumerate(root.iter(TBL_TAG)):
         for row_index, row in enumerate(table.iter(TR_TAG)):
             cells = list(row.iter(TC_TAG))
+            if len(cells) == 1:
+                label = element_text(cells[0]).strip()
+                if is_table_block_label(label):
+                    location = f"table[{table_index}].row[{row_index}].cell[0]"
+                    targets[location] = {
+                        "element": cells[0],
+                        "label": label,
+                        "location": location,
+                        "slot_type": "table_block_cell",
+                        "current_text": label,
+                    }
             for cell_index, cell in enumerate(cells[:-1]):
                 label = element_text(cell).strip()
                 target = cells[cell_index + 1]
@@ -620,7 +660,10 @@ def fill_slots_by_mapping(root, source_values, mapping, report):
             continue
 
         current_text = element_text(target["element"])
-        if not is_placeholder_text(current_text) and target["slot_type"] != "paragraph_placeholder":
+        if (
+            not is_placeholder_text(current_text)
+            and target["slot_type"] not in {"paragraph_placeholder", "table_block_cell"}
+        ):
             report["issues"].append(
                 {
                     "level": "WARN",
@@ -633,6 +676,8 @@ def fill_slots_by_mapping(root, source_values, mapping, report):
 
         if target["slot_type"] == "paragraph_placeholder":
             text = f"{target['label']}{target.get('separator', '：')}{value}"
+        elif target["slot_type"] == "table_block_cell":
+            text = f"{target['label']}\n{value}"
         else:
             text = value
         set_element_text(target["element"], text)

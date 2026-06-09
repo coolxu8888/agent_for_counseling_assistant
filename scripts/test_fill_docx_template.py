@@ -41,6 +41,25 @@ class FillDocxTemplateTest(unittest.TestCase):
             "boundary_notes": ["本记录不替代正式风险评估。"],
         }
 
+    def sample_w1_block(self):
+        return {
+            "workflow": "W1",
+            "document_type": "intake_form",
+            "title": "\u521d\u59cb\u8bbf\u8c08\u8868",
+            "sections": [
+                {
+                    "heading": "\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270",
+                    "fields": [
+                        {
+                            "label": "\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270",
+                            "value": "\u8fd1\u671f\u60c5\u7eea\u4f4e\u843d\uff0c\u7761\u7720\u53d7\u5f71\u54cd\u3002",
+                        }
+                    ],
+                }
+            ],
+            "boundary_notes": [],
+        }
+
     def test_normalize_label_removes_punctuation_and_placeholders(self):
         self.assertEqual(normalize_label(" 风险变化：____ "), "风险变化")
 
@@ -72,6 +91,13 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(slots[1]["slot_id"], "paragraph[0]")
         self.assertEqual(slots[1]["label"], "下次咨询重点")
         self.assertEqual(slots[1]["slot_type"], "paragraph_placeholder")
+
+    def test_extract_template_slots_from_xml_finds_single_cell_table_blocks(self):
+        slots = extract_template_slots_from_xml(self.block_table_xml())
+
+        self.assertEqual(slots[0]["slot_id"], "table[0].row[0].cell[0]")
+        self.assertEqual(slots[0]["label"], "\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270")
+        self.assertEqual(slots[0]["slot_type"], "table_block_cell")
 
     def test_build_source_paths_exports_structured_values(self):
         source_paths = build_source_paths(self.sample_w3())
@@ -338,6 +364,21 @@ class FillDocxTemplateTest(unittest.TestCase):
             "</w:document>"
         )
 
+    def block_table_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:tbl>"
+            "<w:tr>"
+            "<w:tc><w:p><w:r><w:t>\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270</w:t></w:r></w:p></w:tc>"
+            "</w:tr>"
+            "</w:tbl>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
     def read_document_xml(self, docx_path):
         with zipfile.ZipFile(docx_path) as package:
             return package.read("word/document.xml").decode("utf-8")
@@ -362,6 +403,42 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertIn("出现被动自杀意念，无具体计划。", document_xml)
         self.assertIn("下次咨询重点：继续评估安全情况", document_xml)
         self.assertEqual(len(saved_report["filled_fields"]), 2)
+
+    def test_fill_docx_template_fills_single_cell_table_block(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            mapping_path = tmp_path / "template_mapping.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.block_table_xml())
+            structured_path.write_text(json.dumps(self.sample_w1_block(), ensure_ascii=False), encoding="utf-8")
+            mapping_path.write_text(
+                json.dumps(
+                    {
+                        "mappings": [
+                            {
+                                "slot_id": "table[0].row[0].cell[0]",
+                                "template_label": "\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270",
+                                "source_path": "sections[0].fields[0].value",
+                                "confidence": "high",
+                                "fill_status": "ready",
+                                "reason": "Reviewed mapping.",
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path, mapping_path=mapping_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertIn("\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270", document_xml)
+        self.assertIn("\u8fd1\u671f\u60c5\u7eea\u4f4e\u843d", document_xml)
 
     def test_unmatched_paragraph_placeholder_is_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
