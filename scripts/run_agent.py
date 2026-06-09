@@ -645,6 +645,7 @@ def parse_args(argv=None):
     parser.add_argument("--rag-root", dest="rag_root", default=str(DEFAULT_RAG_ROOT), help="Path to RAG root folder.")
     parser.add_argument("--dry-run", action="store_true", help="Build prompt package without calling DeepSeek.")
     parser.add_argument("--no-clean", action="store_true", help="Save raw output only; skip clean output and safety check.")
+    parser.add_argument("--structured", action="store_true", help="Ask the model for a machine-readable JSON block and validate it.")
     parser.add_argument("--model", dest="model", default=None, help="Override DEEPSEEK_MODEL for this run.")
     return parser.parse_args(argv)
 
@@ -663,6 +664,7 @@ def main(argv=None):
             dry_run=args.dry_run,
             no_clean=args.no_clean,
             model_override=args.model,
+            structured=args.structured,
         )
     except AgentInputError as exc:
         print(f"Input error: {exc}", file=sys.stderr)

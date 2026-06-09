@@ -602,6 +602,11 @@ AGENT_DONE_W3
         self.assertEqual(args.input, "text")
         self.assertTrue(args.dry_run)
 
+    def test_parse_args_accepts_structured_flag(self):
+        args = parse_args(["--workflow", "W3", "--input", "text", "--structured"])
+
+        self.assertTrue(args.structured)
+
     def test_main_returns_nonzero_for_unknown_workflow(self):
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):

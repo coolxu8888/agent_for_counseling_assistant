@@ -148,6 +148,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workf
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。"
 ```
 
+本地运行并额外生成结构化 JSON：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。" -Structured
+```
+
 从文本文件读取输入：
 
 ```powershell
@@ -160,7 +166,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workf
 agent-runs/<timestamp>-<workflow>/
 ```
 
-每次运行会保存 `input.json`、`prompt_package.txt`、`metadata.json`；真实 API 调用成功后还会保存 `raw_output.txt`、`clean_output.md` 和 `safety_check.json`。
+每次运行会保存 `input.json`、`prompt_package.txt`、`metadata.json`；真实 API 调用成功后还会保存 `raw_output.txt`、`clean_output.md` 和 `safety_check.json`。使用 `-Structured` 时，还会保存 `structured_output.json` 和 `structured_check.json`，供后续 Word renderer 或模板填充使用。
 
 ## v0.1 不做的事
 

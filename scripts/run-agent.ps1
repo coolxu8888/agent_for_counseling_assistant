@@ -8,6 +8,7 @@ param(
   [string]$RunDir = "",
   [switch]$DryRun,
   [switch]$NoClean,
+  [switch]$Structured,
   [string]$Model = "",
   [string]$RetrievalMap = "",
   [string]$RagRoot = ""
@@ -44,6 +45,10 @@ if ($DryRun) {
 
 if ($NoClean) {
   $argsList += "--no-clean"
+}
+
+if ($Structured) {
+  $argsList += "--structured"
 }
 
 if (-not [string]::IsNullOrWhiteSpace($Model)) {
