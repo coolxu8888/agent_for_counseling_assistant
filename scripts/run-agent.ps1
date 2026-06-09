@@ -9,6 +9,7 @@ param(
   [switch]$DryRun,
   [switch]$NoClean,
   [switch]$Structured,
+  [switch]$Docx,
   [string]$Model = "",
   [string]$RetrievalMap = "",
   [string]$RagRoot = ""
@@ -49,6 +50,10 @@ if ($NoClean) {
 
 if ($Structured) {
   $argsList += "--structured"
+}
+
+if ($Docx) {
+  $argsList += "--docx"
 }
 
 if (-not [string]::IsNullOrWhiteSpace($Model)) {

@@ -549,6 +549,99 @@ AGENT_DONE_W3
         self.assertEqual(structured_check["status"], "PASS")
         self.assertEqual(metadata["structured_status"], "PASS")
 
+    def test_run_agent_once_docx_writes_output_docx_and_check(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
+
+            def fake_post_json(_url, _headers, _payload, _timeout):
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    "本次咨询记录\n"
+                                    "本次主题\n来访者状态\n咨询师干预\n风险变化\n"
+                                    "材料中未提供风险相关信息，建议咨询师按需进一步评估。\n"
+                                    "下次咨询重点\n咨询记录\n"
+                                    "```json\n"
+                                    "{\n"
+                                    '  "workflow": "W3",\n'
+                                    '  "document_type": "session_note",\n'
+                                    '  "title": "本次咨询记录",\n'
+                                    '  "sections": [\n'
+                                    '    {"heading": "本次主题", "content": "主题"},\n'
+                                    '    {"heading": "来访者状态", "content": "未提供"},\n'
+                                    '    {"heading": "咨询师干预", "content": "回顾关键片段"},\n'
+                                    '    {"heading": "风险变化", "content": "材料中未提供风险相关信息"},\n'
+                                    '    {"heading": "下次咨询重点", "content": "表达方式"}\n'
+                                    "  ],\n"
+                                    '  "risk_change": {"content": "材料中未提供风险相关信息"},\n'
+                                    '  "next_session_focus": ["继续讨论表达方式"],\n'
+                                    '  "missing_information": ["来访者状态未提供"],\n'
+                                    '  "boundary_notes": ["本记录不替代咨询师专业判断。"]\n'
+                                    "}\n"
+                                    "```\n"
+                                    "AGENT_DONE_W3\n"
+                                )
+                            }
+                        }
+                    ]
+                }
+
+            result = run_agent_once(
+                workflow_value="W3",
+                inline_input="来访者本次谈到很委屈。",
+                input_file=None,
+                run_root=tmp_path / "agent-runs",
+                retrieval_map_path=retrieval_map_path,
+                rag_root=rag_root,
+                docx=True,
+                config=DeepSeekConfig(api_key="secret-key", model="deepseek-test"),
+                http_post_json=fake_post_json,
+            )
+
+            metadata = json.loads((result.run_dir / "metadata.json").read_text(encoding="utf-8"))
+            docx_check = json.loads((result.run_dir / "docx_check.json").read_text(encoding="utf-8"))
+            output_exists = (result.run_dir / "output.docx").exists()
+
+        self.assertTrue(output_exists)
+        self.assertEqual(docx_check["status"], "PASS")
+        self.assertEqual(metadata["docx_status"], "PASS")
+
+    def test_run_agent_once_docx_skips_output_when_structured_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
+
+            def fake_post_json(_url, _headers, _payload, _timeout):
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": "正文\n```json\n{\"workflow\":\"W3\"}\n```\nAGENT_DONE_W3\n"
+                            }
+                        }
+                    ]
+                }
+
+            result = run_agent_once(
+                workflow_value="W3",
+                inline_input="来访者本次谈到很委屈。",
+                input_file=None,
+                run_root=tmp_path / "agent-runs",
+                retrieval_map_path=retrieval_map_path,
+                rag_root=rag_root,
+                docx=True,
+                config=DeepSeekConfig(api_key="secret-key", model="deepseek-test"),
+                http_post_json=fake_post_json,
+            )
+
+            docx_check = json.loads((result.run_dir / "docx_check.json").read_text(encoding="utf-8"))
+
+        self.assertFalse((result.run_dir / "output.docx").exists())
+        self.assertEqual(docx_check["status"], "FAIL")
+
     def test_run_agent_once_structured_validation_failure_writes_check(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -629,6 +722,11 @@ AGENT_DONE_W3
         args = parse_args(["--workflow", "W3", "--input", "text", "--structured"])
 
         self.assertTrue(args.structured)
+
+    def test_parse_args_accepts_docx_flag(self):
+        args = parse_args(["--workflow", "W3", "--input", "text", "--docx"])
+
+        self.assertTrue(args.docx)
 
     def test_main_returns_nonzero_for_unknown_workflow(self):
         stderr = io.StringIO()

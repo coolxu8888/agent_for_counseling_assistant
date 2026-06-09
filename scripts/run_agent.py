@@ -15,6 +15,7 @@ from run_model_eval import (
     load_deepseek_config,
     post_json,
 )
+from render_docx import docx_failure, render_docx
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -514,7 +515,10 @@ def run_agent_once(
     http_post_json=None,
     now=None,
     structured=False,
+    docx=False,
 ):
+    if docx:
+        structured = True
     workflow = normalize_workflow(workflow_value)
     input_source, user_input = read_user_input(inline_input, input_file)
     created_at = now or datetime.now(LOCAL_TIMEZONE)
@@ -600,6 +604,7 @@ def run_agent_once(
         write_json(output_dir / "safety_check.json", safety_check)
 
     structured_check = None
+    docx_check = None
     if structured:
         structured_data, extraction_check = extract_structured_json(answer, workflow)
         if structured_data is None:
@@ -608,6 +613,12 @@ def run_agent_once(
             write_json(output_dir / "structured_output.json", structured_data)
             structured_check = validate_structured_output(workflow, structured_data)
         write_json(output_dir / "structured_check.json", structured_check)
+        if docx:
+            if structured_data is not None and structured_check["status"] == "PASS":
+                docx_check = render_docx(structured_data, output_dir / "output.docx")
+            else:
+                docx_check = docx_failure("DOCX rendering skipped because structured output did not pass validation.")
+            write_json(output_dir / "docx_check.json", docx_check)
 
     metadata = {
         "status": "success",
@@ -628,6 +639,8 @@ def run_agent_once(
         metadata["rubric_status"] = safety_check["rubric_status"]
     if structured_check is not None:
         metadata["structured_status"] = structured_check["status"]
+    if docx_check is not None:
+        metadata["docx_status"] = docx_check["status"]
     write_json(output_dir / "metadata.json", metadata)
     return AgentRunResult(workflow.workflow_id, "success", output_dir)
 
@@ -644,6 +657,7 @@ def parse_args(argv=None):
     parser.add_argument("--dry-run", action="store_true", help="Build prompt package without calling DeepSeek.")
     parser.add_argument("--no-clean", action="store_true", help="Save raw output only; skip clean output and safety check.")
     parser.add_argument("--structured", action="store_true", help="Ask the model for a machine-readable JSON block and validate it.")
+    parser.add_argument("--docx", action="store_true", help="Generate output.docx from structured output. Implies --structured.")
     parser.add_argument("--model", dest="model", default=None, help="Override DEEPSEEK_MODEL for this run.")
     return parser.parse_args(argv)
 
@@ -663,6 +677,7 @@ def main(argv=None):
             no_clean=args.no_clean,
             model_override=args.model,
             structured=args.structured,
+            docx=args.docx,
         )
     except AgentInputError as exc:
         print(f"Input error: {exc}", file=sys.stderr)
