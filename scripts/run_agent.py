@@ -325,6 +325,109 @@ def extract_structured_json(raw_text, workflow):
     return data, {"status": "PASS", "workflow": workflow.workflow_id, "issues": []}
 
 
+def _structured_issue(path, message):
+    return {"level": "ERROR", "path": path, "message": message}
+
+
+def _json_text(data):
+    return json.dumps(data, ensure_ascii=False)
+
+
+def _all_fields(data):
+    for section in data.get("sections", []):
+        for field in section.get("fields", []):
+            yield field
+
+
+def _has_non_empty(data, key):
+    value = data.get(key)
+    return value is not None and value != [] and value != {} and value != ""
+
+
+def _check_common(workflow, data, expected_document_type):
+    issues = []
+    if not isinstance(data, dict):
+        return [_structured_issue("$", "Structured output must be a JSON object.")]
+    if data.get("workflow") != workflow.workflow_id:
+        issues.append(_structured_issue("workflow", f"Expected workflow {workflow.workflow_id}."))
+    if data.get("document_type") != expected_document_type:
+        issues.append(
+            _structured_issue("document_type", f"Expected document_type {expected_document_type}.")
+        )
+    if not _has_non_empty(data, "boundary_notes"):
+        issues.append(_structured_issue("boundary_notes", "boundary_notes must be non-empty."))
+    text = _json_text(data)
+    for term in ["确诊为", "诊断为"]:
+        if term in text:
+            issues.append(_structured_issue("$", f"Forbidden diagnosis term found: {term}"))
+    return issues
+
+
+def _validate_w1(workflow, data):
+    issues = _check_common(workflow, data, "intake_form")
+    sections = data.get("sections")
+    if not isinstance(sections, list) or not sections:
+        issues.append(_structured_issue("sections", "sections must be a non-empty list."))
+    elif not any("风险" in str(section.get("heading", "")) for section in sections):
+        issues.append(_structured_issue("sections", "At least one section heading must contain 风险."))
+    fields = list(_all_fields(data))
+    if not any(field.get("sensitive") is True for field in fields):
+        issues.append(_structured_issue("sections.fields", "At least one field must have sensitive: true."))
+    if not any(field.get("risk_signal") is True for field in fields):
+        issues.append(_structured_issue("sections.fields", "At least one field must have risk_signal: true."))
+    return issues
+
+
+def _validate_w2(workflow, data):
+    issues = _check_common(workflow, data, "case_summary")
+    for key in [
+        "known_facts",
+        "bio_psycho_social",
+        "risk_signals",
+        "information_gaps",
+        "suggested_questions",
+    ]:
+        if not _has_non_empty(data, key):
+            issues.append(_structured_issue(key, f"{key} must be present and non-empty."))
+    bps = data.get("bio_psycho_social", {})
+    if isinstance(bps, dict):
+        for key in ["biological", "psychological", "social"]:
+            if not _has_non_empty(bps, key):
+                issues.append(_structured_issue(f"bio_psycho_social.{key}", f"{key} content is required."))
+    return issues
+
+
+def _validate_w3(workflow, data):
+    issues = _check_common(workflow, data, "session_note")
+    sections = data.get("sections")
+    if not isinstance(sections, list) or not sections:
+        issues.append(_structured_issue("sections", "sections must be a non-empty list."))
+        headings = []
+    else:
+        headings = [str(section.get("heading", "")) for section in sections]
+    for required_heading in ["本次主题", "来访者状态", "咨询师干预", "风险变化", "下次咨询重点"]:
+        if not any(required_heading in heading for heading in headings):
+            issues.append(_structured_issue("sections", f"Missing required section: {required_heading}"))
+    for key in ["risk_change", "next_session_focus", "missing_information"]:
+        if key not in data:
+            issues.append(_structured_issue(key, f"{key} is required."))
+    return issues
+
+
+def validate_structured_output(workflow, data):
+    validators = {
+        "W1": _validate_w1,
+        "W2": _validate_w2,
+        "W3": _validate_w3,
+    }
+    issues = validators[workflow.workflow_id](workflow, data)
+    return {
+        "status": "FAIL" if issues else "PASS",
+        "workflow": workflow.workflow_id,
+        "issues": issues,
+    }
+
+
 def run_agent_once(
     workflow_value,
     inline_input=None,

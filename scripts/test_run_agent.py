@@ -22,6 +22,7 @@ from run_agent import (
     selected_chunk_ids_for_workflow,
     strip_agent_marker,
     structured_failure,
+    validate_structured_output,
 )
 from run_model_eval import DeepSeekConfig
 
@@ -231,6 +232,99 @@ AGENT_DONE_W3
         self.assertEqual(check["workflow"], "W3")
         self.assertEqual(check["issues"][0]["level"], "ERROR")
         self.assertEqual(check["issues"][0]["path"], "json")
+
+    def test_validate_structured_output_w1_requires_sensitive_and_risk_fields(self):
+        data = {
+            "workflow": "W1",
+            "document_type": "intake_form",
+            "title": "初访信息收集表",
+            "sections": [
+                {
+                    "id": "risk",
+                    "heading": "风险评估",
+                    "fields": [
+                        {
+                            "id": "suicide_ideation",
+                            "label": "自杀意念",
+                            "required": False,
+                            "sensitive": True,
+                            "risk_signal": True,
+                        }
+                    ],
+                }
+            ],
+            "boundary_notes": ["本表不构成诊断，需结合咨询师专业判断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w2_requires_core_fields(self):
+        data = {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "个案信息整理",
+            "known_facts": ["女性，35岁"],
+            "bio_psycho_social": {
+                "biological": ["睡眠困难"],
+                "psychological": ["委屈"],
+                "social": ["夫妻冲突"],
+            },
+            "risk_signals": ["材料中未见明确风险信号"],
+            "information_gaps": ["睡眠持续时间未提供"],
+            "suggested_questions": ["睡眠问题持续多久？"],
+            "boundary_notes": ["不构成诊断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W2"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w3_requires_stable_sections(self):
+        data = {
+            "workflow": "W3",
+            "document_type": "session_note",
+            "title": "本次咨询记录",
+            "sections": [
+                {"id": "theme", "heading": "本次主题", "content": "..."},
+                {"id": "client_status", "heading": "来访者状态", "content": "..."},
+                {"id": "intervention", "heading": "咨询师干预", "content": "..."},
+                {"id": "risk_change", "heading": "风险变化", "content": "..."},
+                {"id": "next", "heading": "下次咨询重点", "content": "..."},
+            ],
+            "risk_change": {"content": "材料中未提供风险相关信息"},
+            "next_session_focus": ["继续讨论表达方式"],
+            "missing_information": ["来访者外观信息未提供"],
+            "boundary_notes": ["本记录不替代咨询师专业判断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W3"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_forbidden_diagnosis_terms_fail(self):
+        data = {
+            "workflow": "W3",
+            "document_type": "session_note",
+            "title": "本次咨询记录",
+            "sections": [
+                {"heading": "本次主题", "content": "确诊为抑郁症"},
+                {"heading": "来访者状态", "content": "..."},
+                {"heading": "咨询师干预", "content": "..."},
+                {"heading": "风险变化", "content": "..."},
+                {"heading": "下次咨询重点", "content": "..."},
+            ],
+            "risk_change": {},
+            "next_session_focus": [],
+            "missing_information": [],
+            "boundary_notes": ["本记录不替代咨询师专业判断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W3"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        self.assertTrue(any("确诊为" in issue["message"] for issue in check["issues"]))
 
     def test_load_retrieval_map_reads_json(self):
         with tempfile.TemporaryDirectory() as tmp:
