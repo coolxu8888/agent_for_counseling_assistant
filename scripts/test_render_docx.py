@@ -8,6 +8,46 @@ from render_docx import render_docx
 
 
 class RenderDocxTest(unittest.TestCase):
+    def minimal_w1(self):
+        return {
+            "workflow": "W1",
+            "document_type": "intake_form",
+            "title": "初访信息收集表",
+            "sections": [
+                {
+                    "heading": "风险评估",
+                    "fields": [
+                        {
+                            "label": "自杀意念",
+                            "value": "",
+                            "required": False,
+                            "sensitive": True,
+                            "risk_signal": True,
+                            "notes": "待填写",
+                        }
+                    ],
+                }
+            ],
+            "boundary_notes": ["本表不构成诊断。"],
+        }
+
+    def minimal_w2(self):
+        return {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "个案信息整理",
+            "known_facts": ["女性，35岁"],
+            "bio_psycho_social": {
+                "biological": ["睡眠困难"],
+                "psychological": ["委屈"],
+                "social": ["夫妻冲突"],
+            },
+            "risk_signals": [],
+            "information_gaps": ["风险信息需要进一步评估"],
+            "suggested_questions": ["睡眠问题持续多久？"],
+            "boundary_notes": ["不构成诊断。"],
+        }
+
     def minimal_w3(self):
         return {
             "workflow": "W3",
@@ -41,6 +81,43 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("_rels/.rels", names)
         self.assertIn("word/document.xml", names)
         self.assertIn("word/styles.xml", names)
+
+    def test_render_w1_contains_title_risk_section_and_table(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w1.docx"
+
+            render_docx(self.minimal_w1(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("初访信息收集表", document_xml)
+        self.assertIn("风险评估", document_xml)
+        self.assertIn("自杀意念", document_xml)
+        self.assertIn("<w:tbl>", document_xml)
+
+    def test_render_w2_contains_bps_and_questions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w2.docx"
+
+            render_docx(self.minimal_w2(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("个案信息整理", document_xml)
+        self.assertIn("生物维度", document_xml)
+        self.assertIn("心理维度", document_xml)
+        self.assertIn("社会维度", document_xml)
+        self.assertIn("建议进一步询问", document_xml)
+
+    def test_render_w3_contains_session_sections(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w3.docx"
+
+            render_docx(self.minimal_w3(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("本次咨询记录", document_xml)
+        self.assertIn("本次主题", document_xml)
+        self.assertIn("风险变化", document_xml)
+        self.assertIn("下次咨询重点", document_xml)
 
 
 if __name__ == "__main__":

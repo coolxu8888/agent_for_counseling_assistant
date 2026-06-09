@@ -54,6 +54,74 @@ def table(rows):
     return "<w:tbl>" + "".join(row_xml) + "</w:tbl>"
 
 
+def truth_label(value):
+    return "是" if value is True else "否"
+
+
+def append_list(parts, title, items, empty_text="未提供"):
+    parts.append(paragraph(title, "Heading2"))
+    if items:
+        for item in items:
+            parts.append(paragraph("• " + _text(item)))
+    else:
+        parts.append(paragraph(empty_text))
+
+
+def render_intake_form(data):
+    parts = [paragraph(data.get("title") or "初访信息收集表", "Heading1")]
+    for section in data.get("sections", []):
+        parts.append(paragraph(section.get("heading", "未命名栏目"), "Heading2"))
+        fields = section.get("fields", [])
+        if fields:
+            rows = [["字段", "内容", "必填", "敏感", "风险信号", "备注"]]
+            for field in fields:
+                rows.append(
+                    [
+                        field.get("label", field.get("id", "")),
+                        field.get("value", "") or "待填写",
+                        truth_label(field.get("required")),
+                        truth_label(field.get("sensitive")),
+                        truth_label(field.get("risk_signal")),
+                        field.get("notes", ""),
+                    ]
+                )
+            parts.append(table(rows))
+        elif section.get("content"):
+            parts.append(paragraph(section.get("content")))
+    append_list(parts, "边界说明", data.get("boundary_notes", []))
+    return parts
+
+
+def render_case_summary(data):
+    parts = [paragraph(data.get("title") or "个案信息整理", "Heading1")]
+    append_list(parts, "已知事实", data.get("known_facts", []))
+    bps = data.get("bio_psycho_social", {})
+    parts.append(paragraph("生物-心理-社会信息", "Heading2"))
+    for heading, key in [
+        ("生物维度", "biological"),
+        ("心理维度", "psychological"),
+        ("社会维度", "social"),
+    ]:
+        append_list(parts, heading, bps.get(key, []) if isinstance(bps, dict) else [])
+    risk_signals = data.get("risk_signals", [])
+    append_list(
+        parts,
+        "风险信号",
+        risk_signals,
+        "材料中未见明确风险信号，建议咨询师按需进一步评估。",
+    )
+    append_list(parts, "信息缺口", data.get("information_gaps", []))
+    parts.append(paragraph("建议进一步询问", "Heading2"))
+    questions = data.get("suggested_questions", [])
+    if questions:
+        for index, question in enumerate(questions, start=1):
+            parts.append(paragraph(f"{index}. {_text(question)}"))
+    else:
+        parts.append(paragraph("未提供"))
+    append_list(parts, "边界说明", data.get("boundary_notes", []))
+    return parts
+
+
 def render_session_note(data):
     parts = [paragraph(data.get("title") or "本次咨询记录", "Heading1")]
     for section in data.get("sections", []):
@@ -76,6 +144,10 @@ def render_session_note(data):
 
 def render_body(data):
     document_type = data.get("document_type")
+    if document_type == "intake_form":
+        return render_intake_form(data)
+    if document_type == "case_summary":
+        return render_case_summary(data)
     if document_type == "session_note":
         return render_session_note(data)
     return [paragraph(data.get("title") or "咨询师助理文档", "Heading1")]
