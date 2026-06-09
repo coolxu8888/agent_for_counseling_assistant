@@ -8,12 +8,17 @@ from fill_docx_template import (
     build_source_map,
     build_source_paths,
     build_template_mapping,
+    build_llm_mapping_prompt,
     extract_template_slots_from_xml,
+    extract_llm_mapping_json,
     fill_docx_template,
     find_source_match,
+    merge_template_mappings,
     main,
     normalize_label,
     parse_args,
+    unresolved_mapping_items,
+    validate_llm_mapping,
 )
 from render_docx import WORD_NS, write_docx_package
 
@@ -96,6 +101,129 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(mapping["mappings"][0]["source_path"], "unmapped")
         self.assertEqual(mapping["mappings"][0]["confidence"], "none")
         self.assertEqual(mapping["mappings"][0]["fill_status"], "skipped")
+
+    def test_build_llm_mapping_prompt_constrains_model_to_json_and_source_paths(self):
+        slots = extract_template_slots_from_xml(self.unknown_placeholder_xml())
+        source_paths = build_source_paths(self.sample_w3())
+
+        prompt = build_llm_mapping_prompt(slots, source_paths)
+
+        self.assertIn("JSON only", prompt)
+        self.assertIn("source_path", prompt)
+        self.assertIn("unmapped", prompt)
+        self.assertIn("risk_change.content", prompt)
+
+    def test_extract_llm_mapping_json_accepts_fenced_json(self):
+        answer = (
+            "```json\n"
+            "{\"mappings\":[{\"slot_id\":\"paragraph[0]\",\"template_label\":\"x\","
+            "\"source_path\":\"risk_change.content\",\"confidence\":\"medium\",\"reason\":\"match\"}]}"
+            "\n```"
+        )
+
+        mapping = extract_llm_mapping_json(answer)
+
+        self.assertEqual(mapping["mappings"][0]["source_path"], "risk_change.content")
+
+    def test_validate_llm_mapping_accepts_known_source_paths(self):
+        requested_slot_ids = {"paragraph[0]"}
+        allowed_source_paths = {"risk_change.content", "next_session_focus"}
+        llm_mapping = {
+            "mappings": [
+                {
+                    "slot_id": "paragraph[0]",
+                    "template_label": "鍜ㄨ鐩爣",
+                    "source_path": "risk_change.content",
+                    "confidence": "medium",
+                    "reason": "closest safe match",
+                }
+            ]
+        }
+
+        validated = validate_llm_mapping(llm_mapping, requested_slot_ids, allowed_source_paths)
+
+        self.assertEqual(validated["mappings"][0]["source_path"], "risk_change.content")
+        self.assertEqual(validated["mappings"][0]["fill_status"], "ready")
+
+    def test_validate_llm_mapping_rejects_unknown_or_low_confidence_paths(self):
+        requested_slot_ids = {"paragraph[0]", "paragraph[1]"}
+        allowed_source_paths = {"risk_change.content"}
+        llm_mapping = {
+            "mappings": [
+                {
+                    "slot_id": "paragraph[0]",
+                    "template_label": "x",
+                    "source_path": "diagnosis",
+                    "confidence": "high",
+                    "reason": "unsafe",
+                },
+                {
+                    "slot_id": "paragraph[1]",
+                    "template_label": "y",
+                    "source_path": "risk_change.content",
+                    "confidence": "low",
+                    "reason": "weak",
+                },
+            ]
+        }
+
+        validated = validate_llm_mapping(llm_mapping, requested_slot_ids, allowed_source_paths)
+
+        self.assertEqual(validated["mappings"][0]["source_path"], "unmapped")
+        self.assertEqual(validated["mappings"][0]["confidence"], "none")
+        self.assertEqual(validated["mappings"][0]["fill_status"], "skipped")
+        self.assertEqual(validated["mappings"][1]["source_path"], "risk_change.content")
+        self.assertEqual(validated["mappings"][1]["fill_status"], "skipped")
+
+    def test_merge_template_mappings_replaces_only_unresolved_slots(self):
+        base_mapping = {
+            "mappings": [
+                {
+                    "slot_id": "paragraph[0]",
+                    "template_label": "鍜ㄨ鐩爣",
+                    "source_path": "unmapped",
+                    "confidence": "none",
+                    "fill_status": "skipped",
+                    "reason": "No deterministic source path match.",
+                },
+                {
+                    "slot_id": "table[0].row[0].cell[1]",
+                    "template_label": "椋庨櫓鍙樺寲",
+                    "source_path": "risk_change.content",
+                    "confidence": "high",
+                    "fill_status": "ready",
+                    "reason": "Rule match.",
+                },
+            ]
+        }
+        llm_mapping = {
+            "mappings": [
+                {
+                    "slot_id": "paragraph[0]",
+                    "template_label": "鍜ㄨ鐩爣",
+                    "source_path": "next_session_focus",
+                    "confidence": "medium",
+                    "fill_status": "ready",
+                    "reason": "LLM mapped to allowed source.",
+                }
+            ]
+        }
+
+        merged = merge_template_mappings(base_mapping, llm_mapping)
+
+        self.assertEqual(merged["mappings"][0]["source_path"], "next_session_focus")
+        self.assertEqual(merged["mappings"][1]["source_path"], "risk_change.content")
+
+    def test_unresolved_mapping_items_returns_skipped_items(self):
+        mapping = build_template_mapping(
+            extract_template_slots_from_xml(self.unknown_placeholder_xml()),
+            build_source_paths(self.sample_w3()),
+        )
+
+        unresolved = unresolved_mapping_items(mapping)
+
+        self.assertEqual(len(unresolved), 1)
+        self.assertEqual(unresolved[0]["source_path"], "unmapped")
 
     def template_xml(self):
         return (

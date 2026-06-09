@@ -202,6 +202,104 @@ def build_template_mapping(slots, source_paths):
     return {"mappings": mappings}
 
 
+def unresolved_mapping_items(mapping):
+    return [
+        item
+        for item in mapping.get("mappings", [])
+        if item.get("fill_status") != "ready" or item.get("source_path") == "unmapped"
+    ]
+
+
+def build_llm_mapping_prompt(slots, source_paths):
+    prompt_package = {
+        "task": "Map DOCX template slots to allowed structured source paths. Return JSON only.",
+        "rules": [
+            "Do not create new text for the Word document.",
+            "Choose source_path only from allowed source paths or use unmapped.",
+            "Use confidence high, medium, low, or none.",
+            "Use unmapped when the slot asks for diagnosis, unsupported risk level, missing facts, or unsafe/private information not present in sources.",
+            "Low and none will not be filled automatically.",
+        ],
+        "response_schema": {
+            "mappings": [
+                {
+                    "slot_id": "string",
+                    "template_label": "string",
+                    "source_path": "allowed source_path or unmapped",
+                    "confidence": "high|medium|low|none",
+                    "reason": "brief reason",
+                }
+            ]
+        },
+        "template_slots": slots,
+        "allowed_source_paths": source_paths,
+    }
+    return (
+        "You are a constrained template mapping assistant. Return JSON only.\n"
+        "Do not infer diagnoses, final risk levels, or missing personal information.\n\n"
+        + json.dumps(prompt_package, ensure_ascii=False, indent=2, sort_keys=True)
+    )
+
+
+def extract_llm_mapping_json(answer_text):
+    text = (answer_text or "").strip()
+    blocks = re.findall(r"```json\s*(.*?)\s*```", text, flags=re.IGNORECASE | re.DOTALL)
+    candidate = blocks[-1].strip() if blocks else text
+    return json.loads(candidate)
+
+
+def _validated_skipped_mapping(item, reason):
+    return {
+        "slot_id": item.get("slot_id", ""),
+        "template_label": item.get("template_label", ""),
+        "source_path": "unmapped",
+        "confidence": "none",
+        "fill_status": "skipped",
+        "reason": reason,
+    }
+
+
+def validate_llm_mapping(mapping, requested_slot_ids, allowed_source_paths):
+    valid_confidences = {"high", "medium", "low", "none"}
+    validated = []
+    for raw_item in mapping.get("mappings", []):
+        slot_id = raw_item.get("slot_id")
+        if slot_id not in requested_slot_ids:
+            continue
+        confidence = raw_item.get("confidence", "none")
+        if confidence not in valid_confidences:
+            confidence = "none"
+        source_path = raw_item.get("source_path", "unmapped")
+        if source_path != "unmapped" and source_path not in allowed_source_paths:
+            validated.append(_validated_skipped_mapping(raw_item, "LLM returned an unknown source_path."))
+            continue
+        fill_status = "ready" if source_path != "unmapped" and confidence in {"high", "medium"} else "skipped"
+        validated.append(
+            {
+                "slot_id": slot_id,
+                "template_label": raw_item.get("template_label", ""),
+                "source_path": source_path,
+                "confidence": confidence,
+                "fill_status": fill_status,
+                "reason": raw_item.get("reason", "LLM mapping."),
+            }
+        )
+    return {"mappings": validated}
+
+
+def merge_template_mappings(base_mapping, llm_mapping):
+    llm_by_slot = {item.get("slot_id"): item for item in llm_mapping.get("mappings", [])}
+    merged = []
+    for item in base_mapping.get("mappings", []):
+        slot_id = item.get("slot_id")
+        replacement = llm_by_slot.get(slot_id)
+        if replacement and (item.get("fill_status") != "ready" or item.get("source_path") == "unmapped"):
+            merged.append(replacement)
+        else:
+            merged.append(item)
+    return {"mappings": merged}
+
+
 def extract_template_slots_from_xml(document_xml):
     root = ET.fromstring(document_xml)
     slots = []
