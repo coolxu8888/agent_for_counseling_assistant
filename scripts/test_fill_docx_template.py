@@ -4,7 +4,14 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from fill_docx_template import build_source_map, fill_docx_template, find_source_match, normalize_label
+from fill_docx_template import (
+    build_source_map,
+    fill_docx_template,
+    find_source_match,
+    main,
+    normalize_label,
+    parse_args,
+)
 from render_docx import WORD_NS, write_docx_package
 
 
@@ -178,6 +185,53 @@ class FillDocxTemplateTest(unittest.TestCase):
 
         self.assertEqual(report["status"], "FAIL")
         self.assertIn("word/document.xml", report["issues"][0]["message"])
+
+    def test_parse_args_accepts_template_structured_output_and_report(self):
+        args = parse_args(
+            [
+                "--template",
+                "template.docx",
+                "--structured",
+                "structured_output.json",
+                "--output",
+                "filled_template.docx",
+                "--report",
+                "template_fill_report.json",
+            ]
+        )
+
+        self.assertEqual(args.template, "template.docx")
+        self.assertEqual(args.structured, "structured_output.json")
+        self.assertEqual(args.output, "filled_template.docx")
+        self.assertEqual(args.report, "template_fill_report.json")
+
+    def test_main_writes_output_and_default_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.template_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            code = main(
+                [
+                    "--template",
+                    str(template_path),
+                    "--structured",
+                    str(structured_path),
+                    "--output",
+                    str(output_path),
+                ]
+            )
+
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            output_exists = output_path.exists()
+
+        self.assertEqual(code, 0)
+        self.assertTrue(output_exists)
+        self.assertEqual(report["status"], "PASS")
 
 
 if __name__ == "__main__":

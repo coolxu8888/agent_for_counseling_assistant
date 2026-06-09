@@ -218,3 +218,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-model-eval.ps1 -
 ```
 
 API results are written to `eval-results/api/`.
+
+## DOCX Template Autofill
+
+If a counselor already has a Word template, first run the agent with structured output, then fill the template from `structured_output.json`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx
+```
+
+The v0.1 filler supports ordinary `.docx` tables and paragraphs with recognizable labels, such as `风险变化` followed by an empty cell or `下次咨询重点：____`. It also writes `template_fill_report.json`; review this report before using the generated document because unmatched fields and skipped non-empty cells are listed there.

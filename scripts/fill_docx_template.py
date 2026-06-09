@@ -1,5 +1,7 @@
+import argparse
 import json
 import re
+import sys
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -315,3 +317,36 @@ def fill_docx_template(template_path, structured_path, output_path, report_path)
 
     write_report(report_path, report)
     return report
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description="Fill a counselor DOCX template from structured output JSON.")
+    parser.add_argument("--template", required=True, help="Path to the input .docx template.")
+    parser.add_argument("--structured", required=True, help="Path to structured_output.json.")
+    parser.add_argument("--output", required=True, help="Path to the filled .docx output.")
+    parser.add_argument(
+        "--report",
+        default=None,
+        help="Path to template_fill_report.json. Defaults to output directory/template_fill_report.json.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    output_path = Path(args.output)
+    report_path = Path(args.report) if args.report else output_path.with_name("template_fill_report.json")
+    report = fill_docx_template(args.template, args.structured, output_path, report_path)
+    if report["status"] == "FAIL":
+        message = report["issues"][0]["message"] if report["issues"] else "Unknown error"
+        print(f"DOCX template fill failed: {message}", file=sys.stderr)
+        return 1
+    print(f"DOCX template written: {output_path}")
+    print(f"Template fill report written: {report_path}")
+    if report["status"] == "WARN":
+        print("Template fill completed with warnings. Review the report before use.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
