@@ -149,7 +149,7 @@ STRUCTURED_OUTPUT_CONTRACTS = {
         "risk_signals": [],
         "information_gaps": [],
         "suggested_questions": [],
-        "boundary_notes": [],
+        "boundary_notes": ["材料中未见明确风险信号时，也需建议咨询师按需进一步评估。"],
     },
     "W3": {
         "workflow": "W3",
@@ -165,7 +165,7 @@ STRUCTURED_OUTPUT_CONTRACTS = {
         "risk_change": {"content": ""},
         "next_session_focus": [],
         "missing_information": [],
-        "boundary_notes": [],
+        "boundary_notes": ["本记录不替代咨询师专业判断。"],
     },
 }
 
@@ -275,7 +275,7 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
         parts.extend(
             [
                 "# 结构化 JSON 输出要求",
-                "先输出给咨询师阅读的 Markdown 正文。随后输出一个 fenced JSON block，格式必须是 ```json 开头、``` 结束。JSON 必须能被 json.loads 解析，不要在 JSON 中写注释。",
+                "先输出给咨询师阅读的 Markdown 正文。随后输出一个 fenced JSON block，格式必须是 ```json 开头、``` 结束。JSON 必须能被 json.loads 解析，不要在 JSON 中写注释。Markdown 正文请保持简明，必须优先保证 JSON block 完整输出。",
                 "JSON block 必须尽量贴合下面的字段结构；缺失信息用“未提供”“未提及”或空数组表示，不要编造。",
                 "```json\n"
                 + json.dumps(
@@ -455,15 +455,11 @@ def _validate_w1(workflow, data):
 
 def _validate_w2(workflow, data):
     issues = _check_common(workflow, data, "case_summary")
-    for key in [
-        "known_facts",
-        "bio_psycho_social",
-        "risk_signals",
-        "information_gaps",
-        "suggested_questions",
-    ]:
+    for key in ["known_facts", "bio_psycho_social", "information_gaps", "suggested_questions"]:
         if not _has_non_empty(data, key):
             issues.append(_structured_issue(key, f"{key} must be present and non-empty."))
+    if "risk_signals" not in data:
+        issues.append(_structured_issue("risk_signals", "risk_signals must be present."))
     bps = data.get("bio_psycho_social", {})
     if isinstance(bps, dict):
         for key in ["biological", "psychological", "social"]:
@@ -567,6 +563,8 @@ def run_agent_once(
         )
     http_post_json = http_post_json or post_json
     payload = build_chat_payload(api_config.model, prompt_package)
+    if structured:
+        payload["max_tokens"] = 8192
     url = deepseek_chat_completions_url(api_config.base_url)
     headers = {"Authorization": f"Bearer {api_config.api_key}"}
     started = time.monotonic()

@@ -200,6 +200,7 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn('"document_type": "session_note"', prompt)
         self.assertIn('"risk_change"', prompt)
         self.assertIn('"boundary_notes"', prompt)
+        self.assertIn("本记录不替代咨询师专业判断", prompt)
 
     def test_strip_agent_marker_removes_markdown_wrapped_marker(self):
         clean = strip_agent_marker("正文\n**AGENT_DONE_W3**\n", normalize_workflow("W3"))
@@ -294,6 +295,27 @@ AGENT_DONE_W3
             "information_gaps": ["睡眠持续时间未提供"],
             "suggested_questions": ["睡眠问题持续多久？"],
             "boundary_notes": ["不构成诊断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W2"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w2_allows_empty_risk_signals(self):
+        data = {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "个案信息整理",
+            "known_facts": ["女性，35岁"],
+            "bio_psycho_social": {
+                "biological": ["睡眠困难"],
+                "psychological": ["委屈"],
+                "social": ["夫妻冲突"],
+            },
+            "risk_signals": [],
+            "information_gaps": ["风险信息需要进一步评估"],
+            "suggested_questions": ["最近有没有自伤、自杀或他伤想法？"],
+            "boundary_notes": ["材料中未见明确风险信号，建议咨询师按需进一步评估。"],
         }
 
         check = validate_structured_output(normalize_workflow("W2"), data)
@@ -471,6 +493,7 @@ AGENT_DONE_W3
             rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
 
             def fake_post_json(_url, _headers, _payload, _timeout):
+                self.assertEqual(_payload["max_tokens"], 8192)
                 return {
                     "choices": [
                         {
