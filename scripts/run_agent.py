@@ -170,6 +170,159 @@ STRUCTURED_OUTPUT_CONTRACTS = {
     },
 }
 
+W1_INITIAL_INTERVIEW_SECTIONS = [
+    {
+        "id": "main_distress",
+        "heading": "来访者主要困扰",
+        "fields": [
+            {
+                "id": "main_distress",
+                "label": "来访者主要困扰",
+                "value": "",
+                "required": True,
+                "sensitive": False,
+                "risk_signal": False,
+                "notes": "记录来访者本次最主要的困扰、主诉和希望解决的问题；未提供时写未提供或待补充。",
+            }
+        ],
+    },
+    {
+        "id": "basic_situation",
+        "heading": "来访者基本情况（重大生活事件，家庭状况，人际关系状况，学习状况，恋爱状况等）",
+        "fields": [
+            {
+                "id": "basic_situation",
+                "label": "来访者基本情况",
+                "value": "",
+                "required": False,
+                "sensitive": True,
+                "risk_signal": False,
+                "notes": "按最小必要原则整理重大生活事件、家庭、人际、学习、恋爱等信息。",
+            }
+        ],
+    },
+    {
+        "id": "functioning",
+        "heading": "来访者认知、情感、行为及社会功能的基本状况",
+        "fields": [
+            {
+                "id": "functioning",
+                "label": "来访者认知、情感、行为及社会功能的基本状况",
+                "value": "",
+                "required": False,
+                "sensitive": False,
+                "risk_signal": False,
+                "notes": "区分材料中已提供的观察、来访者自述和待补充信息。",
+            }
+        ],
+    },
+    {
+        "id": "support_coping",
+        "heading": "来访者主要社会支持和应对方式",
+        "fields": [
+            {
+                "id": "support_coping",
+                "label": "来访者主要社会支持和应对方式",
+                "value": "",
+                "required": False,
+                "sensitive": False,
+                "risk_signal": False,
+                "notes": "整理朋友、家人、学校或其他支持资源，以及已有应对方式。",
+            }
+        ],
+    },
+    {
+        "id": "history",
+        "heading": "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况",
+        "fields": [
+            {
+                "id": "history",
+                "label": "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况",
+                "value": "",
+                "required": False,
+                "sensitive": True,
+                "risk_signal": False,
+                "notes": "仅整理材料中明确提供的信息；不得推断诊断或用药。",
+            }
+        ],
+    },
+    {
+        "id": "psychological_tests",
+        "heading": "来访者心理测试结果",
+        "fields": [
+            {
+                "id": "psychological_tests",
+                "label": "来访者心理测试结果",
+                "value": "",
+                "required": False,
+                "sensitive": True,
+                "risk_signal": False,
+                "notes": "未提供测试结果时写未提供；不得自行生成量表分数。",
+            }
+        ],
+    },
+    {
+        "id": "risk_crisis",
+        "heading": "风险评估/危机评估情况（自伤、自杀或伤害他人情况）",
+        "fields": [
+            {
+                "id": "crisis_assessment",
+                "label": "危机评估情况",
+                "value": "",
+                "required": True,
+                "sensitive": True,
+                "risk_signal": True,
+                "notes": "覆盖自伤、自杀、他伤、现实检验、不安全环境、保护因素；不做最终风险等级判断。",
+            }
+        ],
+    },
+    {
+        "id": "handling_suggestion",
+        "heading": "处理建议",
+        "fields": [
+            {
+                "id": "handling_suggestion",
+                "label": "处理建议",
+                "value": "",
+                "required": False,
+                "sensitive": False,
+                "risk_signal": False,
+                "notes": "给咨询师下一步收集信息、评估和机构流程层面的建议；不替代咨询师决策。",
+            }
+        ],
+    },
+    {
+        "id": "other_notes",
+        "heading": "其他备注",
+        "fields": [
+            {
+                "id": "other_notes",
+                "label": "其他备注",
+                "value": "",
+                "required": False,
+                "sensitive": False,
+                "risk_signal": False,
+                "notes": "记录材料限制、待补充事项或咨询师需要复核的内容。",
+            }
+        ],
+    },
+]
+
+OUTPUT_CONTRACTS["W1"].extend(
+    [
+        "若需要适配初始访谈表模板，必须包含：来访者主要困扰、来访者基本情况、来访者认知、情感、行为及社会功能的基本状况、来访者主要社会支持和应对方式、来访者既往咨询（求助）史、精神疾病史和就诊、服药情况、来访者心理测试结果、危机评估情况、处理建议、其他备注。",
+        "初始访谈表中的危机评估情况不得输出最终风险等级，只能整理材料中已给出的风险线索和建议咨询师进一步评估的方向。",
+    ]
+)
+
+STRUCTURED_OUTPUT_CONTRACTS["W1"] = {
+    "workflow": "W1",
+    "document_type": "intake_form",
+    "title": "心理咨询初始访谈表",
+    "sections": W1_INITIAL_INTERVIEW_SECTIONS,
+    "boundary_notes": ["本表仅用于初访信息收集辅助，不构成诊断或最终风险判断，需结合咨询师专业判断。"],
+}
+
 
 def normalize_workflow(value):
     alias = (value or "").strip().lower()

@@ -202,6 +202,33 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn('"boundary_notes"', prompt)
         self.assertIn("本记录不替代咨询师专业判断", prompt)
 
+    def test_build_prompt_package_w1_structured_contract_matches_initial_interview_template(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W1"),
+            "请生成初访信息收集表",
+            [
+                {
+                    "chunk_id": "forms-fields-pipl-minimum-necessary-fields-001",
+                    "path": "rag/forms-fields/pipl-minimum-necessary-fields.md",
+                    "content": "# 表单字段规则\n遵循最小必要原则。",
+                }
+            ],
+            structured=True,
+        )
+
+        for label in [
+            "来访者主要困扰",
+            "来访者基本情况",
+            "来访者认知、情感、行为及社会功能的基本状况",
+            "来访者主要社会支持和应对方式",
+            "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况",
+            "来访者心理测试结果",
+            "危机评估情况",
+            "处理建议",
+            "其他备注",
+        ]:
+            self.assertIn(label, prompt)
+
     def test_strip_agent_marker_removes_markdown_wrapped_marker(self):
         clean = strip_agent_marker("正文\n**AGENT_DONE_W3**\n", normalize_workflow("W3"))
 
@@ -274,6 +301,56 @@ AGENT_DONE_W3
                 }
             ],
             "boundary_notes": ["本表不构成诊断，需结合咨询师专业判断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w1_accepts_initial_interview_template_sections(self):
+        data = {
+            "workflow": "W1",
+            "document_type": "intake_form",
+            "title": "心理咨询初始访谈表",
+            "sections": [
+                {
+                    "heading": "来访者主要困扰",
+                    "fields": [
+                        {
+                            "label": "来访者主要困扰",
+                            "value": "近期情绪低落。",
+                            "required": True,
+                            "sensitive": False,
+                            "risk_signal": False,
+                        }
+                    ],
+                },
+                {
+                    "heading": "来访者基本情况",
+                    "fields": [
+                        {
+                            "label": "来访者基本情况",
+                            "value": "家庭和人际信息待补充。",
+                            "required": False,
+                            "sensitive": True,
+                            "risk_signal": False,
+                        }
+                    ],
+                },
+                {
+                    "heading": "风险评估/危机评估情况",
+                    "fields": [
+                        {
+                            "label": "危机评估情况",
+                            "value": "未提供明确风险信息，建议进一步评估。",
+                            "required": True,
+                            "sensitive": True,
+                            "risk_signal": True,
+                        }
+                    ],
+                },
+            ],
+            "boundary_notes": ["本表不构成诊断或最终风险判断。"],
         }
 
         check = validate_structured_output(normalize_workflow("W1"), data)
