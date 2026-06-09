@@ -17,9 +17,11 @@ from fill_docx_template import (
     main,
     normalize_label,
     parse_args,
+    run_deepseek_template_mapping,
     unresolved_mapping_items,
     validate_llm_mapping,
 )
+from run_model_eval import DeepSeekConfig
 from render_docx import WORD_NS, write_docx_package
 
 
@@ -224,6 +226,73 @@ class FillDocxTemplateTest(unittest.TestCase):
 
         self.assertEqual(len(unresolved), 1)
         self.assertEqual(unresolved[0]["source_path"], "unmapped")
+
+    def test_run_deepseek_template_mapping_merges_fake_api_result(self):
+        base_mapping = build_template_mapping(
+            extract_template_slots_from_xml(self.unknown_placeholder_xml()),
+            build_source_paths(self.sample_w3()),
+        )
+        source_paths = build_source_paths(self.sample_w3())
+        calls = []
+
+        def fake_post(url, headers, payload, timeout):
+            calls.append({"url": url, "headers": headers, "payload": payload, "timeout": timeout})
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "mappings": [
+                                        {
+                                            "slot_id": "paragraph[0]",
+                                            "template_label": "鍜ㄨ鐩爣",
+                                            "source_path": "next_session_focus",
+                                            "confidence": "medium",
+                                            "reason": "Allowed source path matches a future-oriented plan field.",
+                                        }
+                                    ]
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            }
+
+        result = run_deepseek_template_mapping(
+            base_mapping,
+            source_paths,
+            DeepSeekConfig(api_key="test-key", model="deepseek-v4-flash", base_url="https://example.test"),
+            http_post_json=fake_post,
+        )
+
+        self.assertEqual(result["llm_status"], "success")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(result["mapping"]["mappings"][0]["source_path"], "next_session_focus")
+        self.assertEqual(result["mapping"]["mappings"][0]["fill_status"], "ready")
+
+    def test_run_deepseek_template_mapping_skips_api_when_no_unresolved_slots(self):
+        base_mapping = build_template_mapping(
+            extract_template_slots_from_xml(self.template_xml()),
+            build_source_paths(self.sample_w3()),
+        )
+        calls = []
+
+        def fake_post(url, headers, payload, timeout):
+            calls.append(payload)
+            return {}
+
+        result = run_deepseek_template_mapping(
+            base_mapping,
+            build_source_paths(self.sample_w3()),
+            DeepSeekConfig(api_key="test-key"),
+            http_post_json=fake_post,
+        )
+
+        self.assertEqual(result["llm_status"], "skipped")
+        self.assertEqual(calls, [])
+        self.assertEqual(result["mapping"], base_mapping)
 
     def template_xml(self):
         return (

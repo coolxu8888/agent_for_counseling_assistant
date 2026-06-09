@@ -6,6 +6,13 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from run_model_eval import (
+    build_chat_payload,
+    deepseek_chat_completions_url,
+    extract_answer_text,
+    post_json,
+)
+
 
 PLACEHOLDER_CHARS = "_＿—-"
 PUNCTUATION_PATTERN = re.compile(r"[\s：:（）()\[\]【】{}<>《》、，,。.;；/\\|]+")
@@ -298,6 +305,44 @@ def merge_template_mappings(base_mapping, llm_mapping):
         else:
             merged.append(item)
     return {"mappings": merged}
+
+
+def run_deepseek_template_mapping(base_mapping, source_paths, config, http_post_json=post_json):
+    unresolved = unresolved_mapping_items(base_mapping)
+    if not unresolved:
+        return {
+            "mapping": base_mapping,
+            "llm_status": "skipped",
+            "llm_issues": [],
+        }
+
+    try:
+        prompt = build_llm_mapping_prompt(unresolved, source_paths)
+        payload = build_chat_payload(config.model, prompt)
+        response_json = http_post_json(
+            deepseek_chat_completions_url(config.base_url),
+            {"Authorization": f"Bearer {config.api_key}"},
+            payload,
+            config.timeout_seconds,
+        )
+        answer_text = extract_answer_text(response_json)
+        raw_mapping = extract_llm_mapping_json(answer_text)
+        validated_mapping = validate_llm_mapping(
+            raw_mapping,
+            {item.get("slot_id") for item in unresolved},
+            {item.get("source_path") for item in source_paths},
+        )
+        return {
+            "mapping": merge_template_mappings(base_mapping, validated_mapping),
+            "llm_status": "success",
+            "llm_issues": [],
+        }
+    except Exception as exc:
+        return {
+            "mapping": base_mapping,
+            "llm_status": "error",
+            "llm_issues": [{"level": "ERROR", "message": str(exc)[:500]}],
+        }
 
 
 def extract_template_slots_from_xml(document_xml):
