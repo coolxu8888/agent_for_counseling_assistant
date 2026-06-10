@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -37,6 +38,40 @@ class WebWorkbenchTest(unittest.TestCase):
             resolved = web_workbench.resolve_static_path("/", web_root)
 
         self.assertEqual(resolved.name, "index.html")
+
+    def test_handle_run_rejects_empty_input(self):
+        response = web_workbench.handle_api_run({"workflow": "W1", "input": "   "})
+
+        status, _headers, body = response
+        self.assertEqual(status, 400)
+        self.assertIn("Input is required", json.loads(body.decode("utf-8"))["message"])
+
+    def test_handle_run_returns_saved_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("clean answer", encoding="utf-8")
+            (run_dir / "structured_output.json").write_text('{"workflow": "W1"}', encoding="utf-8")
+            (run_dir / "structured_check.json").write_text('{"status": "PASS"}', encoding="utf-8")
+            (run_dir / "safety_check.json").write_text(
+                '{"status": "PASS", "rubric_status": "PASS"}',
+                encoding="utf-8",
+            )
+            (run_dir / "metadata.json").write_text('{"status": "success"}', encoding="utf-8")
+
+            fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+                status, _headers, body = web_workbench.handle_api_run(
+                    {"workflow": "W1", "input": "材料", "structured": True, "render_docx": False}
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["workflow"], "W1")
+        self.assertEqual(payload["clean_output"], "clean answer")
+        self.assertEqual(payload["structured_output"], {"workflow": "W1"})
+        self.assertEqual(payload["structured_check"], {"status": "PASS"})
 
 
 if __name__ == "__main__":
