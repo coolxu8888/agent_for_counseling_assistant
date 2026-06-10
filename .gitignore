@@ -5,6 +5,7 @@ __pycache__/
 eval-prompts/*.png
 eval-prompts/uia-*.txt
 eval-results/*.png
+eval-results/api/
 
 # Local editor and OS noise.
 .DS_Store
