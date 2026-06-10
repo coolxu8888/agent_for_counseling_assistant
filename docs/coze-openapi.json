@@ -50,12 +50,20 @@
                     ],
                     "type": "string"
                   },
+                  "template_base64": {
+                    "description": "Base64-encoded .docx template content for deployed demos.",
+                    "type": "string"
+                  },
+                  "template_filename": {
+                    "description": "Original filename for template_base64. Defaults to template.docx.",
+                    "type": "string"
+                  },
                   "template_path": {
+                    "description": "Server-local DOCX path. Use only for local testing or preloaded server templates.",
                     "type": "string"
                   }
                 },
                 "required": [
-                  "template_path",
                   "raw_input"
                 ],
                 "type": "object"

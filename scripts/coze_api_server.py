@@ -1,4 +1,6 @@
 import argparse
+import base64
+import binascii
 import json
 import os
 import sys
@@ -20,10 +22,12 @@ from web_workbench import (
     read_json_body,
     send_response_tuple,
 )
+from run_agent import create_run_dir
 
 
 ROOT = Path(__file__).resolve().parents[1]
 OPENAPI_PATH = ROOT / "docs" / "coze-openapi.json"
+MAX_TEMPLATE_BYTES = 10 * 1024 * 1024
 
 
 def response_payload(response):
@@ -138,20 +142,58 @@ def handle_coze_run_workflow(payload, handler):
 
 
 def handle_coze_draft_template(payload, handler):
+    template_path = payload.get("template_path", "")
+    run_dir = payload.get("run_dir")
+    if payload.get("template_base64"):
+        try:
+            uploaded_template, run_dir = save_template_base64(
+                payload.get("template_base64", ""),
+                payload.get("template_filename", "template.docx"),
+                run_dir,
+            )
+            template_path = str(uploaded_template)
+        except ValueError as exc:
+            return error_response(400, str(exc))
+
     backend_response = handle_draft_template(
         {
-            "template_path": payload.get("template_path", ""),
+            "template_path": template_path,
             "raw_input": payload.get("raw_input") or payload.get("input") or "",
             "style": payload.get("style", payload.get("output_style", "professional_concise")),
             "custom_style": payload.get("custom_style", payload.get("custom_output_style", "")),
             "existing_content_policy": payload.get("existing_content_policy", "merge"),
-            "run_dir": payload.get("run_dir"),
+            "run_dir": str(run_dir) if run_dir else None,
         }
     )
     status, backend_payload = response_payload(backend_response)
     if status >= 400:
         return json_response(backend_payload, status=status)
     return json_response(build_draft_template_response(handler, backend_payload))
+
+
+def safe_template_filename(filename):
+    name = Path(str(filename or "template.docx")).name
+    if not name.lower().endswith(".docx"):
+        name = f"{name}.docx"
+    return "".join(ch if ch.isalnum() or ch in {".", "-", "_"} else "_" for ch in name) or "template.docx"
+
+
+def save_template_base64(template_base64, template_filename="template.docx", run_dir=None):
+    try:
+        raw = base64.b64decode(str(template_base64), validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("template_base64 is not valid base64.") from exc
+    if not raw:
+        raise ValueError("template_base64 is empty.")
+    if len(raw) > MAX_TEMPLATE_BYTES:
+        raise ValueError("template_base64 exceeds the 10MB demo limit.")
+    target_run_dir = Path(run_dir).resolve() if run_dir else create_run_dir(run_root=RUN_ROOT, workflow_id="COZE-TEMPLATE")
+    if target_run_dir != RUN_ROOT.resolve() and RUN_ROOT.resolve() not in target_run_dir.parents:
+        raise ValueError("Run directory is outside approved output directory.")
+    target_run_dir.mkdir(parents=True, exist_ok=True)
+    path = target_run_dir / safe_template_filename(template_filename)
+    path.write_bytes(raw)
+    return path, target_run_dir
 
 
 def auth_error():
@@ -225,9 +267,20 @@ def openapi_spec(base_url="https://your-domain.example"):
                             "application/json": {
                                 "schema": {
                                     "type": "object",
-                                    "required": ["template_path", "raw_input"],
+                                    "required": ["raw_input"],
                                     "properties": {
-                                        "template_path": {"type": "string"},
+                                        "template_path": {
+                                            "type": "string",
+                                            "description": "Server-local DOCX path. Use only for local testing or preloaded server templates.",
+                                        },
+                                        "template_base64": {
+                                            "type": "string",
+                                            "description": "Base64-encoded .docx template content for deployed demos.",
+                                        },
+                                        "template_filename": {
+                                            "type": "string",
+                                            "description": "Original filename for template_base64. Defaults to template.docx.",
+                                        },
                                         "raw_input": {"type": "string"},
                                         "style": {
                                             "type": "string",

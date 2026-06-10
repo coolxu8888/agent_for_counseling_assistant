@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import unittest
+import base64
 from pathlib import Path
 from unittest.mock import patch
 
@@ -125,6 +126,53 @@ class CozeApiServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["status"], "success")
         self.assertEqual(len(result["artifacts"]), 3)
+
+    def test_save_template_base64_writes_uploaded_template_inside_run_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "agent-runs"
+            encoded = base64.b64encode(b"docx-bytes").decode("ascii")
+
+            with patch.object(coze_api_server, "RUN_ROOT", run_root):
+                path, run_dir = coze_api_server.save_template_base64(encoded, "咨询模板.docx")
+
+            self.assertTrue(path.exists())
+            self.assertEqual(path.read_bytes(), b"docx-bytes")
+            self.assertTrue(str(path).endswith(".docx"))
+            self.assertIn("COZE-TEMPLATE", str(run_dir))
+
+    def test_save_template_base64_rejects_invalid_content(self):
+        with self.assertRaisesRegex(ValueError, "valid base64"):
+            coze_api_server.save_template_base64("not base64 !", "template.docx")
+
+    def test_handle_coze_draft_template_accepts_template_base64(self):
+        handler = FakeHandler()
+        backend_payload = {
+            "status": "success",
+            "run_dir": r"C:\runs\tpl",
+            "output_path": r"C:\runs\tpl\filled_template.docx",
+            "draft_path": r"C:\runs\tpl\template_draft.json",
+            "report_path": r"C:\runs\tpl\template_fill_report.json",
+            "report": {"filled_fields": [], "kept_fields": [], "skipped_fields": [], "issues": []},
+        }
+        encoded = base64.b64encode(b"docx-bytes").decode("ascii")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "agent-runs"
+            with patch.object(coze_api_server, "RUN_ROOT", run_root):
+                with patch.object(coze_api_server, "handle_draft_template", return_value=coze_api_server.json_response(backend_payload)) as fake:
+                    status, _headers, body = coze_api_server.handle_coze_draft_template(
+                        {
+                            "template_base64": encoded,
+                            "template_filename": "template.docx",
+                            "raw_input": "材料",
+                        },
+                        handler,
+                    )
+
+        result = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(result["status"], "success")
+        self.assertIn("template.docx", fake.call_args.args[0]["template_path"])
 
     def test_auth_allows_local_without_configured_key(self):
         with patch.dict(os.environ, {}, clear=True):

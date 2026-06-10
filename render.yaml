@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: counselor-agent-coze-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/coze_api_server.py --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_MODEL
+        value: deepseek-v4-flash
+      - key: DEEPSEEK_TIMEOUT_SECONDS
+        value: "120"
+      - key: COZE_DEMO_API_KEY
+        sync: false
