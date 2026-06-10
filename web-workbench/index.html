@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>咨询师助理工作台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="workbench">
+      <aside class="workflow-rail" aria-label="工作流导航">
+        <header class="brand">
+          <div>
+            <h1>咨询师助理</h1>
+            <p>本地 Web Workbench</p>
+          </div>
+          <span id="runStatus" class="status idle">未运行</span>
+        </header>
+
+        <button class="workflow active" type="button" data-workflow="W1">
+          <strong>W1 初访信息收集</strong>
+          <span>初访前提问表；在需求明确时整理已完成初访材料。</span>
+        </button>
+        <button class="workflow" type="button" data-workflow="W2">
+          <strong>W2 个案信息整理</strong>
+          <span>按 BPS 框架和风险边界整理背景、问题与支持资源。</span>
+        </button>
+        <button class="workflow" type="button" data-workflow="W3">
+          <strong>W3 Session 记录</strong>
+          <span>整理单次咨询记录，生成结构化摘要和后续关注点。</span>
+        </button>
+      </aside>
+
+      <section class="result-area" aria-label="结果观察区">
+        <div class="tabs" role="tablist" aria-label="结果视图">
+          <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="markdown">
+            模型输出
+          </button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-tab="json">
+            结构化 JSON
+          </button>
+          <button class="tab" type="button" role="tab" aria-selected="false" data-tab="checks">
+            校验结果
+          </button>
+        </div>
+        <pre id="markdownPane" class="pane active" role="tabpanel">运行后显示模型 Markdown 输出。</pre>
+        <pre id="jsonPane" class="pane" role="tabpanel">运行后显示结构化 JSON。</pre>
+        <pre id="checksPane" class="pane" role="tabpanel">运行后显示结构化校验、安全校验、元数据和问题列表。</pre>
+      </section>
+
+      <aside class="template-panel" aria-label="模板填充">
+        <header class="panel-heading">
+          <h2>模板填充</h2>
+          <span>使用当前结构化 JSON</span>
+        </header>
+        <label class="field">
+          <span>Word 模板路径</span>
+          <input id="templatePath" type="text" placeholder="C:\Users\win\Desktop\template.docx" />
+        </label>
+        <button id="fillTemplateButton" class="primary-button" type="button" disabled>填充模板</button>
+        <div class="path-list" aria-label="模板输出路径">
+          <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
+          <p><strong>填充报告</strong><span id="templateReportPath">无</span></p>
+        </div>
+        <pre id="templateReport" class="report-box">需要先运行并获得结构化 JSON。</pre>
+      </aside>
+
+      <section class="input-panel" aria-label="输入与运行控制">
+        <label class="input-field">
+          <span>咨询师材料</span>
+          <textarea id="inputText" placeholder="输入咨询师材料、访谈笔记、表单需求或 session 记录"></textarea>
+        </label>
+        <div class="run-side">
+          <div class="controls" aria-label="运行选项">
+            <label><input id="structuredToggle" type="checkbox" checked /> 结构化输出</label>
+            <label><input id="docxToggle" type="checkbox" /> 生成固定 Word</label>
+            <label><input id="dryRunToggle" type="checkbox" /> Dry run</label>
+            <button id="runButton" class="primary-button" type="button">运行</button>
+          </div>
+          <div class="path-list" aria-label="运行输出路径">
+            <p><strong>Run 目录</strong><span id="runDir">无</span></p>
+            <p><strong>固定 Word</strong><span id="docxPath">无</span></p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
