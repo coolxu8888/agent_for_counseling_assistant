@@ -65,6 +65,29 @@ v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系
 17. 参考 `agent-runtime-architecture.md` 接入路由、检索、提示词组装和输出检查。
 18. 根据测试结果微调系统提示词、RAG 文档和输出模板。
 
+## Local Web Workbench
+
+启动本地咨询师助理工作台：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1
+```
+
+打开：
+
+```text
+http://127.0.0.1:8765
+```
+
+工作台可以：
+
+- 运行 W1/W2/W3，并输入咨询师材料。
+- 显示模型输出、结构化 JSON 和校验结果。
+- 在存在结构化输出时生成固定 `output.docx`。
+- 使用当前结构化 JSON 填充咨询师提供的 `.docx` 模板。
+
+生成文件保存在 `agent-runs/` 下；该目录已被 git 忽略，因为其中可能包含敏感材料。工作台不会显示 `.env` 中的 API key。
+
 ## 本地运行命令
 
 校验 RAG 资料库：
