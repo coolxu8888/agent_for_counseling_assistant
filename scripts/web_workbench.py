@@ -58,8 +58,18 @@ def path_for_ui(path):
     return str(path.resolve())
 
 
+def is_relative_to(path, root):
+    path = Path(path).resolve()
+    root = Path(root).resolve()
+    return path == root or root in path.parents
+
+
 def require_run_file(run_dir_value, filename):
     run_dir = Path(str(run_dir_value)).resolve()
+    if not run_dir.is_dir():
+        raise FileNotFoundError("Run directory not found.")
+    if not is_relative_to(run_dir, RUN_ROOT):
+        raise PermissionError("Run directory is outside approved output directory.")
     target = run_dir / filename
     if not target.exists():
         raise FileNotFoundError(f"{filename} not found in run directory.")
@@ -143,7 +153,7 @@ def handle_render_docx(payload):
             },
             status=200 if status == "success" else 500,
         )
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, PermissionError, ValueError) as exc:
         return error_response(400, str(exc))
     except Exception as exc:
         print(f"DOCX render failed: {exc}")
@@ -170,7 +180,7 @@ def handle_fill_template(payload):
             },
             status=200 if status == "success" else 500,
         )
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, PermissionError, ValueError) as exc:
         return error_response(400, str(exc))
     except Exception as exc:
         print(f"Template fill failed: {exc}")

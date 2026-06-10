@@ -118,17 +118,35 @@ class WebWorkbenchTest(unittest.TestCase):
 
     def test_handle_render_docx_requires_structured_output(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run_dir = Path(tmp) / "run"
-            run_dir.mkdir()
-            status, _headers, body = web_workbench.handle_render_docx({"run_dir": str(run_dir)})
+            run_root = Path(tmp) / "agent-runs"
+            run_dir = run_root / "run"
+            run_dir.mkdir(parents=True)
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                status, _headers, body = web_workbench.handle_render_docx({"run_dir": str(run_dir)})
 
         self.assertEqual(status, 400)
         self.assertIn("structured_output.json", json.loads(body.decode("utf-8"))["message"])
 
+    def test_handle_render_docx_rejects_run_dir_outside_run_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_root = Path(tmp) / "agent-runs"
+            run_root.mkdir()
+            run_dir = Path(tmp) / "outside-run"
+            run_dir.mkdir()
+            (run_dir / "structured_output.json").write_text('{"workflow": "W1"}', encoding="utf-8")
+
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                status, _headers, body = web_workbench.handle_render_docx({"run_dir": str(run_dir)})
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertIn("outside approved output directory", payload["message"])
+
     def test_handle_fill_template_uses_current_structured_json(self):
         with tempfile.TemporaryDirectory() as tmp:
-            run_dir = Path(tmp) / "run"
-            run_dir.mkdir()
+            run_root = Path(tmp) / "agent-runs"
+            run_dir = run_root / "run"
+            run_dir.mkdir(parents=True)
             structured = run_dir / "structured_output.json"
             structured.write_text('{"workflow": "W1"}', encoding="utf-8")
             template = Path(tmp) / "template.docx"
@@ -141,9 +159,10 @@ class WebWorkbenchTest(unittest.TestCase):
                 return report
 
             with patch.object(web_workbench, "fill_docx_template", side_effect=fake_fill):
-                status, _headers, body = web_workbench.handle_fill_template(
-                    {"run_dir": str(run_dir), "template_path": str(template)}
-                )
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    status, _headers, body = web_workbench.handle_fill_template(
+                        {"run_dir": str(run_dir), "template_path": str(template)}
+                    )
 
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 200)
