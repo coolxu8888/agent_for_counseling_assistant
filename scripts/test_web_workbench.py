@@ -39,6 +39,29 @@ class WebWorkbenchTest(unittest.TestCase):
 
         self.assertEqual(resolved.name, "index.html")
 
+    def test_resolve_download_path_allows_agent_runs_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_root.mkdir()
+            output = run_root / "file.docx"
+            output.write_bytes(b"docx")
+
+            resolved = web_workbench.resolve_download_path(str(output), allowed_roots=[run_root])
+
+        self.assertEqual(resolved.name, "file.docx")
+
+    def test_resolve_download_path_rejects_outside_agent_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_root.mkdir()
+            outside = root / "secret.txt"
+            outside.write_text("secret", encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                web_workbench.resolve_download_path(str(outside), allowed_roots=[run_root])
+
     def test_handle_run_rejects_empty_input(self):
         response = web_workbench.handle_api_run({"workflow": "W1", "input": "   "})
 

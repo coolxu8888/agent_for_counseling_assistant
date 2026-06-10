@@ -76,6 +76,16 @@ def require_run_file(run_dir_value, filename):
     return run_dir, target
 
 
+def resolve_download_path(path_value, allowed_roots=None):
+    allowed_roots = allowed_roots or [RUN_ROOT]
+    candidate = Path(str(path_value)).resolve()
+    if not candidate.is_file():
+        raise FileNotFoundError(str(candidate))
+    if not any(is_relative_to(candidate, root) for root in allowed_roots):
+        raise ValueError("Download path is outside approved output directories.")
+    return candidate
+
+
 def load_run_payload(result):
     run_dir = result.run_dir
     issues = []
@@ -204,6 +214,23 @@ def resolve_static_path(request_path, web_root=WEB_ROOT):
     return resolved_path
 
 
+def handle_file_download(request_path):
+    parsed = urlparse(request_path)
+    if not parsed.path.startswith("/files/"):
+        return error_response(404, "File endpoint not found.")
+    encoded_path = parsed.path[len("/files/") :]
+    target = resolve_download_path(unquote(encoded_path))
+    body = target.read_bytes()
+    return (
+        200,
+        {
+            "Content-Type": mimetypes.guess_type(target.name)[0] or "application/octet-stream",
+            "Content-Disposition": f'attachment; filename="{target.name}"',
+        },
+        body,
+    )
+
+
 def read_json_body(handler):
     content_length = int(handler.headers.get("Content-Length", "0") or "0")
     if content_length <= 0:
@@ -225,6 +252,16 @@ def send_response_tuple(handler, response):
 
 class WorkbenchHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith("/files/"):
+            try:
+                response = handle_file_download(self.path)
+            except FileNotFoundError:
+                response = error_response(404, "Download file not found.")
+            except Exception as exc:
+                response = error_response(400, str(exc))
+            send_response_tuple(self, response)
+            return
+
         try:
             static_path = resolve_static_path(self.path)
             content_type = mimetypes.guess_type(static_path.name)[0] or "application/octet-stream"
