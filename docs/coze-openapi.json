@@ -1,0 +1,148 @@
+{
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Coze-facing demo wrapper for counselor assistant workflows.",
+    "title": "Counselor Assistant Coze Demo API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/coze/draft_template": {
+      "post": {
+        "operationId": "draft_template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "custom_style": {
+                    "type": "string"
+                  },
+                  "existing_content_policy": {
+                    "default": "merge",
+                    "enum": [
+                      "merge",
+                      "ask",
+                      "replace",
+                      "blank_only"
+                    ],
+                    "type": "string"
+                  },
+                  "raw_input": {
+                    "type": "string"
+                  },
+                  "style": {
+                    "default": "professional_concise",
+                    "enum": [
+                      "professional_concise",
+                      "warm_clinical",
+                      "institutional_record",
+                      "supervision_summary",
+                      "custom"
+                    ],
+                    "type": "string"
+                  },
+                  "template_path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "template_path",
+                  "raw_input"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Template fill result"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Draft and fill a Word template from raw counselor material"
+      }
+    },
+    "/coze/run_workflow": {
+      "post": {
+        "operationId": "run_workflow",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "custom_output_style": {
+                    "type": "string"
+                  },
+                  "input": {
+                    "type": "string"
+                  },
+                  "output_style": {
+                    "default": "professional_concise",
+                    "enum": [
+                      "default",
+                      "professional_concise",
+                      "warm_clinical",
+                      "institutional_record",
+                      "supervision_summary",
+                      "custom"
+                    ],
+                    "type": "string"
+                  },
+                  "render_docx": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "workflow": {
+                    "default": "W3",
+                    "enum": [
+                      "W1",
+                      "W2",
+                      "W3"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "input"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Workflow result"
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Run a counselor assistant workflow"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://your-domain.example"
+    }
+  ]
+}

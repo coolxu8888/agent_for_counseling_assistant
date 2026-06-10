@@ -88,6 +88,37 @@ http://127.0.0.1:8765
 
 生成文件保存在 `agent-runs/` 下；该目录已被 git 忽略，因为其中可能包含敏感材料。工作台不会显示 `.env` 中的 API key。
 
+## Coze Demo API
+
+启动本地 Coze 演示 API：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-coze-api.ps1
+```
+
+默认地址：
+
+```text
+http://127.0.0.1:8770
+```
+
+可用端点：
+
+- `GET /health`
+- `GET /openapi.json`
+- `POST /coze/run_workflow`
+- `POST /coze/draft_template`
+
+生成静态 OpenAPI 草案：
+
+```powershell
+python scripts\coze_api_server.py --write-openapi --base-url https://your-domain.example
+```
+
+静态文件写入 `docs/coze-openapi.json`。接入 Coze 前，将 `servers[0].url` 改成实际部署后的公网或内网 HTTPS 地址。
+
+如果设置环境变量 `COZE_DEMO_API_KEY`，请求需要携带 `X-API-Key: <key>` 或 `Authorization: Bearer <key>`；本地未设置时默认不启用鉴权，方便调试。
+
 ## 本地运行命令
 
 校验 RAG 资料库：
