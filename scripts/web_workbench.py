@@ -12,6 +12,8 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from run_agent import AgentInputError, AgentRunResult, run_agent_once
+from fill_docx_template import fill_docx_template
+from render_docx import render_docx
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +56,14 @@ def read_json_artifact(path, issues):
 
 def path_for_ui(path):
     return str(path.resolve())
+
+
+def require_run_file(run_dir_value, filename):
+    run_dir = Path(str(run_dir_value)).resolve()
+    target = run_dir / filename
+    if not target.exists():
+        raise FileNotFoundError(f"{filename} not found in run directory.")
+    return run_dir, target
 
 
 def load_run_payload(result):
@@ -113,6 +123,58 @@ def handle_api_run(payload):
     except Exception as exc:
         print(f"Agent run failed: {exc}")
         return error_response(500, "Agent run failed.")
+
+
+def handle_render_docx(payload):
+    try:
+        run_dir, structured_path = require_run_file(payload.get("run_dir"), "structured_output.json")
+        data = json.loads(structured_path.read_text(encoding="utf-8"))
+        output_path = run_dir / "output.docx"
+        check_path = run_dir / "docx_check.json"
+        check = render_docx(data, output_path)
+        check_path.write_text(json.dumps(check, ensure_ascii=False, indent=2), encoding="utf-8")
+        status = "success" if check.get("status") != "FAIL" else "error"
+        return json_response(
+            {
+                "status": status,
+                "output_path": path_for_ui(output_path) if output_path.exists() else None,
+                "check_path": path_for_ui(check_path),
+                "check": check,
+            },
+            status=200 if status == "success" else 500,
+        )
+    except FileNotFoundError as exc:
+        return error_response(400, str(exc))
+    except Exception as exc:
+        print(f"DOCX render failed: {exc}")
+        return error_response(500, "DOCX render failed.")
+
+
+def handle_fill_template(payload):
+    try:
+        run_dir, structured_path = require_run_file(payload.get("run_dir"), "structured_output.json")
+        template_path = Path(str(payload.get("template_path"))).resolve()
+        if not template_path.exists():
+            return error_response(400, "Template file not found.")
+
+        output_path = run_dir / "filled_template.docx"
+        report_path = run_dir / "template_fill_report.json"
+        report = fill_docx_template(template_path, structured_path, output_path, report_path)
+        status = "success" if report.get("status") != "FAIL" else "error"
+        return json_response(
+            {
+                "status": status,
+                "output_path": path_for_ui(output_path) if output_path.exists() else None,
+                "report_path": path_for_ui(report_path),
+                "report": report,
+            },
+            status=200 if status == "success" else 500,
+        )
+    except FileNotFoundError as exc:
+        return error_response(400, str(exc))
+    except Exception as exc:
+        print(f"Template fill failed: {exc}")
+        return error_response(500, "Template fill failed.")
 
 
 def resolve_static_path(request_path, web_root=WEB_ROOT):
@@ -175,6 +237,10 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/run":
             response = handle_api_run(payload)
+        elif path == "/api/render-docx":
+            response = handle_render_docx(payload)
+        elif path == "/api/fill-template":
+            response = handle_fill_template(payload)
         else:
             response = error_response(404, "Endpoint not found.")
 

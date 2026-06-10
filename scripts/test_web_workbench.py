@@ -116,6 +116,41 @@ class WebWorkbenchTest(unittest.TestCase):
             payload["issues"],
         )
 
+    def test_handle_render_docx_requires_structured_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            run_dir.mkdir()
+            status, _headers, body = web_workbench.handle_render_docx({"run_dir": str(run_dir)})
+
+        self.assertEqual(status, 400)
+        self.assertIn("structured_output.json", json.loads(body.decode("utf-8"))["message"])
+
+    def test_handle_fill_template_uses_current_structured_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            run_dir.mkdir()
+            structured = run_dir / "structured_output.json"
+            structured.write_text('{"workflow": "W1"}', encoding="utf-8")
+            template = Path(tmp) / "template.docx"
+            template.write_bytes(b"fake docx")
+
+            def fake_fill(template_path, structured_path, output_path, report_path, mapping_path=None):
+                Path(output_path).write_bytes(b"filled")
+                report = {"status": "PASS", "filled_fields": [{"template_label": "A"}], "unfilled_fields": [], "issues": []}
+                Path(report_path).write_text(json.dumps(report), encoding="utf-8")
+                return report
+
+            with patch.object(web_workbench, "fill_docx_template", side_effect=fake_fill):
+                status, _headers, body = web_workbench.handle_fill_template(
+                    {"run_dir": str(run_dir), "template_path": str(template)}
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertTrue(payload["output_path"].endswith("filled_template.docx"))
+        self.assertEqual(payload["report"]["status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()
