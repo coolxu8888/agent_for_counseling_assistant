@@ -11,8 +11,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from run_agent import AgentInputError, AgentRunResult, run_agent_once
-from fill_docx_template import fill_docx_template
+from run_agent import AgentInputError, AgentRunResult, create_run_dir, run_agent_once
+from fill_docx_template import fill_docx_template, fill_docx_template_from_raw
 from render_docx import render_docx
 
 
@@ -74,6 +74,17 @@ def require_run_file(run_dir_value, filename):
     if not target.exists():
         raise FileNotFoundError(f"{filename} not found in run directory.")
     return run_dir, target
+
+
+def optional_run_dir(run_dir_value, workflow_id="TEMPLATE"):
+    if run_dir_value:
+        run_dir = Path(str(run_dir_value)).resolve()
+        if not run_dir.is_dir():
+            raise FileNotFoundError("Run directory not found.")
+        if not is_relative_to(run_dir, RUN_ROOT):
+            raise PermissionError("Run directory is outside approved output directory.")
+        return run_dir
+    return create_run_dir(run_root=RUN_ROOT, workflow_id=workflow_id)
 
 
 def resolve_download_path(path_value, allowed_roots=None):
@@ -207,6 +218,48 @@ def handle_fill_template(payload):
         return error_response(500, "Template fill failed.")
 
 
+def handle_draft_template(payload):
+    try:
+        template_path = Path(str(payload.get("template_path"))).resolve()
+        if not template_path.exists():
+            return error_response(400, "Template file not found.")
+        raw_input = str(payload.get("raw_input") or "").strip()
+        if not raw_input:
+            return error_response(400, "Raw input is required.")
+
+        run_dir = optional_run_dir(payload.get("run_dir"), workflow_id="TEMPLATE")
+        output_path = run_dir / "filled_template.docx"
+        draft_path = run_dir / "template_draft.json"
+        report_path = run_dir / "template_fill_report.json"
+        report = fill_docx_template_from_raw(
+            template_path,
+            raw_input,
+            output_path,
+            report_path,
+            draft_path,
+            style=str(payload.get("style") or "professional_concise"),
+            custom_style=str(payload.get("custom_style") or ""),
+            existing_content_policy=str(payload.get("existing_content_policy") or "merge"),
+        )
+        status = "success" if report.get("status") != "FAIL" else "error"
+        return json_response(
+            {
+                "status": status,
+                "run_dir": path_for_ui(run_dir),
+                "output_path": path_for_ui(output_path) if output_path.exists() else None,
+                "draft_path": path_for_ui(draft_path) if draft_path.exists() else None,
+                "report_path": path_for_ui(report_path),
+                "report": report,
+            },
+            status=200 if status == "success" else 500,
+        )
+    except (FileNotFoundError, PermissionError, ValueError) as exc:
+        return error_response(400, str(exc))
+    except Exception as exc:
+        print(f"Template draft failed: {exc}")
+        return error_response(500, "Template draft failed.")
+
+
 def resolve_static_path(request_path, web_root=WEB_ROOT):
     parsed_path = unquote(urlparse(request_path).path)
     if parsed_path == "/":
@@ -298,6 +351,8 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_render_docx(payload)
         elif path == "/api/fill-template":
             response = handle_fill_template(payload)
+        elif path == "/api/draft-template":
+            response = handle_draft_template(payload)
         else:
             response = error_response(404, "Endpoint not found.")
 

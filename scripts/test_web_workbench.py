@@ -229,6 +229,89 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertTrue(payload["output_path"].endswith("filled_template.docx"))
         self.assertEqual(payload["report"]["status"], "PASS")
 
+    def test_handle_draft_template_requires_raw_input(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            template = Path(tmp) / "template.docx"
+            template.write_bytes(b"fake docx")
+
+            status, _headers, body = web_workbench.handle_draft_template(
+                {"template_path": str(template), "raw_input": "   "}
+            )
+
+        self.assertEqual(status, 400)
+        self.assertIn("Raw input is required", json.loads(body.decode("utf-8"))["message"])
+
+    def test_handle_draft_template_creates_standalone_run_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            template = root / "template.docx"
+            template.write_bytes(b"fake docx")
+
+            def fake_fill(
+                template_path,
+                raw_input,
+                output_path,
+                report_path,
+                draft_path,
+                style="professional_concise",
+                custom_style="",
+                existing_content_policy="merge",
+            ):
+                Path(output_path).write_bytes(b"filled")
+                Path(draft_path).write_text('{"drafts": []}', encoding="utf-8")
+                report = {
+                    "status": "PASS",
+                    "filled_fields": [{"template_label": "主要困扰"}],
+                    "unfilled_fields": [],
+                    "issues": [],
+                    "existing_content_policy": existing_content_policy,
+                }
+                Path(report_path).write_text(json.dumps(report), encoding="utf-8")
+                return report
+
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                with patch.object(web_workbench, "fill_docx_template_from_raw", side_effect=fake_fill):
+                    status, _headers, body = web_workbench.handle_draft_template(
+                        {
+                            "template_path": str(template),
+                            "raw_input": "来访者分手后情绪低落。",
+                            "style": "warm_clinical",
+                            "existing_content_policy": "merge",
+                        }
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertIn("TEMPLATE", payload["run_dir"])
+        self.assertTrue(payload["output_path"].endswith("filled_template.docx"))
+        self.assertTrue(payload["draft_path"].endswith("template_draft.json"))
+        self.assertEqual(payload["report"]["existing_content_policy"], "merge")
+
+    def test_handle_draft_template_rejects_run_dir_outside_run_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_root.mkdir()
+            outside = root / "outside"
+            outside.mkdir()
+            template = root / "template.docx"
+            template.write_bytes(b"fake docx")
+
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                status, _headers, body = web_workbench.handle_draft_template(
+                    {
+                        "template_path": str(template),
+                        "raw_input": "材料",
+                        "run_dir": str(outside),
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertIn("outside approved output directory", payload["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -8,18 +8,24 @@ from fill_docx_template import (
     build_source_map,
     build_source_paths,
     build_template_mapping,
+    build_template_draft_prompt,
     build_llm_mapping_prompt,
     extract_template_slots_from_xml,
     extract_llm_mapping_json,
+    extract_template_draft_json,
     fill_docx_template,
+    fill_docx_template_from_draft,
+    fill_docx_template_from_raw,
     find_source_match,
     merge_template_mappings,
     main,
     normalize_label,
     parse_args,
     run_deepseek_template_mapping,
+    run_deepseek_template_draft,
     unresolved_mapping_items,
     validate_llm_mapping,
+    validate_template_draft,
 )
 from run_model_eval import DeepSeekConfig
 from render_docx import WORD_NS, write_docx_package
@@ -319,6 +325,345 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(result["llm_status"], "skipped")
         self.assertEqual(calls, [])
         self.assertEqual(result["mapping"], base_mapping)
+
+    def test_extract_template_slots_can_include_prefilled_table_cells(self):
+        slots = extract_template_slots_from_xml(self.prefilled_table_xml(), include_prefilled=True)
+
+        self.assertEqual(slots[0]["slot_id"], "table[0].row[0].cell[1]")
+        self.assertEqual(slots[0]["label"], "主要困扰")
+        self.assertEqual(slots[0]["current_text"], "已有记录")
+
+    def test_build_template_draft_prompt_includes_policy_style_and_raw_material(self):
+        slots = extract_template_slots_from_xml(self.prefilled_table_xml(), include_prefilled=True)
+
+        prompt = build_template_draft_prompt(
+            slots,
+            "来访者分手后情绪低落。",
+            "warm_clinical",
+            "",
+            "merge",
+        )
+
+        self.assertIn("template_slots", prompt)
+        self.assertIn("warm_clinical", prompt)
+        self.assertIn("来访者分手后情绪低落", prompt)
+        self.assertIn("append_to_existing", prompt)
+
+    def test_extract_template_draft_json_accepts_fenced_json(self):
+        answer = (
+            "```json\n"
+            "{\"drafts\":[{\"slot_id\":\"paragraph[0]\",\"template_label\":\"x\","
+            "\"action\":\"fill_blank\",\"content\":\"内容\",\"confidence\":\"medium\","
+            "\"evidence\":[\"材料\"],\"reason\":\"match\"}],\"global_warnings\":[]}"
+            "\n```"
+        )
+
+        draft = extract_template_draft_json(answer)
+
+        self.assertEqual(draft["drafts"][0]["content"], "内容")
+
+    def test_validate_template_draft_rejects_unknown_slots_and_downgrades_replace(self):
+        slots = extract_template_slots_from_xml(self.prefilled_table_xml(), include_prefilled=True)
+        raw_draft = {
+            "drafts": [
+                {
+                    "slot_id": "table[0].row[0].cell[1]",
+                    "template_label": "主要困扰",
+                    "action": "replace_existing",
+                    "content": "整理后的主要困扰",
+                    "confidence": "medium",
+                    "evidence": ["分手后情绪低落"],
+                    "reason": "raw material supports this field",
+                },
+                {
+                    "slot_id": "bad-slot",
+                    "template_label": "不存在",
+                    "action": "fill_blank",
+                    "content": "不应进入结果",
+                    "confidence": "high",
+                    "evidence": [],
+                    "reason": "bad",
+                },
+            ],
+            "global_warnings": ["需要进一步评估风险。"],
+        }
+
+        validated = validate_template_draft(raw_draft, slots, "merge")
+
+        self.assertEqual(len(validated["drafts"]), 1)
+        self.assertEqual(validated["drafts"][0]["action"], "append_to_existing")
+        self.assertEqual(validated["global_warnings"], ["需要进一步评估风险。"])
+        self.assertEqual(validated["issues"][0]["slot_id"], "bad-slot")
+
+    def test_validate_template_draft_keeps_existing_when_policy_ask(self):
+        slots = extract_template_slots_from_xml(self.prefilled_table_xml(), include_prefilled=True)
+        raw_draft = {
+            "drafts": [
+                {
+                    "slot_id": "table[0].row[0].cell[1]",
+                    "template_label": "主要困扰",
+                    "action": "revise_existing",
+                    "content": "整理后的主要困扰",
+                    "confidence": "medium",
+                    "evidence": ["材料"],
+                    "reason": "revise",
+                }
+            ]
+        }
+
+        validated = validate_template_draft(raw_draft, slots, "ask")
+
+        self.assertEqual(validated["drafts"][0]["action"], "keep_existing")
+        self.assertEqual(validated["drafts"][0]["content"], "")
+
+    def test_validate_template_draft_preserves_protected_identity_fields(self):
+        slots = extract_template_slots_from_xml(self.protected_identity_xml(), include_prefilled=True)
+        raw_draft = {
+            "drafts": [
+                {
+                    "slot_id": "paragraph[0]",
+                    "template_label": "学号",
+                    "action": "revise_existing",
+                    "content": "学号：姓名：性别：女",
+                    "confidence": "high",
+                    "evidence": ["女"],
+                    "reason": "partial identity field",
+                }
+            ]
+        }
+
+        validated = validate_template_draft(raw_draft, slots, "merge")
+
+        self.assertEqual(validated["drafts"][0]["action"], "keep_existing")
+        self.assertEqual(validated["drafts"][0]["content"], "")
+
+    def test_fill_docx_template_from_draft_fills_blank_and_appends_existing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            draft_path = tmp_path / "template_draft.json"
+            write_docx_package(template_path, self.blank_and_prefilled_xml())
+            draft = {
+                "drafts": [
+                    {
+                        "slot_id": "table[0].row[0].cell[1]",
+                        "template_label": "主要困扰",
+                        "action": "fill_blank",
+                        "content": "来访者分手后情绪低落。",
+                        "confidence": "medium",
+                        "evidence": ["分手后情绪低落"],
+                        "reason": "matched",
+                    },
+                    {
+                        "slot_id": "table[0].row[1].cell[1]",
+                        "template_label": "已有理解",
+                        "action": "append_to_existing",
+                        "content": "补充：社交支持使用较少。",
+                        "confidence": "medium",
+                        "evidence": ["很久没有告诉朋友"],
+                        "reason": "append",
+                    },
+                ],
+                "global_warnings": [],
+                "issues": [],
+            }
+
+            report = fill_docx_template_from_draft(
+                template_path,
+                draft,
+                output_path,
+                report_path,
+                draft_path=draft_path,
+                existing_content_policy="merge",
+            )
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertIn("来访者分手后情绪低落", document_xml)
+        self.assertIn("原有内容", document_xml)
+        self.assertIn("补充：社交支持使用较少", document_xml)
+        self.assertEqual(len(report["drafted_fields"]), 2)
+
+    def test_fill_docx_template_from_draft_keeps_existing_under_blank_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.prefilled_table_xml())
+            draft = {
+                "drafts": [
+                    {
+                        "slot_id": "table[0].row[0].cell[1]",
+                        "template_label": "主要困扰",
+                        "action": "replace_existing",
+                        "content": "新内容",
+                        "confidence": "medium",
+                        "evidence": ["材料"],
+                        "reason": "replace",
+                    }
+                ],
+                "global_warnings": [],
+                "issues": [],
+            }
+
+            report = fill_docx_template_from_draft(
+                template_path,
+                validate_template_draft(draft, extract_template_slots_from_xml(self.prefilled_table_xml(), include_prefilled=True), "blank_only"),
+                output_path,
+                report_path,
+                existing_content_policy="blank_only",
+            )
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "WARN")
+        self.assertIn("已有记录", document_xml)
+        self.assertNotIn("新内容", document_xml)
+        self.assertEqual(len(report["kept_fields"]), 1)
+
+    def test_run_deepseek_template_draft_uses_fake_api_and_validates(self):
+        slots = extract_template_slots_from_xml(self.blank_and_prefilled_xml(), include_prefilled=True)
+
+        def fake_post(url, headers, payload, timeout):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "drafts": [
+                                        {
+                                            "slot_id": "table[0].row[0].cell[1]",
+                                            "template_label": "主要困扰",
+                                            "action": "fill_blank",
+                                            "content": "来访者分手后情绪低落。",
+                                            "confidence": "medium",
+                                            "evidence": ["分手后情绪低落"],
+                                            "reason": "supported",
+                                        }
+                                    ],
+                                    "global_warnings": ["需持续评估风险。"],
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            }
+
+        draft = run_deepseek_template_draft(
+            slots,
+            "来访者分手后情绪低落。",
+            "professional_concise",
+            "",
+            "merge",
+            DeepSeekConfig(api_key="test-key", model="deepseek-v4-flash", base_url="https://example.test"),
+            http_post_json=fake_post,
+        )
+
+        self.assertEqual(draft["drafts"][0]["content"], "来访者分手后情绪低落。")
+        self.assertEqual(draft["global_warnings"], ["需持续评估风险。"])
+
+    def test_fill_docx_template_from_raw_writes_draft_and_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            draft_path = tmp_path / "template_draft.json"
+            write_docx_package(template_path, self.blank_and_prefilled_xml())
+
+            def fake_post(url, headers, payload, timeout):
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "drafts": [
+                                            {
+                                                "slot_id": "table[0].row[0].cell[1]",
+                                                "template_label": "主要困扰",
+                                                "action": "fill_blank",
+                                                "content": "来访者分手后情绪低落。",
+                                                "confidence": "medium",
+                                                "evidence": ["分手后情绪低落"],
+                                                "reason": "supported",
+                                            }
+                                        ],
+                                        "global_warnings": [],
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            }
+                        }
+                    ]
+                }
+
+            report = fill_docx_template_from_raw(
+                template_path,
+                "来访者分手后情绪低落。",
+                output_path,
+                report_path,
+                draft_path,
+                config=DeepSeekConfig(api_key="test-key", model="deepseek-v4-flash", base_url="https://example.test"),
+                http_post_json=fake_post,
+            )
+            draft = json.loads(draft_path.read_text(encoding="utf-8"))
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(draft["drafts"][0]["action"], "fill_blank")
+        self.assertIn("来访者分手后情绪低落", document_xml)
+
+    def prefilled_table_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:tbl>"
+            "<w:tr>"
+            "<w:tc><w:p><w:r><w:t>主要困扰</w:t></w:r></w:p></w:tc>"
+            "<w:tc><w:p><w:r><w:t>已有记录</w:t></w:r></w:p></w:tc>"
+            "</w:tr>"
+            "</w:tbl>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
+    def blank_and_prefilled_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:tbl>"
+            "<w:tr>"
+            "<w:tc><w:p><w:r><w:t>主要困扰</w:t></w:r></w:p></w:tc>"
+            "<w:tc><w:p><w:r><w:t>____</w:t></w:r></w:p></w:tc>"
+            "</w:tr>"
+            "<w:tr>"
+            "<w:tc><w:p><w:r><w:t>已有理解</w:t></w:r></w:p></w:tc>"
+            "<w:tc><w:p><w:r><w:t>原有内容</w:t></w:r></w:p></w:tc>"
+            "</w:tr>"
+            "</w:tbl>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
+    def protected_identity_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:p><w:r><w:t>学号：姓名：性别： 咨询时间：</w:t></w:r></w:p>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
 
     def template_xml(self):
         return (

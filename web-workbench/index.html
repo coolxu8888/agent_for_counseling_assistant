@@ -19,7 +19,7 @@
 
         <button class="workflow active" type="button" data-workflow="W1">
           <strong>W1 初访信息收集</strong>
-          <span>初访前提问表；在需求明确时整理已完成初访材料。</span>
+          <span>生成初访前提问表；在需求明确时整理已完成初访材料。</span>
         </button>
         <button class="workflow" type="button" data-workflow="W2">
           <strong>W2 个案信息整理</strong>
@@ -48,21 +48,47 @@
         <pre id="checksPane" class="pane" role="tabpanel">运行后显示结构化校验、安全校验、元数据和问题列表。</pre>
       </section>
 
-      <aside class="template-panel" aria-label="模板填充">
+      <aside class="template-panel" aria-label="智能模板填充">
         <header class="panel-heading">
-          <h2>模板填充</h2>
-          <span>使用当前结构化 JSON</span>
+          <h2>智能模板填充</h2>
+          <span>从原始材料理解模板栏目</span>
         </header>
         <label class="field">
           <span>Word 模板路径</span>
           <input id="templatePath" type="text" placeholder="C:\Users\win\Desktop\template.docx" />
         </label>
-        <button id="fillTemplateButton" class="primary-button" type="button" disabled>填充模板</button>
+        <label class="field">
+          <span>语言风格</span>
+          <select id="styleSelect">
+            <option value="professional_concise">专业简洁</option>
+            <option value="warm_clinical">温和临床</option>
+            <option value="institutional_record">机构记录</option>
+            <option value="supervision_summary">督导摘要</option>
+            <option value="custom">自定义</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>自定义风格</span>
+          <input id="customStyle" type="text" placeholder="例如：更口语、更精炼、贴近某机构表述" />
+        </label>
+        <label class="field">
+          <span>已有内容处理</span>
+          <select id="existingPolicy">
+            <option value="merge">保留并续写/润色</option>
+            <option value="ask">不覆盖，列出需确认项</option>
+            <option value="replace">允许重写对应栏目</option>
+            <option value="blank_only">只填空白</option>
+          </select>
+        </label>
+        <p class="hint">默认使用下方“咨询师材料”作为模板填充原始材料；可以先不运行 W1/W2/W3。</p>
+        <button id="draftTemplateButton" class="primary-button" type="button">智能整理并填充模板</button>
+        <button id="fillTemplateButton" class="secondary-button" type="button" disabled>用结构化 JSON 填充</button>
         <div class="path-list" aria-label="模板输出路径">
           <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
+          <p><strong>草稿 JSON</strong><span id="templateDraftPath">无</span></p>
           <p><strong>填充报告</strong><span id="templateReportPath">无</span></p>
         </div>
-        <pre id="templateReport" class="report-box">需要先运行并获得结构化 JSON。</pre>
+        <pre id="templateReport" class="report-box">输入模板路径和咨询师材料后，可以直接进行智能模板填充。</pre>
       </aside>
 
       <section class="input-panel" aria-label="输入与运行控制">

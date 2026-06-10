@@ -54,12 +54,12 @@ async function postJson(url, payload) {
   return data;
 }
 
-function canFillTemplate() {
+function canFillFromStructured() {
   return Boolean(state.runDir && state.structuredOutput);
 }
 
 function updateTemplateAvailability() {
-  $("fillTemplateButton").disabled = !canFillTemplate();
+  $("fillTemplateButton").disabled = !canFillFromStructured();
 }
 
 function updateRunResult(data) {
@@ -83,6 +83,24 @@ function updateRunResult(data) {
 function showRunError(message) {
   $("checksPane").textContent = message;
   setPane("checks");
+}
+
+function updateTemplateResult(data) {
+  if (data.run_dir) {
+    state.runDir = data.run_dir;
+    $("runDir").textContent = data.run_dir;
+  }
+  $("filledTemplatePath").textContent = data.output_path || "无";
+  $("templateDraftPath").textContent = data.draft_path || "无";
+  $("templateReportPath").textContent = data.report_path || "无";
+  $("templateReport").textContent = pretty(data.report);
+  updateTemplateAvailability();
+}
+
+function templatePayloadBase() {
+  return {
+    template_path: $("templatePath").value.trim(),
+  };
 }
 
 async function runAgent() {
@@ -117,10 +135,44 @@ async function runAgent() {
   }
 }
 
-async function fillTemplate() {
+async function draftTemplate() {
   const templatePath = $("templatePath").value.trim();
-  if (!canFillTemplate()) {
-    $("templateReport").textContent = "需要先运行并获得结构化 JSON。";
+  const rawInput = $("inputText").value.trim();
+  if (!templatePath) {
+    $("templateReport").textContent = "请输入 Word 模板路径。";
+    return;
+  }
+  if (!rawInput) {
+    $("templateReport").textContent = "请输入咨询师材料。智能填充需要 raw data。";
+    return;
+  }
+
+  $("draftTemplateButton").disabled = true;
+  $("fillTemplateButton").disabled = true;
+  $("templateReport").textContent = "正在理解模板并整理填充内容...";
+
+  try {
+    const data = await postJson("/api/draft-template", {
+      ...templatePayloadBase(),
+      raw_input: rawInput,
+      style: $("styleSelect").value,
+      custom_style: $("customStyle").value.trim(),
+      existing_content_policy: $("existingPolicy").value,
+      run_dir: state.runDir,
+    });
+    updateTemplateResult(data);
+  } catch (error) {
+    $("templateReport").textContent = error.message;
+  } finally {
+    $("draftTemplateButton").disabled = false;
+    updateTemplateAvailability();
+  }
+}
+
+async function fillTemplateFromStructured() {
+  const templatePath = $("templatePath").value.trim();
+  if (!canFillFromStructured()) {
+    $("templateReport").textContent = "需要先运行并获得结构化 JSON，或者使用上方智能模板填充。";
     return;
   }
   if (!templatePath) {
@@ -129,16 +181,14 @@ async function fillTemplate() {
   }
 
   $("fillTemplateButton").disabled = true;
-  $("templateReport").textContent = "正在填充模板...";
+  $("templateReport").textContent = "正在用结构化 JSON 填充模板...";
 
   try {
     const data = await postJson("/api/fill-template", {
       run_dir: state.runDir,
-      template_path: templatePath,
+      ...templatePayloadBase(),
     });
-    $("filledTemplatePath").textContent = data.output_path || "无";
-    $("templateReportPath").textContent = data.report_path || "无";
-    $("templateReport").textContent = pretty(data.report);
+    updateTemplateResult(data);
   } catch (error) {
     $("templateReport").textContent = error.message;
   } finally {
@@ -158,5 +208,6 @@ document.querySelectorAll(".tab").forEach((button) => {
 });
 
 $("runButton").addEventListener("click", runAgent);
-$("fillTemplateButton").addEventListener("click", fillTemplate);
+$("draftTemplateButton").addEventListener("click", draftTemplate);
+$("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 updateTemplateAvailability();

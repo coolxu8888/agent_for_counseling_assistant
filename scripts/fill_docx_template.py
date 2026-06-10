@@ -26,6 +26,26 @@ TC_TAG = f"{{{WORD_NS}}}tc"
 TEXT_TAG = f"{{{WORD_NS}}}t"
 ET.register_namespace("w", WORD_NS)
 
+STYLE_PROFILES = {
+    "professional_concise": "Use concise, professional counseling-record language.",
+    "warm_clinical": "Use warm, empathic, but still clinically appropriate language.",
+    "institutional_record": "Use formal institutional record language with clear facts and boundaries.",
+    "supervision_summary": "Use supervision-oriented language that highlights case understanding, uncertainty, and next steps.",
+    "custom": "Follow the custom style instruction provided by the user.",
+}
+EXISTING_CONTENT_POLICIES = {"merge", "ask", "replace", "blank_only"}
+DRAFT_ACTIONS = {
+    "fill_blank",
+    "append_to_existing",
+    "revise_existing",
+    "replace_existing",
+    "keep_existing",
+    "leave_blank",
+}
+DRAFT_CONFIDENCES = {"high", "medium", "low", "none"}
+AUTO_FILL_CONFIDENCES = {"high", "medium"}
+PROTECTED_TEMPLATE_LABELS = {"学号", "姓名", "咨询师签名", "签名", "注"}
+
 BLOCK_SLOT_LABELS = {
     "来访者主要困扰",
     "来访者基本情况重大生活事件家庭状况人际关系状况学习状况恋爱状况等",
@@ -272,6 +292,180 @@ def extract_llm_mapping_json(answer_text):
     return json.loads(candidate)
 
 
+def build_template_draft_prompt(slots, raw_input, style, custom_style, existing_content_policy):
+    style = style if style in STYLE_PROFILES else "professional_concise"
+    existing_content_policy = (
+        existing_content_policy
+        if existing_content_policy in EXISTING_CONTENT_POLICIES
+        else "merge"
+    )
+    prompt_slots = []
+    for slot in slots:
+        prompt_slot = dict(slot)
+        if prompt_slot.get("slot_type") == "table_block_cell" and normalize_label(prompt_slot.get("current_text")) == normalize_label(prompt_slot.get("label")):
+            prompt_slot["current_text"] = ""
+            prompt_slot["current_text_note"] = "This is a structural section heading; treat it as blank fillable space below the heading."
+        prompt_slots.append(prompt_slot)
+
+    prompt_package = {
+        "task": "Draft safe field-level content for a counselor Word template. Return JSON only.",
+        "language": "Chinese unless the source material clearly requires another language.",
+        "style": {
+            "selected": style,
+            "instruction": STYLE_PROFILES[style],
+            "custom_style": custom_style or "",
+        },
+        "existing_content_policy": existing_content_policy,
+        "policy_meanings": {
+            "merge": "Preserve existing content; append or lightly revise only when raw material adds useful supported information.",
+            "ask": "Do not overwrite non-empty fields. Use keep_existing for non-empty slots and explain needed confirmation.",
+            "replace": "May replace recognizable existing field content when raw material supports a better organized version.",
+            "blank_only": "Fill only blank placeholders. Keep all non-empty slots unchanged.",
+        },
+        "rules": [
+            "Return JSON only. Do not wrap in Markdown unless unavoidable.",
+            "Use only slot_id values from template_slots.",
+            "Do not invent facts not present in raw_material or current_text.",
+            "Do not produce a final psychiatric diagnosis unless the material explicitly says a qualified professional already made it.",
+            "Do not produce a final self-harm or violence risk level as a clinical determination.",
+            "Do not fill identity, contact, medical, medication, emergency contact, or test result fields unless explicitly present.",
+            "If source material is vague or absent for a slot, use leave_blank or keep_existing.",
+            "For risk content, preserve uncertainty and recommend counselor assessment instead of making final judgments.",
+            "Use high or medium confidence only when evidence directly supports the content.",
+        ],
+        "allowed_actions": sorted(DRAFT_ACTIONS),
+        "allowed_confidences": sorted(DRAFT_CONFIDENCES),
+        "response_schema": {
+            "drafts": [
+                {
+                    "slot_id": "string from template_slots",
+                    "template_label": "string",
+                    "action": "fill_blank|append_to_existing|revise_existing|replace_existing|keep_existing|leave_blank",
+                    "content": "field content, empty only for keep_existing or leave_blank",
+                    "confidence": "high|medium|low|none",
+                    "evidence": ["short quote or paraphrase from raw material/current text"],
+                    "reason": "brief reason",
+                }
+            ],
+            "global_warnings": ["brief warning"],
+        },
+        "template_slots": prompt_slots,
+        "raw_material": raw_input or "",
+    }
+    return (
+        "You are a constrained counseling-document drafting assistant. Return JSON only.\n"
+        + json.dumps(prompt_package, ensure_ascii=False, indent=2, sort_keys=True)
+    )
+
+
+def extract_template_draft_json(answer_text):
+    text = (answer_text or "").strip()
+    blocks = re.findall(r"```json\s*(.*?)\s*```", text, flags=re.IGNORECASE | re.DOTALL)
+    candidate = blocks[-1].strip() if blocks else text
+    return json.loads(candidate)
+
+
+def _draft_item(slot, action, content, confidence, reason, evidence=None):
+    return {
+        "slot_id": slot.get("slot_id", ""),
+        "template_label": slot.get("label", ""),
+        "action": action,
+        "content": content or "",
+        "confidence": confidence,
+        "evidence": evidence or [],
+        "reason": reason,
+    }
+
+
+def slot_has_existing_content(slot):
+    if slot.get("slot_type") == "table_block_cell" and normalize_label(slot.get("current_text")) == normalize_label(slot.get("label")):
+        return False
+    return not is_placeholder_text(slot.get("current_text", ""))
+
+
+def validate_template_draft(raw_draft, slots, existing_content_policy):
+    existing_content_policy = (
+        existing_content_policy
+        if existing_content_policy in EXISTING_CONTENT_POLICIES
+        else "merge"
+    )
+    slots_by_id = {slot.get("slot_id"): slot for slot in slots}
+    validated = {"drafts": [], "global_warnings": [], "issues": []}
+
+    if isinstance(raw_draft, dict):
+        for warning in raw_draft.get("global_warnings", []) or []:
+            if warning:
+                validated["global_warnings"].append(str(warning))
+
+    draft_items = (raw_draft or {}).get("drafts", []) if isinstance(raw_draft, dict) else []
+    for raw_item in draft_items:
+        slot_id = raw_item.get("slot_id")
+        slot = slots_by_id.get(slot_id)
+        if not slot:
+            validated["issues"].append(
+                {
+                    "level": "WARN",
+                    "message": "Dropped draft for unknown slot_id.",
+                    "slot_id": slot_id,
+                }
+            )
+            continue
+
+        action = raw_item.get("action", "leave_blank")
+        if action not in DRAFT_ACTIONS:
+            action = "leave_blank"
+        confidence = raw_item.get("confidence", "none")
+        if confidence not in DRAFT_CONFIDENCES:
+            confidence = "none"
+        content = render_value(raw_item.get("content", "")).strip()
+        evidence = raw_item.get("evidence", [])
+        if not isinstance(evidence, list):
+            evidence = [str(evidence)]
+        reason = raw_item.get("reason", "Model draft.")
+        has_existing = slot_has_existing_content(slot)
+        normalized_label = normalize_label(raw_item.get("template_label") or slot.get("label", ""))
+
+        if confidence not in AUTO_FILL_CONFIDENCES and action not in {"keep_existing", "leave_blank"}:
+            action = "leave_blank"
+            content = ""
+            reason = f"Skipped low-confidence draft. Original reason: {reason}"
+        if not content and action not in {"keep_existing", "leave_blank"}:
+            action = "leave_blank"
+            reason = f"Skipped empty draft. Original reason: {reason}"
+        if existing_content_policy == "blank_only" and has_existing and action != "keep_existing":
+            action = "keep_existing"
+            content = ""
+            reason = "Existing content policy is blank_only; non-empty slot preserved."
+        elif existing_content_policy == "ask" and has_existing and action != "keep_existing":
+            action = "keep_existing"
+            content = ""
+            reason = "Existing content policy is ask; non-empty slot requires user confirmation."
+        elif existing_content_policy != "replace" and action == "replace_existing":
+            action = "append_to_existing" if has_existing and content else "fill_blank"
+            reason = "replace_existing is not allowed by the selected policy; downgraded safely."
+        elif not has_existing and action in {"append_to_existing", "revise_existing", "replace_existing"}:
+            action = "fill_blank"
+        if any(protected == normalized_label or protected in normalized_label for protected in PROTECTED_TEMPLATE_LABELS):
+            if action not in {"keep_existing", "leave_blank"}:
+                action = "keep_existing" if has_existing else "leave_blank"
+                content = ""
+                reason = "Protected identity/signature/note field preserved for manual review."
+
+        validated["drafts"].append(
+            {
+                "slot_id": slot_id,
+                "template_label": raw_item.get("template_label") or slot.get("label", ""),
+                "action": action,
+                "content": content,
+                "confidence": confidence,
+                "evidence": [str(item) for item in evidence if item],
+                "reason": reason,
+            }
+        )
+
+    return validated
+
+
 def _validated_skipped_mapping(item, reason):
     return {
         "slot_id": item.get("slot_id", ""),
@@ -362,7 +556,7 @@ def run_deepseek_template_mapping(base_mapping, source_paths, config, http_post_
         }
 
 
-def extract_template_slots_from_xml(document_xml):
+def extract_template_slots_from_xml(document_xml, include_prefilled=False):
     root = ET.fromstring(document_xml)
     slots = []
 
@@ -386,7 +580,7 @@ def extract_template_slots_from_xml(document_xml):
                 label = element_text(cell).strip()
                 target = cells[cell_index + 1]
                 target_text = element_text(target)
-                if label and is_placeholder_text(target_text):
+                if label and (include_prefilled or is_placeholder_text(target_text)):
                     location = f"table[{table_index}].row[{row_index}].cell[{cell_index + 1}]"
                     slots.append(
                         {
@@ -401,10 +595,10 @@ def extract_template_slots_from_xml(document_xml):
     paragraph_slot_index = 0
     for paragraph in root.iter(P_TAG):
         text = element_text(paragraph)
-        parsed = _paragraph_label_and_placeholder(text)
+        parsed = _paragraph_label_and_value(text, include_prefilled=include_prefilled)
         if not parsed:
             continue
-        label, _separator = parsed
+        label, _separator, _value = parsed
         location = f"paragraph[{paragraph_slot_index}]"
         slots.append(
             {
@@ -420,14 +614,17 @@ def extract_template_slots_from_xml(document_xml):
     return slots
 
 
-def extract_template_slots(template_path):
+def extract_template_slots(template_path, include_prefilled=False):
     with zipfile.ZipFile(template_path, "r") as package:
         if "word/document.xml" not in package.namelist():
             raise ValueError("DOCX template is missing word/document.xml.")
-        return extract_template_slots_from_xml(package.read("word/document.xml"))
+        return extract_template_slots_from_xml(
+            package.read("word/document.xml"),
+            include_prefilled=include_prefilled,
+        )
 
 
-def _slot_targets(root):
+def _slot_targets(root, include_prefilled=False):
     targets = {}
     for table_index, table in enumerate(root.iter(TBL_TAG)):
         for row_index, row in enumerate(table.iter(TR_TAG)):
@@ -447,7 +644,7 @@ def _slot_targets(root):
                 label = element_text(cell).strip()
                 target = cells[cell_index + 1]
                 target_text = element_text(target)
-                if label and is_placeholder_text(target_text):
+                if label and (include_prefilled or is_placeholder_text(target_text)):
                     location = f"table[{table_index}].row[{row_index}].cell[{cell_index + 1}]"
                     targets[location] = {
                         "element": target,
@@ -460,10 +657,10 @@ def _slot_targets(root):
     paragraph_slot_index = 0
     for paragraph in root.iter(P_TAG):
         text = element_text(paragraph)
-        parsed = _paragraph_label_and_placeholder(text)
+        parsed = _paragraph_label_and_value(text, include_prefilled=include_prefilled)
         if not parsed:
             continue
-        label, separator = parsed
+        label, separator, _value = parsed
         location = f"paragraph[{paragraph_slot_index}]"
         targets[location] = {
             "element": paragraph,
@@ -513,7 +710,11 @@ def _base_report(template_path, structured_path, output_path):
         "structured_file": str(structured_path),
         "output_file": str(output_path),
         "filled_fields": [],
+        "drafted_fields": [],
+        "kept_fields": [],
+        "skipped_fields": [],
         "unfilled_fields": [],
+        "global_warnings": [],
         "issues": [],
     }
 
@@ -583,6 +784,16 @@ def fill_tables(root, source_map, report):
                     continue
                 set_element_text(target, match["value"])
                 _record_filled(report, label, match, location)
+
+
+def _paragraph_label_and_value(text, include_prefilled=False):
+    match = re.match(r"^\s*(?P<label>[^：:Ŗē\n]{1,40})(?P<sep>[：:Ŗē])(?P<value>.*)$", text or "")
+    if not match:
+        return None
+    value = match.group("value")
+    if not include_prefilled and not is_placeholder_text(value):
+        return None
+    return match.group("label").strip(), match.group("sep"), value
 
 
 def _paragraph_label_and_placeholder(text):
@@ -693,6 +904,104 @@ def fill_slots_by_mapping(root, source_values, mapping, report):
         )
 
 
+def _drafted_field_record(item, location, current_text=""):
+    return {
+        "template_label": item.get("template_label", ""),
+        "action": item.get("action", ""),
+        "confidence": item.get("confidence", "none"),
+        "location": location,
+        "reason": item.get("reason", ""),
+        "evidence": item.get("evidence", []),
+        "previous_text": current_text,
+    }
+
+
+def _text_for_draft_target(target, item):
+    content = item.get("content", "")
+    action = item.get("action")
+    current_text = element_text(target["element"])
+    if action == "append_to_existing" and not is_placeholder_text(current_text):
+        text = f"{current_text.rstrip()}\n{content}"
+    else:
+        text = content
+
+    if target["slot_type"] == "paragraph_placeholder":
+        if action == "append_to_existing" and not is_placeholder_text(current_text):
+            return text
+        return f"{target['label']}{target.get('separator', '：')}{text}"
+    if target["slot_type"] == "table_block_cell":
+        if action == "append_to_existing" and not is_placeholder_text(current_text):
+            return text
+        return f"{target['label']}\n{text}"
+    return text
+
+
+def target_has_existing_content(target):
+    if target.get("slot_type") == "table_block_cell" and normalize_label(element_text(target["element"])) == normalize_label(target.get("label", "")):
+        return False
+    return not is_placeholder_text(element_text(target["element"]))
+
+
+def fill_slots_by_draft(root, draft, report, existing_content_policy="merge"):
+    targets = _slot_targets(root, include_prefilled=True)
+    for item in draft.get("drafts", []):
+        slot_id = item.get("slot_id")
+        target = targets.get(slot_id)
+        if not target:
+            report["skipped_fields"].append(
+                {
+                    "template_label": item.get("template_label", ""),
+                    "action": item.get("action", ""),
+                    "reason": "Draft slot was not found in the template.",
+                    "location": slot_id,
+                }
+            )
+            continue
+
+        action = item.get("action", "leave_blank")
+        current_text = element_text(target["element"])
+        if action == "keep_existing":
+            report["kept_fields"].append(_drafted_field_record(item, slot_id, current_text))
+            continue
+        if action == "leave_blank":
+            report["skipped_fields"].append(
+                {
+                    **_drafted_field_record(item, slot_id, current_text),
+                    "reason": item.get("reason", "Draft chose to leave this field blank."),
+                }
+            )
+            continue
+
+        if existing_content_policy in {"ask", "blank_only"} and target_has_existing_content(target):
+            report["kept_fields"].append(
+                {
+                    **_drafted_field_record(item, slot_id, current_text),
+                    "reason": f"Existing content policy is {existing_content_policy}; non-empty slot preserved.",
+                }
+            )
+            continue
+
+        text = _text_for_draft_target(target, item)
+        set_element_text(target["element"], text)
+        record = _drafted_field_record(item, slot_id, current_text)
+        report["drafted_fields"].append(record)
+        report["filled_fields"].append(
+            {
+                "template_label": item.get("template_label", target.get("label", "")),
+                "source_path": "template_draft",
+                "confidence": item.get("confidence", "medium"),
+                "location": slot_id,
+                "action": action,
+            }
+        )
+
+
+def fill_document_xml_from_draft(document_xml, draft, report, existing_content_policy="merge"):
+    root = ET.fromstring(document_xml)
+    fill_slots_by_draft(root, draft, report, existing_content_policy=existing_content_policy)
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
 def fill_document_xml(document_xml, data, report, mapping=None):
     root = ET.fromstring(document_xml)
     if mapping is not None:
@@ -737,6 +1046,121 @@ def fill_docx_template(template_path, structured_path, output_path, report_path,
 
     write_report(report_path, report)
     return report
+
+
+def run_deepseek_template_draft(
+    slots,
+    raw_input,
+    style,
+    custom_style,
+    existing_content_policy,
+    config,
+    http_post_json=post_json,
+):
+    prompt = build_template_draft_prompt(
+        slots,
+        raw_input,
+        style,
+        custom_style,
+        existing_content_policy,
+    )
+    payload = build_chat_payload(config.model, prompt)
+    response_json = http_post_json(
+        deepseek_chat_completions_url(config.base_url),
+        {"Authorization": f"Bearer {config.api_key}"},
+        payload,
+        config.timeout_seconds,
+    )
+    answer_text = extract_answer_text(response_json)
+    raw_draft = extract_template_draft_json(answer_text)
+    return validate_template_draft(raw_draft, slots, existing_content_policy)
+
+
+def fill_docx_template_from_draft(
+    template_path,
+    draft,
+    output_path,
+    report_path,
+    draft_path=None,
+    source_label="template_draft",
+    existing_content_policy="merge",
+):
+    template = Path(template_path)
+    output = Path(output_path)
+    report = _base_report(template, source_label, output)
+    report["template_draft_file"] = str(draft_path or "")
+    report["existing_content_policy"] = existing_content_policy
+    report["global_warnings"] = list(draft.get("global_warnings", []))
+    report["issues"].extend(draft.get("issues", []))
+    for warning in report["global_warnings"]:
+        report["issues"].append({"level": "WARN", "message": warning})
+
+    try:
+        with zipfile.ZipFile(template, "r") as source_package:
+            if "word/document.xml" not in source_package.namelist():
+                report = report_failure("DOCX template is missing word/document.xml.", template, source_label, output)
+            else:
+                document_xml = source_package.read("word/document.xml")
+                filled_xml = fill_document_xml_from_draft(
+                    document_xml,
+                    draft,
+                    report,
+                    existing_content_policy=existing_content_policy,
+                )
+                output.parent.mkdir(parents=True, exist_ok=True)
+                with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as output_package:
+                    for item in source_package.infolist():
+                        content = filled_xml if item.filename == "word/document.xml" else source_package.read(item.filename)
+                        output_package.writestr(item, content)
+                _finalize_report(report)
+    except Exception as exc:
+        report = report_failure(str(exc), template, source_label, output)
+
+    write_report(report_path, report)
+    return report
+
+
+def fill_docx_template_from_raw(
+    template_path,
+    raw_input,
+    output_path,
+    report_path,
+    draft_path,
+    style="professional_concise",
+    custom_style="",
+    existing_content_policy="merge",
+    config=None,
+    http_post_json=post_json,
+):
+    template = Path(template_path)
+    output = Path(output_path)
+    draft_output = Path(draft_path)
+    report_output = Path(report_path)
+    config = config or load_deepseek_config()
+    slots = extract_template_slots(template, include_prefilled=True)
+    draft = run_deepseek_template_draft(
+        slots,
+        raw_input,
+        style,
+        custom_style,
+        existing_content_policy,
+        config,
+        http_post_json=http_post_json,
+    )
+    draft_output.parent.mkdir(parents=True, exist_ok=True)
+    draft_output.write_text(
+        json.dumps(draft, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return fill_docx_template_from_draft(
+        template,
+        draft,
+        output,
+        report_output,
+        draft_path=draft_output,
+        source_label="raw_input",
+        existing_content_policy=existing_content_policy,
+    )
 
 
 def parse_args(argv=None):

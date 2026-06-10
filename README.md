@@ -244,7 +244,31 @@ API results are written to `eval-results/api/`.
 
 ## DOCX Template Autofill
 
-If a counselor already has a Word template, first run the agent with structured output, then fill the template from `structured_output.json`:
+There are two template-fill paths.
+
+The recommended local-web path is intelligent raw-material filling:
+
+1. Start the workbench:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1
+```
+
+2. Open `http://127.0.0.1:8765/`.
+3. Paste counselor raw material into `咨询师材料`.
+4. Enter the local `.docx` template path in `智能模板填充`.
+5. Choose language style and existing-content policy.
+6. Click `智能整理并填充模板`.
+
+This path creates:
+
+- `filled_template.docx`
+- `template_draft.json`
+- `template_fill_report.json`
+
+The draft path asks the model to produce constrained field-level JSON first, then the code fills Word deterministically. Existing template content is preserved by default with the `保留并续写/润色` policy.
+
+The legacy structured path still works when the agent has already produced `structured_output.json`:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx
