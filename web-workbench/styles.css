@@ -360,6 +360,29 @@ button {
   white-space: nowrap;
 }
 
+.controls select,
+.compact-input {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  padding: 6px 8px;
+}
+
+.compact-input {
+  width: min(220px, 100%);
+}
+
+.download-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.download-link:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 1080px) {
   .workbench {
     grid-template-columns: 220px minmax(360px, 1fr);

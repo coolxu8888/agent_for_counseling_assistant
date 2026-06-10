@@ -16,6 +16,29 @@ function pretty(value) {
   return JSON.stringify(value, null, 2);
 }
 
+function downloadUrl(path) {
+  return `/files/${encodeURIComponent(path)}`;
+}
+
+function setPathDisplay(id, path, downloadable = false) {
+  const target = $(id);
+  target.textContent = "";
+  if (!path) {
+    target.textContent = "无";
+    return;
+  }
+  if (!downloadable) {
+    target.textContent = path;
+    return;
+  }
+  const link = document.createElement("a");
+  link.className = "download-link";
+  link.href = downloadUrl(path);
+  link.textContent = path;
+  link.download = "";
+  target.appendChild(link);
+}
+
 function setStatus(text, kind = "idle") {
   const status = $("runStatus");
   status.textContent = text;
@@ -75,8 +98,8 @@ function updateRunResult(data) {
     docx: data.docx,
     issues: data.issues,
   });
-  $("runDir").textContent = data.run_dir || "无";
-  $("docxPath").textContent = data.docx && data.docx.path ? data.docx.path : "无";
+  setPathDisplay("runDir", data.run_dir, false);
+  setPathDisplay("docxPath", data.docx && data.docx.path ? data.docx.path : null, true);
   updateTemplateAvailability();
 }
 
@@ -90,9 +113,9 @@ function updateTemplateResult(data) {
     state.runDir = data.run_dir;
     $("runDir").textContent = data.run_dir;
   }
-  $("filledTemplatePath").textContent = data.output_path || "无";
-  $("templateDraftPath").textContent = data.draft_path || "无";
-  $("templateReportPath").textContent = data.report_path || "无";
+  setPathDisplay("filledTemplatePath", data.output_path, true);
+  setPathDisplay("templateDraftPath", data.draft_path, true);
+  setPathDisplay("templateReportPath", data.report_path, true);
   $("templateReport").textContent = pretty(data.report);
   updateTemplateAvailability();
 }
@@ -121,6 +144,8 @@ async function runAgent() {
       structured: $("structuredToggle").checked,
       render_docx: $("docxToggle").checked,
       dry_run: $("dryRunToggle").checked,
+      output_style: $("outputStyleSelect").value,
+      custom_output_style: $("outputCustomStyle").value.trim(),
     });
     updateRunResult(data);
     setStatus(data.status === "success" ? "成功" : data.status || "完成", data.status === "error" ? "error" : "success");

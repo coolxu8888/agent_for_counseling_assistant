@@ -105,6 +105,16 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("Input is required", json.loads(body.decode("utf-8"))["message"])
 
+    def test_apply_output_style_adds_style_instruction(self):
+        styled = web_workbench.apply_output_style("材料", style="warm_clinical")
+
+        self.assertIn("材料", styled)
+        self.assertIn("输出风格要求", styled)
+        self.assertIn("温和", styled)
+
+    def test_apply_output_style_leaves_default_input_unchanged(self):
+        self.assertEqual(web_workbench.apply_output_style("材料", style="default"), "材料")
+
     def test_handle_run_returns_saved_outputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "agent-runs" / "run-1"
@@ -119,9 +129,15 @@ class WebWorkbenchTest(unittest.TestCase):
             (run_dir / "metadata.json").write_text('{"status": "success"}', encoding="utf-8")
 
             fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
-            with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result) as fake_run:
                 status, _headers, body = web_workbench.handle_api_run(
-                    {"workflow": "W1", "input": "材料", "structured": True, "render_docx": False}
+                    {
+                        "workflow": "W1",
+                        "input": "材料",
+                        "structured": True,
+                        "render_docx": False,
+                        "output_style": "institutional_record",
+                    }
                 )
 
         payload = json.loads(body.decode("utf-8"))
@@ -131,6 +147,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["clean_output"], "clean answer")
         self.assertEqual(payload["structured_output"], {"workflow": "W1"})
         self.assertEqual(payload["structured_check"], {"status": "PASS"})
+        self.assertIn("机构留档", fake_run.call_args.kwargs["inline_input"])
 
     def test_handle_run_rejects_unknown_workflow(self):
         with patch.object(

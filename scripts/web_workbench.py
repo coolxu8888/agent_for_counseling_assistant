@@ -20,6 +20,15 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT / "web-workbench"
 RUN_ROOT = ROOT / "agent-runs"
 
+AGENT_STYLE_INSTRUCTIONS = {
+    "default": "",
+    "professional_concise": "请使用专业、简洁、清晰的咨询记录语言输出。",
+    "warm_clinical": "请使用温和、支持性、但仍保持专业边界的临床语言输出。",
+    "institutional_record": "请使用正式、克制、适合机构留档的记录语言输出。",
+    "supervision_summary": "请使用适合督导讨论的语言输出，突出事实、假设、风险边界和后续工作重点。",
+    "custom": "",
+}
+
 
 def json_response(payload, status=200):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -87,6 +96,14 @@ def optional_run_dir(run_dir_value, workflow_id="TEMPLATE"):
     return create_run_dir(run_root=RUN_ROOT, workflow_id=workflow_id)
 
 
+def apply_output_style(user_input, style="default", custom_style=""):
+    style = style if style in AGENT_STYLE_INSTRUCTIONS else "default"
+    instruction = custom_style.strip() if style == "custom" else AGENT_STYLE_INSTRUCTIONS[style]
+    if not instruction:
+        return user_input
+    return f"{user_input.strip()}\n\n输出风格要求：{instruction}"
+
+
 def resolve_download_path(path_value, allowed_roots=None):
     allowed_roots = allowed_roots or [RUN_ROOT]
     candidate = Path(str(path_value)).resolve()
@@ -145,6 +162,11 @@ def handle_api_run(payload):
     user_input = payload.get("input", "")
     if not str(user_input).strip():
         return error_response(400, "Input is required.")
+    user_input = apply_output_style(
+        str(user_input),
+        style=str(payload.get("output_style") or "default"),
+        custom_style=str(payload.get("custom_output_style") or ""),
+    )
 
     structured = bool(payload.get("structured", True))
     render_docx = bool(payload.get("render_docx", False))

@@ -98,6 +98,18 @@
         </label>
         <div class="run-side">
           <div class="controls" aria-label="运行选项">
+            <label>
+              输出风格
+              <select id="outputStyleSelect">
+                <option value="default">默认</option>
+                <option value="professional_concise">专业简洁</option>
+                <option value="warm_clinical">温和临床</option>
+                <option value="institutional_record">机构记录</option>
+                <option value="supervision_summary">督导摘要</option>
+                <option value="custom">自定义</option>
+              </select>
+            </label>
+            <input id="outputCustomStyle" class="compact-input" type="text" placeholder="自定义输出风格" />
             <label><input id="structuredToggle" type="checkbox" checked /> 结构化输出</label>
             <label><input id="docxToggle" type="checkbox" /> 生成固定 Word</label>
             <label><input id="dryRunToggle" type="checkbox" /> Dry run</label>
