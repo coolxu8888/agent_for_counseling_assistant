@@ -73,6 +73,49 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["structured_output"], {"workflow": "W1"})
         self.assertEqual(payload["structured_check"], {"status": "PASS"})
 
+    def test_handle_run_rejects_unknown_workflow(self):
+        with patch.object(
+            web_workbench,
+            "run_agent_once",
+            side_effect=web_workbench.AgentInputError("Unknown workflow `bad`."),
+        ):
+            status, _headers, body = web_workbench.handle_api_run({"workflow": "bad", "input": "材料"})
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["message"], "Unknown workflow `bad`.")
+
+    def test_handle_run_hides_unexpected_exception_details(self):
+        with patch.object(
+            web_workbench,
+            "run_agent_once",
+            side_effect=RuntimeError("secret provider token"),
+        ):
+            status, _headers, body = web_workbench.handle_api_run({"workflow": "W1", "input": "材料"})
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 500)
+        self.assertEqual(payload["message"], "Agent run failed.")
+        self.assertNotIn("secret provider token", body.decode("utf-8"))
+
+    def test_load_run_payload_tolerates_malformed_json_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("clean answer", encoding="utf-8")
+            (run_dir / "structured_output.json").write_text("{not valid json", encoding="utf-8")
+
+            result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            payload = web_workbench.load_run_payload(result)
+
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["clean_output"], "clean answer")
+        self.assertIsNone(payload["structured_output"])
+        self.assertTrue(
+            any("structured_output.json" in issue["message"] for issue in payload["issues"]),
+            payload["issues"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

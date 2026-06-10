@@ -11,7 +11,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from run_agent import AgentRunResult, run_agent_once
+from run_agent import AgentInputError, AgentRunResult, run_agent_once
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,10 +36,20 @@ def read_text_if_exists(path):
     return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
-def read_json_if_exists(path):
+def read_json_artifact(path, issues):
     if not path.exists():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        issues.append(
+            {
+                "level": "WARN",
+                "path": path_for_ui(path),
+                "message": f"Could not parse JSON artifact: {path.name}",
+            }
+        )
+        return None
 
 
 def path_for_ui(path):
@@ -48,11 +58,12 @@ def path_for_ui(path):
 
 def load_run_payload(result):
     run_dir = result.run_dir
-    structured_output = read_json_if_exists(run_dir / "structured_output.json")
-    structured_check = read_json_if_exists(run_dir / "structured_check.json")
-    safety_check = read_json_if_exists(run_dir / "safety_check.json")
-    metadata = read_json_if_exists(run_dir / "metadata.json")
-    docx_check = read_json_if_exists(run_dir / "docx_check.json")
+    issues = []
+    structured_output = read_json_artifact(run_dir / "structured_output.json", issues)
+    structured_check = read_json_artifact(run_dir / "structured_check.json", issues)
+    safety_check = read_json_artifact(run_dir / "safety_check.json", issues)
+    metadata = read_json_artifact(run_dir / "metadata.json", issues)
+    docx_check = read_json_artifact(run_dir / "docx_check.json", issues)
     docx_path = run_dir / "output.docx"
 
     return {
@@ -74,7 +85,7 @@ def load_run_payload(result):
             "path": path_for_ui(docx_path) if docx_path.exists() else None,
             "check": docx_check,
         },
-        "issues": [],
+        "issues": issues,
     }
 
 
@@ -97,8 +108,11 @@ def handle_api_run(payload):
             docx=render_docx,
         )
         return json_response(load_run_payload(result))
+    except AgentInputError as exc:
+        return error_response(400, str(exc))
     except Exception as exc:
-        return error_response(500, str(exc))
+        print(f"Agent run failed: {exc}")
+        return error_response(500, "Agent run failed.")
 
 
 def resolve_static_path(request_path, web_root=WEB_ROOT):
