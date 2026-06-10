@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from urllib.parse import quote
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -61,6 +62,41 @@ class WebWorkbenchTest(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 web_workbench.resolve_download_path(str(outside), allowed_roots=[run_root])
+
+    def test_safe_content_disposition_includes_unicode_filename_star(self):
+        header = web_workbench.safe_content_disposition("报告.docx")
+
+        self.assertIn('filename="__.docx"', header)
+        self.assertIn("filename*=UTF-8''%E6%8A%A5%E5%91%8A.docx", header)
+        header.encode("ascii")
+
+    def test_safe_content_disposition_sanitizes_unsafe_fallback_characters(self):
+        header = web_workbench.safe_content_disposition('bad";\r\nname.docx')
+        fallback = header.split("filename=", 1)[1].split(";", 1)[0]
+
+        self.assertNotIn('"', fallback.strip('"'))
+        self.assertNotIn(";", fallback)
+        self.assertNotIn("\r", fallback)
+        self.assertNotIn("\n", fallback)
+        header.encode("ascii")
+
+    def test_handle_file_download_uses_filename_star_for_unicode_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_root.mkdir()
+            output = run_root / "报告.docx"
+            output.write_bytes(b"docx")
+            request_path = "/files/" + quote(str(output), safe="")
+
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                status, headers, body = web_workbench.handle_file_download(request_path)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body, b"docx")
+        self.assertIn("filename*", headers["Content-Disposition"])
+        self.assertIn("%E6%8A%A5%E5%91%8A.docx", headers["Content-Disposition"])
+        headers["Content-Disposition"].encode("ascii")
 
     def test_handle_run_rejects_empty_input(self):
         response = web_workbench.handle_api_run({"workflow": "W1", "input": "   "})

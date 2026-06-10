@@ -4,7 +4,7 @@ import mimetypes
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -84,6 +84,16 @@ def resolve_download_path(path_value, allowed_roots=None):
     if not any(is_relative_to(candidate, root) for root in allowed_roots):
         raise ValueError("Download path is outside approved output directories.")
     return candidate
+
+
+def safe_content_disposition(filename):
+    cleaned = "".join(
+        ch if 32 <= ord(ch) < 127 and ch not in {'"', "\\", ";"} else "_"
+        for ch in filename
+    )
+    cleaned = cleaned or "download"
+    encoded = quote(filename, safe="")
+    return f"attachment; filename=\"{cleaned}\"; filename*=UTF-8''{encoded}"
 
 
 def load_run_payload(result):
@@ -225,7 +235,7 @@ def handle_file_download(request_path):
         200,
         {
             "Content-Type": mimetypes.guess_type(target.name)[0] or "application/octet-stream",
-            "Content-Disposition": f'attachment; filename="{target.name}"',
+            "Content-Disposition": safe_content_disposition(target.name),
         },
         body,
     )
