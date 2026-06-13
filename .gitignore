@@ -21,3 +21,6 @@ Thumbs.db
 
 # Local agent run artifacts. May contain sensitive counseling material.
 agent-runs/
+
+# Local workbench product data. May contain uploaded templates and case metadata.
+workbench-data/

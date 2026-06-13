@@ -3,6 +3,7 @@ import json
 import mimetypes
 import sys
 import zipfile
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote, urlparse
@@ -20,11 +21,17 @@ from fill_docx_template import (
     is_placeholder_text,
 )
 from render_docx import render_docx
+from workbench_store import WorkbenchStore
 
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = ROOT / "web-workbench"
 RUN_ROOT = ROOT / "agent-runs"
+DATA_ROOT = ROOT / "workbench-data"
+UPLOAD_ROOT = DATA_ROOT / "uploads"
+DB_PATH = DATA_ROOT / "workbench.sqlite3"
+SESSION_COOKIE = "workbench_session"
+STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
 
 AGENT_STYLE_INSTRUCTIONS = {
     "default": "",
@@ -42,11 +49,45 @@ def json_response(payload, status=200):
     return status, headers, body
 
 
+def json_response_with_headers(payload, extra_headers, status=200):
+    response_status, headers, body = json_response(payload, status=status)
+    headers.update(extra_headers)
+    return response_status, headers, body
+
+
 def error_response(status, message, issues=None):
     payload = {"status": "error", "message": message}
     if issues is not None:
         payload["issues"] = issues
     return json_response(payload, status=status)
+
+
+def cookie_header(token, max_age=604800):
+    return (
+        f"{SESSION_COOKIE}={token}; Path=/; Max-Age={max_age}; "
+        "HttpOnly; SameSite=Lax"
+    )
+
+
+def clear_cookie_header():
+    return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+
+
+def cookie_token(handler):
+    cookie = SimpleCookie(handler.headers.get("Cookie", ""))
+    morsel = cookie.get(SESSION_COOKIE)
+    return morsel.value if morsel else ""
+
+
+def current_user(handler):
+    return STORE.session_user(cookie_token(handler))
+
+
+def require_user(handler):
+    user = current_user(handler)
+    if not user:
+        return None, error_response(401, "Login required.")
+    return user, None
 
 
 def read_text_if_exists(path):
@@ -186,6 +227,14 @@ def handle_api_run(payload):
             structured=structured or render_docx,
             docx=render_docx,
         )
+        case_id = payload.get("case_id")
+        if payload.get("user_id"):
+            STORE.audit(
+                int(payload["user_id"]),
+                int(case_id) if case_id else None,
+                "workflow.run",
+                {"workflow": workflow, "run_dir": path_for_ui(result.run_dir)},
+            )
         return json_response(load_run_payload(result))
     except AgentInputError as exc:
         return error_response(400, str(exc))
@@ -314,6 +363,14 @@ def handle_draft_template(payload):
             custom_style=str(payload.get("custom_style") or ""),
             existing_content_policy=str(payload.get("existing_content_policy") or "merge"),
         )
+        case_id = payload.get("case_id")
+        if payload.get("user_id"):
+            STORE.audit(
+                int(payload["user_id"]),
+                int(case_id) if case_id else None,
+                "template.draft",
+                {"template_path": str(template_path), "run_dir": path_for_ui(run_dir)},
+            )
         status = "success" if report.get("status") != "FAIL" else "error"
         return json_response(
             {
@@ -331,6 +388,92 @@ def handle_draft_template(payload):
     except Exception as exc:
         print(f"Template draft failed: {exc}")
         return error_response(500, "Template draft failed.")
+
+
+def handle_login(payload):
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    auth = STORE.authenticate(username, password)
+    if not auth:
+        return error_response(401, "Invalid username or password.")
+    STORE.audit(auth["user"]["id"], None, "auth.login", {"username": username})
+    return json_response_with_headers(
+        {"status": "success", "user": auth["user"], "expires_at": auth["expires_at"]},
+        {"Set-Cookie": cookie_header(auth["token"])},
+    )
+
+
+def handle_logout(handler):
+    token = cookie_token(handler)
+    user = STORE.session_user(token)
+    if user:
+        STORE.audit(user["id"], None, "auth.logout", {})
+    STORE.logout(token)
+    return json_response_with_headers(
+        {"status": "success"},
+        {"Set-Cookie": clear_cookie_header()},
+    )
+
+
+def handle_session(handler):
+    user = current_user(handler)
+    return json_response({"status": "success", "user": user, "authenticated": bool(user)})
+
+
+def handle_cases(user, payload=None):
+    payload = payload or {}
+    if payload.get("action") == "create":
+        case_record = STORE.create_case(
+            user["id"],
+            str(payload.get("title") or "未命名个案"),
+            client_code=str(payload.get("client_code") or ""),
+            notes=str(payload.get("notes") or ""),
+        )
+        return json_response({"status": "success", "case": case_record})
+    if payload.get("action") == "update":
+        case_id = int(payload.get("case_id") or 0)
+        case_record = STORE.update_case(
+            user["id"],
+            case_id,
+            title=payload.get("title"),
+            client_code=payload.get("client_code"),
+            notes=payload.get("notes"),
+        )
+        if not case_record:
+            return error_response(404, "Case not found.")
+        return json_response({"status": "success", "case": case_record})
+    return json_response({"status": "success", "cases": STORE.list_cases(user["id"])})
+
+
+def handle_upload(user, payload):
+    filename = str(payload.get("filename") or "").strip()
+    content_b64 = str(payload.get("content_base64") or "")
+    if not filename or not content_b64:
+        return error_response(400, "filename and content_base64 are required.")
+    case_id = payload.get("case_id")
+    upload = STORE.store_upload(
+        user["id"],
+        filename,
+        content_b64,
+        content_type=str(payload.get("content_type") or ""),
+        case_id=int(case_id) if case_id else None,
+    )
+    return json_response({"status": "success", "upload": upload})
+
+
+def handle_uploads(user, payload=None):
+    payload = payload or {}
+    case_id = payload.get("case_id")
+    return json_response(
+        {
+            "status": "success",
+            "uploads": STORE.list_uploads(user["id"], case_id=int(case_id) if case_id else None),
+        }
+    )
+
+
+def handle_audit_logs(user):
+    return json_response({"status": "success", "audit_logs": STORE.list_audit_logs(user["id"])})
 
 
 def resolve_static_path(request_path, web_root=WEB_ROOT):
@@ -388,7 +531,16 @@ def send_response_tuple(handler, response):
 
 class WorkbenchHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        path = urlparse(self.path).path
+        if path == "/api/session":
+            send_response_tuple(self, handle_session(self))
+            return
+
         if self.path.startswith("/files/"):
+            user, error = require_user(self)
+            if error:
+                send_response_tuple(self, error)
+                return
             try:
                 response = handle_file_download(self.path)
             except FileNotFoundError:
@@ -418,6 +570,23 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             return
 
         path = urlparse(self.path).path
+        if path == "/api/login":
+            response = handle_login(payload)
+            send_response_tuple(self, response)
+            return
+        if path == "/api/logout":
+            response = handle_logout(self)
+            send_response_tuple(self, response)
+            return
+
+        user, error = require_user(self)
+        if error:
+            send_response_tuple(self, error)
+            return
+
+        if isinstance(payload, dict):
+            payload["user_id"] = user["id"]
+
         if path == "/api/run":
             response = handle_api_run(payload)
         elif path == "/api/render-docx":
@@ -428,6 +597,14 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_inspect_template(payload)
         elif path == "/api/draft-template":
             response = handle_draft_template(payload)
+        elif path == "/api/cases":
+            response = handle_cases(user, payload)
+        elif path == "/api/uploads":
+            response = handle_uploads(user, payload)
+        elif path == "/api/upload":
+            response = handle_upload(user, payload)
+        elif path == "/api/audit":
+            response = handle_audit_logs(user)
         else:
             response = error_response(404, "Endpoint not found.")
 

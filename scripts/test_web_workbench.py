@@ -10,6 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import web_workbench
+from workbench_store import WorkbenchStore
 
 
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -114,6 +115,20 @@ class WebWorkbenchTest(unittest.TestCase):
         status, _headers, body = response
         self.assertEqual(status, 400)
         self.assertIn("Input is required", json.loads(body.decode("utf-8"))["message"])
+
+    def test_handle_login_sets_session_cookie(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            with patch.object(web_workbench, "STORE", store):
+                status, headers, body = web_workbench.handle_login(
+                    {"username": "demo", "password": "demo123"}
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertIn("Set-Cookie", headers)
+        self.assertIn(web_workbench.SESSION_COOKIE, headers["Set-Cookie"])
 
     def test_apply_output_style_adds_style_instruction(self):
         styled = web_workbench.apply_output_style("材料", style="warm_clinical")

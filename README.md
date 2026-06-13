@@ -81,12 +81,15 @@ http://127.0.0.1:8765
 
 工作台可以：
 
+- 使用本地登录会话。默认开发账号为 `demo` / `demo123`，可用 `WORKBENCH_USER` 和 `WORKBENCH_PASSWORD` 环境变量覆盖。
+- 创建和选择去识别化个案，运行结果、上传和模板操作会记录到本地审计日志。
+- 上传 `.docx` 模板文件；上传文件保存在 `workbench-data/uploads/`，不会进入 git。
 - 运行 W1/W2/W3，并输入咨询师材料。
 - 显示模型输出、结构化 JSON 和校验结果。
 - 在存在结构化输出时生成固定 `output.docx`。
 - 使用当前结构化 JSON 填充咨询师提供的 `.docx` 模板。
 
-生成文件保存在 `agent-runs/` 下；该目录已被 git 忽略，因为其中可能包含敏感材料。工作台不会显示 `.env` 中的 API key。
+运行生成文件保存在 `agent-runs/` 下；本地登录、个案元数据、上传文件和审计日志保存在 `workbench-data/` 下。这两个目录都已被 git 忽略，因为其中可能包含敏感材料。工作台不会显示 `.env` 中的 API key。
 
 ## Coze Demo API
 

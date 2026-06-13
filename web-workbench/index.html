@@ -7,6 +7,22 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <section id="loginOverlay" class="login-overlay" aria-label="登录">
+      <form id="loginForm" class="login-panel">
+        <h1>咨询师助理</h1>
+        <p>登录后使用本地工作台。默认本地账号可通过环境变量 WORKBENCH_USER / WORKBENCH_PASSWORD 修改。</p>
+        <label>
+          账号
+          <input id="loginUsername" type="text" autocomplete="username" value="demo" />
+        </label>
+        <label>
+          密码
+          <input id="loginPassword" type="password" autocomplete="current-password" value="demo123" />
+        </label>
+        <button class="primary-button" type="submit">登录</button>
+        <span id="loginMessage" class="login-message"></span>
+      </form>
+    </section>
     <main class="workbench">
       <aside class="workflow-rail" aria-label="工作流导航">
         <header class="brand">
@@ -16,6 +32,32 @@
           </div>
           <span id="runStatus" class="status idle">未运行</span>
         </header>
+        <div class="privacy-notice">
+          <strong>隐私提示</strong>
+          <span>请优先使用个案编号，避免在测试材料中输入可识别身份信息。所有运行、上传和个案操作会写入本地审计日志。</span>
+        </div>
+
+        <section class="case-panel" aria-label="个案管理">
+          <div class="case-heading">
+            <strong>个案</strong>
+            <button id="logoutButton" class="icon-button" type="button" title="退出登录">退出</button>
+          </div>
+          <label class="field">
+            <span>当前个案</span>
+            <select id="caseSelect">
+              <option value="">未选择个案</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>新建个案标题</span>
+            <input id="caseTitleInput" type="text" placeholder="如：初访-匿名编号A001" />
+          </label>
+          <label class="field">
+            <span>来访者编号</span>
+            <input id="clientCodeInput" type="text" placeholder="建议使用去识别编号" />
+          </label>
+          <button id="createCaseButton" class="secondary-button" type="button">新建个案</button>
+        </section>
 
         <button class="workflow active" type="button" data-workflow="W1">
           <strong>W1 初访信息收集</strong>
@@ -58,6 +100,10 @@
           <input id="templatePath" type="text" placeholder="C:\Users\win\Desktop\template.docx" />
         </label>
         <label class="field">
+          <span>上传 Word 模板</span>
+          <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+        </label>
+        <label class="field">
           <span>语言风格</span>
           <select id="styleSelect">
             <option value="professional_concise">专业简洁</option>
@@ -89,6 +135,7 @@
           <span>尚未扫描模板。</span>
         </div>
         <div class="path-list" aria-label="模板输出路径">
+          <p><strong>上传文件</strong><span id="uploadedTemplatePath">无</span></p>
           <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
           <p><strong>草稿 JSON</strong><span id="templateDraftPath">无</span></p>
           <p><strong>填充报告</strong><span id="templateReportPath">无</span></p>
@@ -123,6 +170,7 @@
           <div class="path-list" aria-label="运行输出路径">
             <p><strong>Run 目录</strong><span id="runDir">无</span></p>
             <p><strong>固定 Word</strong><span id="docxPath">无</span></p>
+            <p><strong>审计</strong><span id="auditStatus">登录后记录操作</span></p>
           </div>
         </div>
       </section>

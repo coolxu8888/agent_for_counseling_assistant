@@ -3,6 +3,8 @@ const state = {
   runDir: null,
   structuredOutput: null,
   templateSlots: [],
+  user: null,
+  caseId: "",
 };
 
 const $ = (id) => document.getElementById(id);
@@ -73,9 +75,38 @@ async function postJson(url, payload) {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      showLogin();
+    }
     throw new Error(data.message || "请求失败。");
   }
   return data;
+}
+
+async function getJson(url) {
+  const response = await fetch(url);
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 401) {
+      showLogin();
+    }
+    throw new Error(data.message || "请求失败。");
+  }
+  return data;
+}
+
+function showLogin(message = "") {
+  $("loginOverlay").classList.remove("hidden");
+  $("loginMessage").textContent = message;
+}
+
+function hideLogin() {
+  $("loginOverlay").classList.add("hidden");
+  $("loginMessage").textContent = "";
+}
+
+function selectedCaseId() {
+  return $("caseSelect").value || "";
 }
 
 function canFillFromStructured() {
@@ -204,6 +235,7 @@ async function runAgent() {
       dry_run: $("dryRunToggle").checked,
       output_style: $("outputStyleSelect").value,
       custom_output_style: $("outputCustomStyle").value.trim(),
+      case_id: selectedCaseId(),
     });
     updateRunResult(data);
     setStatus(data.status === "success" ? "成功" : data.status || "完成", data.status === "error" ? "error" : "success");
@@ -242,6 +274,7 @@ async function draftTemplate() {
       custom_style: $("customStyle").value.trim(),
       existing_content_policy: $("existingPolicy").value,
       run_dir: state.runDir,
+      case_id: selectedCaseId(),
     });
     updateTemplateResult(data);
   } catch (error) {
@@ -311,6 +344,124 @@ async function fillTemplateFromStructured() {
   }
 }
 
+async function login(event) {
+  event.preventDefault();
+  $("loginMessage").textContent = "登录中...";
+  try {
+    const data = await postJson("/api/login", {
+      username: $("loginUsername").value.trim(),
+      password: $("loginPassword").value,
+    });
+    state.user = data.user;
+    hideLogin();
+    await loadCases();
+    $("auditStatus").textContent = `已登录：${data.user.username}`;
+  } catch (error) {
+    $("loginMessage").textContent = error.message;
+  }
+}
+
+async function logout() {
+  await postJson("/api/logout", {});
+  state.user = null;
+  state.caseId = "";
+  $("caseSelect").innerHTML = '<option value="">未选择个案</option>';
+  showLogin("已退出登录。");
+}
+
+async function checkSession() {
+  try {
+    const data = await getJson("/api/session");
+    if (data.authenticated) {
+      state.user = data.user;
+      hideLogin();
+      await loadCases();
+      $("auditStatus").textContent = `已登录：${data.user.username}`;
+    } else {
+      showLogin();
+    }
+  } catch (error) {
+    showLogin(error.message);
+  }
+}
+
+function renderCases(cases) {
+  const select = $("caseSelect");
+  const current = select.value;
+  select.innerHTML = '<option value="">未选择个案</option>';
+  cases.forEach((caseItem) => {
+    const option = document.createElement("option");
+    option.value = String(caseItem.id);
+    option.textContent = caseItem.client_code
+      ? `${caseItem.title}（${caseItem.client_code}）`
+      : caseItem.title;
+    select.appendChild(option);
+  });
+  if ([...select.options].some((option) => option.value === current)) {
+    select.value = current;
+  }
+  state.caseId = select.value;
+}
+
+async function loadCases() {
+  const data = await postJson("/api/cases", {});
+  renderCases(data.cases || []);
+}
+
+async function createCase() {
+  const title = $("caseTitleInput").value.trim();
+  if (!title) {
+    $("auditStatus").textContent = "请先输入个案标题。";
+    return;
+  }
+  const data = await postJson("/api/cases", {
+    action: "create",
+    title,
+    client_code: $("clientCodeInput").value.trim(),
+  });
+  await loadCases();
+  $("caseSelect").value = String(data.case.id);
+  state.caseId = String(data.case.id);
+  $("caseTitleInput").value = "";
+  $("clientCodeInput").value = "";
+  $("auditStatus").textContent = "个案已创建。";
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      resolve(result.includes(",") ? result.split(",", 2)[1] : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadTemplate() {
+  const file = $("templateUpload").files[0];
+  if (!file) {
+    return;
+  }
+  setPathDisplay("uploadedTemplatePath", null);
+  $("templateReport").textContent = "正在上传模板...";
+  try {
+    const contentBase64 = await fileToBase64(file);
+    const data = await postJson("/api/upload", {
+      filename: file.name,
+      content_type: file.type,
+      content_base64: contentBase64,
+      case_id: selectedCaseId(),
+    });
+    $("templatePath").value = data.upload.stored_path;
+    setPathDisplay("uploadedTemplatePath", data.upload.stored_path, false);
+    $("templateReport").textContent = "模板已上传，可以扫描栏目或智能填充。";
+  } catch (error) {
+    $("templateReport").textContent = error.message;
+  }
+}
+
 document.querySelectorAll(".workflow").forEach((button) => {
   button.addEventListener("click", () => {
     state.workflow = button.dataset.workflow;
@@ -323,7 +474,15 @@ document.querySelectorAll(".tab").forEach((button) => {
 });
 
 $("runButton").addEventListener("click", runAgent);
+$("loginForm").addEventListener("submit", login);
+$("logoutButton").addEventListener("click", logout);
+$("createCaseButton").addEventListener("click", createCase);
+$("caseSelect").addEventListener("change", () => {
+  state.caseId = selectedCaseId();
+});
+$("templateUpload").addEventListener("change", uploadTemplate);
 $("inspectTemplateButton").addEventListener("click", inspectTemplate);
 $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 updateTemplateAvailability();
+checkSession();
