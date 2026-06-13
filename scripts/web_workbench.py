@@ -2,6 +2,7 @@ import argparse
 import json
 import mimetypes
 import sys
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote, urlparse
@@ -12,7 +13,12 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from run_agent import AgentInputError, AgentRunResult, create_run_dir, run_agent_once
-from fill_docx_template import fill_docx_template, fill_docx_template_from_raw
+from fill_docx_template import (
+    extract_template_slots,
+    fill_docx_template,
+    fill_docx_template_from_raw,
+    is_placeholder_text,
+)
 from render_docx import render_docx
 
 
@@ -240,6 +246,51 @@ def handle_fill_template(payload):
         return error_response(500, "Template fill failed.")
 
 
+def summarize_template_slots(slots):
+    fillable_slots = [
+        slot
+        for slot in slots
+        if is_placeholder_text(slot.get("current_text", ""))
+        or slot.get("slot_type") == "table_block_cell"
+    ]
+    prefilled_slots = [
+        slot
+        for slot in slots
+        if not is_placeholder_text(slot.get("current_text", ""))
+        and slot.get("slot_type") != "table_block_cell"
+    ]
+    return {
+        "total_slots": len(slots),
+        "fillable_slots": len(fillable_slots),
+        "prefilled_slots": len(prefilled_slots),
+        "slot_types": {
+            slot_type: sum(1 for slot in slots if slot.get("slot_type") == slot_type)
+            for slot_type in sorted({slot.get("slot_type", "unknown") for slot in slots})
+        },
+    }
+
+
+def handle_inspect_template(payload):
+    try:
+        template_path = Path(str(payload.get("template_path"))).resolve()
+        if not template_path.exists():
+            return error_response(400, "Template file not found.")
+        slots = extract_template_slots(template_path, include_prefilled=True)
+        return json_response(
+            {
+                "status": "success",
+                "template_path": path_for_ui(template_path),
+                "summary": summarize_template_slots(slots),
+                "slots": slots,
+            }
+        )
+    except (FileNotFoundError, PermissionError, ValueError, zipfile.BadZipFile) as exc:
+        return error_response(400, str(exc))
+    except Exception as exc:
+        print(f"Template inspect failed: {exc}")
+        return error_response(500, "Template inspect failed.")
+
+
 def handle_draft_template(payload):
     try:
         template_path = Path(str(payload.get("template_path"))).resolve()
@@ -373,6 +424,8 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_render_docx(payload)
         elif path == "/api/fill-template":
             response = handle_fill_template(payload)
+        elif path == "/api/inspect-template":
+            response = handle_inspect_template(payload)
         elif path == "/api/draft-template":
             response = handle_draft_template(payload)
         else:

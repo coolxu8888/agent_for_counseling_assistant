@@ -2,6 +2,7 @@ import json
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from urllib.parse import quote
 from unittest.mock import patch
@@ -9,6 +10,15 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import web_workbench
+
+
+WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+
+
+def write_test_docx(path, document_xml):
+    with zipfile.ZipFile(path, "w") as package:
+        package.writestr("[Content_Types].xml", "")
+        package.writestr("word/document.xml", document_xml)
 
 
 class WebWorkbenchTest(unittest.TestCase):
@@ -328,6 +338,43 @@ class WebWorkbenchTest(unittest.TestCase):
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 400)
         self.assertIn("outside approved output directory", payload["message"])
+
+    def test_handle_inspect_template_returns_slots_and_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            template = Path(tmp) / "template.docx"
+            write_test_docx(
+                template,
+                (
+                    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                    f'<w:document xmlns:w="{WORD_NS}">'
+                    "<w:body>"
+                    "<w:tbl>"
+                    "<w:tr>"
+                    "<w:tc><w:p><w:r><w:t>主要困扰</w:t></w:r></w:p></w:tc>"
+                    "<w:tc><w:p><w:r><w:t>____</w:t></w:r></w:p></w:tc>"
+                    "</w:tr>"
+                    "<w:tr>"
+                    "<w:tc><w:p><w:r><w:t>已有理解</w:t></w:r></w:p></w:tc>"
+                    "<w:tc><w:p><w:r><w:t>原有内容</w:t></w:r></w:p></w:tc>"
+                    "</w:tr>"
+                    "</w:tbl>"
+                    "<w:sectPr/>"
+                    "</w:body>"
+                    "</w:document>"
+                ),
+            )
+
+            status, _headers, body = web_workbench.handle_inspect_template(
+                {"template_path": str(template)}
+            )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["summary"]["total_slots"], 2)
+        self.assertEqual(payload["summary"]["fillable_slots"], 1)
+        self.assertEqual(payload["summary"]["prefilled_slots"], 1)
+        self.assertEqual(payload["slots"][0]["label"], "主要困扰")
 
 
 if __name__ == "__main__":

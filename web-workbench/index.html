@@ -81,8 +81,13 @@
           </select>
         </label>
         <p class="hint">默认使用下方“咨询师材料”作为模板填充原始材料；可以先不运行 W1/W2/W3。</p>
+        <button id="inspectTemplateButton" class="secondary-button" type="button">扫描模板栏目</button>
         <button id="draftTemplateButton" class="primary-button" type="button">智能整理并填充模板</button>
         <button id="fillTemplateButton" class="secondary-button" type="button" disabled>用结构化 JSON 填充</button>
+        <div id="templateSummary" class="summary-box">
+          <strong>模板识别</strong>
+          <span>尚未扫描模板。</span>
+        </div>
         <div class="path-list" aria-label="模板输出路径">
           <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
           <p><strong>草稿 JSON</strong><span id="templateDraftPath">无</span></p>

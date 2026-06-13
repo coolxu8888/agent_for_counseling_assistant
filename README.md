@@ -288,8 +288,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps
 2. Open `http://127.0.0.1:8765/`.
 3. Paste counselor raw material into `咨询师材料`.
 4. Enter the local `.docx` template path in `智能模板填充`.
-5. Choose language style and existing-content policy.
-6. Click `智能整理并填充模板`.
+5. Click `扫描模板栏目` to preview detected fillable and prefilled fields.
+6. Choose language style and existing-content policy.
+7. Click `智能整理并填充模板`.
 
 This path creates:
 

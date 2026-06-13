@@ -291,6 +291,28 @@ button {
   line-height: 1.45;
 }
 
+.summary-box {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.summary-box strong {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.summary-box span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .path-list {
   display: grid;
   gap: 8px;

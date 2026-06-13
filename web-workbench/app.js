@@ -2,6 +2,7 @@ const state = {
   workflow: "W1",
   runDir: null,
   structuredOutput: null,
+  templateSlots: [],
 };
 
 const $ = (id) => document.getElementById(id);
@@ -85,6 +86,63 @@ function updateTemplateAvailability() {
   $("fillTemplateButton").disabled = !canFillFromStructured();
 }
 
+function formatTemplateSummary(data) {
+  const summary = data.summary || {};
+  const slots = data.slots || [];
+  const typeText = Object.entries(summary.slot_types || {})
+    .map(([type, count]) => `${type}: ${count}`)
+    .join("；") || "无";
+  const preview = slots
+    .slice(0, 30)
+    .map((slot, index) => {
+      const current = slot.current_text && slot.current_text !== slot.label ? `｜当前：${slot.current_text}` : "";
+      return `${index + 1}. ${slot.label || "未命名栏目"}（${slot.slot_type}）${current}`;
+    })
+    .join("\n");
+  const more = slots.length > 30 ? `\n... 还有 ${slots.length - 30} 个栏目未显示` : "";
+  return [
+    `识别栏目：${summary.total_slots || 0} 个`,
+    `可填空位：${summary.fillable_slots || 0} 个`,
+    `已有内容：${summary.prefilled_slots || 0} 个`,
+    `栏目类型：${typeText}`,
+    "",
+    preview || "没有识别到可填栏目。模板可能不是普通表格/冒号占位格式，或内容在文本框、图片、复杂控件中。",
+    more,
+  ].join("\n");
+}
+
+function formatReportSummary(report) {
+  if (!report || typeof report !== "object") {
+    return pretty(report);
+  }
+  const filled = report.filled_fields || [];
+  const drafted = report.drafted_fields || [];
+  const kept = report.kept_fields || [];
+  const skipped = report.skipped_fields || [];
+  const unfilled = report.unfilled_fields || [];
+  const issues = report.issues || [];
+  const lines = [
+    `状态：${report.status || "未知"}`,
+    `已填字段：${filled.length}`,
+    `模型草稿写入：${drafted.length}`,
+    `保留原内容：${kept.length}`,
+    `跳过字段：${skipped.length}`,
+    `未填字段：${unfilled.length}`,
+    `警告/问题：${issues.length}`,
+  ];
+  const important = [...unfilled, ...skipped, ...issues].slice(0, 12);
+  if (important.length) {
+    lines.push("", "需要查看的项目：");
+    important.forEach((item, index) => {
+      const label = item.template_label || item.location || item.slot_id || "未命名";
+      const reason = item.reason || item.message || "未说明";
+      lines.push(`${index + 1}. ${label}：${reason}`);
+    });
+  }
+  lines.push("", "完整报告：", pretty(report));
+  return lines.join("\n");
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -116,7 +174,7 @@ function updateTemplateResult(data) {
   setPathDisplay("filledTemplatePath", data.output_path, true);
   setPathDisplay("templateDraftPath", data.draft_path, true);
   setPathDisplay("templateReportPath", data.report_path, true);
-  $("templateReport").textContent = pretty(data.report);
+  $("templateReport").textContent = formatReportSummary(data.report);
   updateTemplateAvailability();
 }
 
@@ -194,6 +252,38 @@ async function draftTemplate() {
   }
 }
 
+async function inspectTemplate() {
+  const templatePath = $("templatePath").value.trim();
+  if (!templatePath) {
+    $("templateSummary").innerHTML = "<strong>模板识别</strong><span>请输入 Word 模板路径。</span>";
+    return;
+  }
+
+  $("inspectTemplateButton").disabled = true;
+  $("templateSummary").innerHTML = "<strong>模板识别</strong><span>正在扫描模板栏目...</span>";
+
+  try {
+    const data = await postJson("/api/inspect-template", templatePayloadBase());
+    state.templateSlots = data.slots || [];
+    $("templateSummary").innerHTML = "";
+    const title = document.createElement("strong");
+    title.textContent = "模板识别";
+    const body = document.createElement("span");
+    body.textContent = formatTemplateSummary(data);
+    $("templateSummary").append(title, body);
+  } catch (error) {
+    state.templateSlots = [];
+    $("templateSummary").innerHTML = "";
+    const title = document.createElement("strong");
+    title.textContent = "模板识别失败";
+    const body = document.createElement("span");
+    body.textContent = error.message;
+    $("templateSummary").append(title, body);
+  } finally {
+    $("inspectTemplateButton").disabled = false;
+  }
+}
+
 async function fillTemplateFromStructured() {
   const templatePath = $("templatePath").value.trim();
   if (!canFillFromStructured()) {
@@ -233,6 +323,7 @@ document.querySelectorAll(".tab").forEach((button) => {
 });
 
 $("runButton").addEventListener("click", runAgent);
+$("inspectTemplateButton").addEventListener("click", inspectTemplate);
 $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 updateTemplateAvailability();
