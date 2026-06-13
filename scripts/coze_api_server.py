@@ -209,6 +209,30 @@ def is_authorized(handler):
     return header_value == f"Bearer {expected}" or api_key_value == expected
 
 
+def service_info(base_url="https://your-domain.example"):
+    return {
+        "service": "Counselor Assistant Coze Demo API",
+        "status": "ok",
+        "description": "API wrapper for counselor assistant workflows and Word template drafting.",
+        "openapi": f"{base_url.rstrip('/')}/openapi.json",
+        "health": f"{base_url.rstrip('/')}/health",
+        "tools": [
+            {
+                "name": "run_workflow",
+                "method": "POST",
+                "url": f"{base_url.rstrip('/')}/coze/run_workflow",
+                "description": "Run W1/W2/W3 counselor assistant workflows from raw counselor material.",
+            },
+            {
+                "name": "draft_template",
+                "method": "POST",
+                "url": f"{base_url.rstrip('/')}/coze/draft_template",
+                "description": "Draft and fill a Word template from raw counselor material.",
+            },
+        ],
+    }
+
+
 def openapi_spec(base_url="https://your-domain.example"):
     api_base_url = f"{base_url.rstrip('/')}/coze"
     artifact_schema = {
@@ -365,6 +389,10 @@ def openapi_spec(base_url="https://your-domain.example"):
 class CozeApiHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == "/":
+            base_url = request_base_url(self) or "https://your-domain.example"
+            send_response_tuple(self, json_response(service_info(base_url=base_url)))
+            return
         if path == "/health":
             send_response_tuple(self, json_response({"status": "ok"}))
             return

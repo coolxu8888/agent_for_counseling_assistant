@@ -44,6 +44,20 @@ class CozeApiServerTest(unittest.TestCase):
             self.assertIn("artifacts", schema["properties"])
             self.assertEqual(schema["properties"]["artifacts"]["type"], "array")
 
+    def test_service_info_exposes_openapi_and_tool_urls(self):
+        info = coze_api_server.service_info("https://example.test")
+
+        self.assertEqual(info["status"], "ok")
+        self.assertEqual(info["openapi"], "https://example.test/openapi.json")
+        self.assertEqual(
+            info["tools"][0]["url"],
+            "https://example.test/coze/run_workflow",
+        )
+        self.assertEqual(
+            info["tools"][1]["url"],
+            "https://example.test/coze/draft_template",
+        )
+
     def test_artifact_url_uses_request_host(self):
         handler = FakeHandler({"Host": "demo.local", "X-Forwarded-Proto": "https"})
 
