@@ -20,6 +20,8 @@ Coze cannot call `127.0.0.1`, so the API needs a public or intranet HTTPS URL.
 - `requirements.txt`: Python dependency list.
 - `runtime.txt`: Python runtime pin.
 - `docs/coze-openapi.json`: static OpenAPI draft.
+- `docs/coze-openapi.coze-min.json`: compact OpenAPI schema for Coze import troubleshooting.
+- `docs/coze-openapi.swagger2.json`: Swagger 2.0 fallback for Coze importers that reject OpenAPI 3 URL prefixes.
 
 ## Required Environment Variables
 
@@ -76,6 +78,17 @@ X-API-Key: <COZE_DEMO_API_KEY>
 
 - `run_workflow`
 - `draft_template`
+
+If Coze imports tools such as `get_list` or `retrieve` with knowledge-base
+connector parameters, the wrong connector/plugin type was imported. Re-import
+the deployed `/openapi.json` URL or paste `docs/coze-openapi.coze-min.json` as
+raw OpenAPI data. The expected tool names are only `run_workflow` and
+`draft_template`.
+
+If Coze reports `Inconsistent API URL prefix`, upload
+`docs/coze-openapi.swagger2.json` instead. The Swagger 2.0 schema uses
+`host=counselor-agent-coze-api.onrender.com`, `basePath=/coze`, and relative
+paths `/run_workflow` and `/draft_template`, which keeps the API prefix explicit.
 
 ## Demo Notes
 

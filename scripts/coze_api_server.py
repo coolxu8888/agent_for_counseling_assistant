@@ -210,6 +210,38 @@ def is_authorized(handler):
 
 
 def openapi_spec(base_url="https://your-domain.example"):
+    api_base_url = f"{base_url.rstrip('/')}/coze"
+    artifact_schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "type": {"type": "string"},
+            "path": {"type": "string"},
+            "url": {"type": "string"},
+        },
+    }
+    workflow_response_schema = {
+        "type": "object",
+        "properties": {
+            "status": {"type": "string"},
+            "answer": {"type": "string"},
+            "workflow": {"type": "string"},
+            "run_dir": {"type": "string"},
+            "artifacts": {"type": "array", "items": artifact_schema},
+            "structured_output": {"type": "object"},
+            "checks": {"type": "object"},
+        },
+    }
+    template_response_schema = {
+        "type": "object",
+        "properties": {
+            "status": {"type": "string"},
+            "answer": {"type": "string"},
+            "run_dir": {"type": "string"},
+            "artifacts": {"type": "array", "items": artifact_schema},
+            "report": {"type": "object"},
+        },
+    }
     return {
         "openapi": "3.0.3",
         "info": {
@@ -217,9 +249,9 @@ def openapi_spec(base_url="https://your-domain.example"):
             "version": "0.1.0",
             "description": "Coze-facing demo wrapper for counselor assistant workflows.",
         },
-        "servers": [{"url": base_url}],
+        "servers": [{"url": api_base_url}],
         "paths": {
-            "/coze/run_workflow": {
+            "/run_workflow": {
                 "post": {
                     "summary": "Run a counselor assistant workflow",
                     "operationId": "run_workflow",
@@ -253,10 +285,15 @@ def openapi_spec(base_url="https://your-domain.example"):
                             }
                         },
                     },
-                    "responses": {"200": {"description": "Workflow result"}},
+                    "responses": {
+                        "200": {
+                            "description": "Workflow result",
+                            "content": {"application/json": {"schema": workflow_response_schema}},
+                        }
+                    },
                 }
             },
-            "/coze/draft_template": {
+            "/draft_template": {
                 "post": {
                     "summary": "Draft and fill a Word template from raw counselor material",
                     "operationId": "draft_template",
@@ -304,7 +341,12 @@ def openapi_spec(base_url="https://your-domain.example"):
                             }
                         },
                     },
-                    "responses": {"200": {"description": "Template fill result"}},
+                    "responses": {
+                        "200": {
+                            "description": "Template fill result",
+                            "content": {"application/json": {"schema": template_response_schema}},
+                        }
+                    },
                 }
             },
         },

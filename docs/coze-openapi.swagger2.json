@@ -1,0 +1,237 @@
+{
+  "basePath": "/coze",
+  "consumes": [
+    "application/json"
+  ],
+  "host": "counselor-agent-coze-api.onrender.com",
+  "info": {
+    "description": "Tools for counselor assistant workflow generation and template drafting.",
+    "title": "Counselor Assistant Coze Demo API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/draft_template": {
+      "post": {
+        "operationId": "draft_template",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "properties": {
+                "custom_style": {
+                  "type": "string"
+                },
+                "existing_content_policy": {
+                  "default": "merge",
+                  "enum": [
+                    "merge",
+                    "ask",
+                    "replace",
+                    "blank_only"
+                  ],
+                  "type": "string"
+                },
+                "raw_input": {
+                  "type": "string"
+                },
+                "style": {
+                  "default": "professional_concise",
+                  "enum": [
+                    "professional_concise",
+                    "warm_clinical",
+                    "institutional_record",
+                    "supervision_summary",
+                    "custom"
+                  ],
+                  "type": "string"
+                },
+                "template_base64": {
+                  "type": "string"
+                },
+                "template_filename": {
+                  "type": "string"
+                },
+                "template_path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "raw_input"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template fill result",
+            "schema": {
+              "properties": {
+                "answer": {
+                  "type": "string"
+                },
+                "artifacts": {
+                  "items": {
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "report": {
+                  "type": "object"
+                },
+                "run_dir": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Draft and fill a Word template from raw counselor material"
+      }
+    },
+    "/run_workflow": {
+      "post": {
+        "operationId": "run_workflow",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "properties": {
+                "custom_output_style": {
+                  "type": "string"
+                },
+                "input": {
+                  "type": "string"
+                },
+                "output_style": {
+                  "default": "professional_concise",
+                  "enum": [
+                    "default",
+                    "professional_concise",
+                    "warm_clinical",
+                    "institutional_record",
+                    "supervision_summary",
+                    "custom"
+                  ],
+                  "type": "string"
+                },
+                "render_docx": {
+                  "default": true,
+                  "type": "boolean"
+                },
+                "workflow": {
+                  "default": "W3",
+                  "enum": [
+                    "W1",
+                    "W2",
+                    "W3"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "input"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workflow result",
+            "schema": {
+              "properties": {
+                "answer": {
+                  "type": "string"
+                },
+                "artifacts": {
+                  "items": {
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "checks": {
+                  "type": "object"
+                },
+                "run_dir": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "structured_output": {
+                  "type": "object"
+                },
+                "workflow": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "summary": "Run a counselor assistant workflow"
+      }
+    }
+  },
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "https"
+  ],
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "in": "header",
+      "name": "X-API-Key",
+      "type": "apiKey"
+    }
+  },
+  "swagger": "2.0"
+}

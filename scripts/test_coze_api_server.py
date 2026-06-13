@@ -21,17 +21,28 @@ class CozeApiServerTest(unittest.TestCase):
     def test_openapi_spec_contains_two_tool_operations(self):
         spec = coze_api_server.openapi_spec("https://example.test")
 
-        self.assertEqual(spec["servers"][0]["url"], "https://example.test")
-        self.assertIn("/coze/run_workflow", spec["paths"])
-        self.assertIn("/coze/draft_template", spec["paths"])
+        self.assertEqual(spec["servers"][0]["url"], "https://example.test/coze")
+        self.assertIn("/run_workflow", spec["paths"])
+        self.assertIn("/draft_template", spec["paths"])
         self.assertEqual(
-            spec["paths"]["/coze/run_workflow"]["post"]["operationId"],
+            spec["paths"]["/run_workflow"]["post"]["operationId"],
             "run_workflow",
         )
         self.assertEqual(
-            spec["paths"]["/coze/draft_template"]["post"]["operationId"],
+            spec["paths"]["/draft_template"]["post"]["operationId"],
             "draft_template",
         )
+
+    def test_openapi_tool_responses_define_json_object_schema(self):
+        spec = coze_api_server.openapi_spec("https://example.test")
+
+        for path in ["/run_workflow", "/draft_template"]:
+            schema = spec["paths"][path]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+
+            self.assertEqual(schema["type"], "object")
+            self.assertIn("answer", schema["properties"])
+            self.assertIn("artifacts", schema["properties"])
+            self.assertEqual(schema["properties"]["artifacts"]["type"], "array")
 
     def test_artifact_url_uses_request_host(self):
         handler = FakeHandler({"Host": "demo.local", "X-Forwarded-Proto": "https"})
@@ -191,7 +202,7 @@ class CozeApiServerTest(unittest.TestCase):
             written = coze_api_server.write_openapi(target, base_url="https://example.test")
 
             data = json.loads(written.read_text(encoding="utf-8"))
-        self.assertEqual(data["servers"][0]["url"], "https://example.test")
+        self.assertEqual(data["servers"][0]["url"], "https://example.test/coze")
 
 
 if __name__ == "__main__":
