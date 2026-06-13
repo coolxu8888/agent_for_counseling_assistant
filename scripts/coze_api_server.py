@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import base64
 import binascii
 import json
@@ -110,9 +110,9 @@ def build_draft_template_response(handler, backend_payload):
     kept_count = len(report.get("kept_fields", []))
     skipped_count = len(report.get("skipped_fields", []))
     issue_count = len(report.get("issues", []))
-    answer = (
-        f"模板填充已完成：填充 {filled_count} 项，保留 {kept_count} 项，"
-        f"跳过 {skipped_count} 项，提示 {issue_count} 条。请下载 Word 并查看填充报告。"
+    answer = backend_payload.get("answer") or (
+        "Template draft completed: "
+        f"filled {filled_count}, kept {kept_count}, skipped {skipped_count}, issues {issue_count}."
     )
     return {
         "status": backend_payload.get("status", "success"),
@@ -121,7 +121,6 @@ def build_draft_template_response(handler, backend_payload):
         "artifacts": artifacts,
         "report": report,
     }
-
 
 def handle_coze_run_workflow(payload, handler):
     backend_response = handle_api_run(
@@ -144,6 +143,7 @@ def handle_coze_run_workflow(payload, handler):
 def handle_coze_draft_template(payload, handler):
     template_path = payload.get("template_path", "")
     run_dir = payload.get("run_dir")
+    raw_input = payload.get("raw_input") or payload.get("input") or ""
     if payload.get("template_base64"):
         try:
             uploaded_template, run_dir = save_template_base64(
@@ -155,10 +155,40 @@ def handle_coze_draft_template(payload, handler):
         except ValueError as exc:
             return error_response(400, str(exc))
 
+    if not template_path:
+        backend_response = handle_api_run(
+            {
+                "workflow": "W3",
+                "input": raw_input,
+                "structured": True,
+                "render_docx": False,
+                "dry_run": payload.get("dry_run", False),
+                "output_style": payload.get("style", payload.get("output_style", "professional_concise")),
+                "custom_output_style": payload.get("custom_style", payload.get("custom_output_style", "")),
+            }
+        )
+        status, backend_payload = response_payload(backend_response)
+        if status >= 400:
+            return json_response(backend_payload, status=status)
+        answer = backend_payload.get("clean_output") or backend_payload.get("raw_output") or ""
+        return json_response(
+            {
+                "status": backend_payload.get("status", "success"),
+                "answer": answer,
+                "run_dir": backend_payload.get("run_dir"),
+                "artifacts": [],
+                "report": {
+                    "mode": "draft_without_template",
+                    "message": "No Word template was provided, so a text draft was generated from raw_input.",
+                    "issues": backend_payload.get("issues", []),
+                },
+            }
+        )
+
     backend_response = handle_draft_template(
         {
             "template_path": template_path,
-            "raw_input": payload.get("raw_input") or payload.get("input") or "",
+            "raw_input": raw_input,
             "style": payload.get("style", payload.get("output_style", "professional_concise")),
             "custom_style": payload.get("custom_style", payload.get("custom_output_style", "")),
             "existing_content_policy": payload.get("existing_content_policy", "merge"),
@@ -169,7 +199,6 @@ def handle_coze_draft_template(payload, handler):
     if status >= 400:
         return json_response(backend_payload, status=status)
     return json_response(build_draft_template_response(handler, backend_payload))
-
 
 def safe_template_filename(filename):
     name = Path(str(filename or "template.docx")).name
@@ -464,3 +493,4 @@ def main(argv=None):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

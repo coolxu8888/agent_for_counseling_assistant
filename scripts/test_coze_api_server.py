@@ -1,4 +1,4 @@
-import json
+﻿import json
 import os
 import sys
 import tempfile
@@ -103,7 +103,7 @@ class CozeApiServerTest(unittest.TestCase):
 
         result = coze_api_server.build_draft_template_response(handler, payload)
 
-        self.assertIn("填充 1 项", result["answer"])
+        self.assertIn("filled 1", result["answer"])
         self.assertEqual(len(result["artifacts"]), 3)
         self.assertEqual(result["artifacts"][0]["kind"], "docx")
 
@@ -151,6 +151,30 @@ class CozeApiServerTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["status"], "success")
         self.assertEqual(len(result["artifacts"]), 3)
+
+    def test_handle_coze_draft_template_without_template_returns_text_draft(self):
+        handler = FakeHandler()
+        backend_payload = {
+            "status": "success",
+            "workflow": "W3",
+            "run_dir": r"C:\runs\no-template",
+            "clean_output": "draft text",
+            "structured_output": {"workflow": "W3"},
+            "issues": [],
+        }
+
+        with patch.object(coze_api_server, "handle_api_run", return_value=coze_api_server.json_response(backend_payload)) as fake:
+            status, _headers, body = coze_api_server.handle_coze_draft_template(
+                {"raw_input": "材料", "style": "professional_concise"},
+                handler,
+            )
+
+        result = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(result["answer"], "draft text")
+        self.assertEqual(result["report"]["mode"], "draft_without_template")
+        self.assertEqual(fake.call_args.args[0]["workflow"], "W3")
+        self.assertFalse(fake.call_args.args[0]["render_docx"])
 
     def test_save_template_base64_writes_uploaded_template_inside_run_root(self):
         with tempfile.TemporaryDirectory() as tmp:
