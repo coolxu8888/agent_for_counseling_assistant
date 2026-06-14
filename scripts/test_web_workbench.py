@@ -116,6 +116,29 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("Input is required", json.loads(body.decode("utf-8"))["message"])
 
+    def test_detect_workflow_routes_intake_session_and_case_summary(self):
+        self.assertEqual(web_workbench.detect_workflow("请生成初访信息收集表"), "W1")
+        self.assertEqual(web_workbench.detect_workflow("本次咨询记录和下次咨询重点"), "W3")
+        self.assertEqual(web_workbench.detect_workflow("请按BPS整理个案背景"), "W2")
+
+    def test_handle_run_auto_detects_workflow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("clean answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status": "success"}', encoding="utf-8")
+
+            fake_result = web_workbench.AgentRunResult("W3", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result) as fake_run:
+                status, _headers, body = web_workbench.handle_api_run(
+                    {"workflow": "AUTO", "input": "本次咨询记录：来访者情绪低落。"}
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["detected_workflow"], "W3")
+        self.assertEqual(fake_run.call_args.args[0], "W3")
+
     def test_handle_login_sets_session_cookie(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")

@@ -30,6 +30,7 @@ RUN_ROOT = ROOT / "agent-runs"
 DATA_ROOT = ROOT / "workbench-data"
 UPLOAD_ROOT = DATA_ROOT / "uploads"
 DB_PATH = DATA_ROOT / "workbench.sqlite3"
+ICON_PATH = ROOT / "Gemini_Generated_Image_agent图标.png"
 SESSION_COOKIE = "workbench_session"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
 
@@ -41,6 +42,19 @@ AGENT_STYLE_INSTRUCTIONS = {
     "supervision_summary": "请使用适合督导讨论的语言输出，突出事实、假设、风险边界和后续工作重点。",
     "custom": "",
 }
+
+
+def detect_workflow(user_input):
+    text = str(user_input or "").lower()
+    if any(keyword in text for keyword in ["soap", "dap", "birp", "session", "本次咨询", "下次咨询", "咨询记录", "风险变化"]):
+        return "W3"
+    if any(keyword in text for keyword in ["个案概念化", "个案信息", "个案背景", "bps", "biopsychosocial", "督导", "去识别"]):
+        return "W2"
+    if any(keyword in text for keyword in ["初访", "初始访谈", "信息收集", "访谈表", "收集表", "来访信息"]):
+        return "W1"
+    if any(keyword in text for keyword in ["记录", "总结", "干预", "来访者反应", "下次"]):
+        return "W3"
+    return "W2"
 
 
 def json_response(payload, status=200):
@@ -205,10 +219,11 @@ def load_run_payload(result):
 
 
 def handle_api_run(payload):
-    workflow = payload.get("workflow", "W1")
+    requested_workflow = str(payload.get("workflow") or "AUTO")
     user_input = payload.get("input", "")
     if not str(user_input).strip():
         return error_response(400, "Input is required.")
+    workflow = detect_workflow(user_input) if requested_workflow == "AUTO" else requested_workflow
     user_input = apply_output_style(
         str(user_input),
         style=str(payload.get("output_style") or "default"),
@@ -233,9 +248,16 @@ def handle_api_run(payload):
                 int(payload["user_id"]),
                 int(case_id) if case_id else None,
                 "workflow.run",
-                {"workflow": workflow, "run_dir": path_for_ui(result.run_dir)},
+                {
+                    "workflow": workflow,
+                    "requested_workflow": requested_workflow,
+                    "run_dir": path_for_ui(result.run_dir),
+                },
             )
-        return json_response(load_run_payload(result))
+        response_payload = load_run_payload(result)
+        response_payload["detected_workflow"] = workflow
+        response_payload["requested_workflow"] = requested_workflow
+        return json_response(response_payload)
     except AgentInputError as exc:
         return error_response(400, str(exc))
     except Exception as exc:
@@ -478,6 +500,8 @@ def handle_audit_logs(user):
 
 def resolve_static_path(request_path, web_root=WEB_ROOT):
     parsed_path = unquote(urlparse(request_path).path)
+    if parsed_path == "/agent-icon.png" and ICON_PATH.exists():
+        return ICON_PATH
     if parsed_path == "/":
         parsed_path = "/index.html"
 

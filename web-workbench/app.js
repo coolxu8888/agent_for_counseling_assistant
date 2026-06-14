@@ -1,5 +1,5 @@
 const state = {
-  workflow: "W1",
+  workflow: "AUTO",
   runDir: null,
   structuredOutput: null,
   templateSlots: [],
@@ -187,9 +187,19 @@ function updateRunResult(data) {
     docx: data.docx,
     issues: data.issues,
   });
+  $("intentDisplay").textContent = workflowLabel(data.detected_workflow || data.workflow || "AUTO");
   setPathDisplay("runDir", data.run_dir, false);
   setPathDisplay("docxPath", data.docx && data.docx.path ? data.docx.path : null, true);
   updateTemplateAvailability();
+}
+
+function workflowLabel(workflow) {
+  return {
+    AUTO: "自动判断",
+    W1: "初访信息",
+    W2: "个案整理",
+    W3: "咨询记录",
+  }[workflow] || workflow;
 }
 
 function showRunError(message) {
@@ -205,7 +215,8 @@ function updateTemplateResult(data) {
   setPathDisplay("filledTemplatePath", data.output_path, true);
   setPathDisplay("templateDraftPath", data.draft_path, true);
   setPathDisplay("templateReportPath", data.report_path, true);
-  $("templateReport").textContent = formatReportSummary(data.report);
+  $("templatePane").textContent = formatReportSummary(data.report);
+  setPane("template");
   updateTemplateAvailability();
 }
 
@@ -254,17 +265,20 @@ async function draftTemplate() {
   const templatePath = $("templatePath").value.trim();
   const rawInput = $("inputText").value.trim();
   if (!templatePath) {
-    $("templateReport").textContent = "请输入 Word 模板路径。";
+    $("templatePane").textContent = "请输入 Word 模板路径。";
+    setPane("template");
     return;
   }
   if (!rawInput) {
-    $("templateReport").textContent = "请输入咨询师材料。智能填充需要 raw data。";
+    $("templatePane").textContent = "请输入咨询师材料。智能填充需要 raw data。";
+    setPane("template");
     return;
   }
 
   $("draftTemplateButton").disabled = true;
   $("fillTemplateButton").disabled = true;
-  $("templateReport").textContent = "正在理解模板并整理填充内容...";
+  $("templatePane").textContent = "正在理解模板并整理填充内容...";
+  setPane("template");
 
   try {
     const data = await postJson("/api/draft-template", {
@@ -278,7 +292,8 @@ async function draftTemplate() {
     });
     updateTemplateResult(data);
   } catch (error) {
-    $("templateReport").textContent = error.message;
+    $("templatePane").textContent = error.message;
+    setPane("template");
   } finally {
     $("draftTemplateButton").disabled = false;
     updateTemplateAvailability();
@@ -289,11 +304,15 @@ async function inspectTemplate() {
   const templatePath = $("templatePath").value.trim();
   if (!templatePath) {
     $("templateSummary").innerHTML = "<strong>模板识别</strong><span>请输入 Word 模板路径。</span>";
+    $("templatePane").textContent = "请输入 Word 模板路径。";
+    setPane("template");
     return;
   }
 
   $("inspectTemplateButton").disabled = true;
   $("templateSummary").innerHTML = "<strong>模板识别</strong><span>正在扫描模板栏目...</span>";
+  $("templatePane").textContent = "正在扫描模板栏目...";
+  setPane("template");
 
   try {
     const data = await postJson("/api/inspect-template", templatePayloadBase());
@@ -304,6 +323,7 @@ async function inspectTemplate() {
     const body = document.createElement("span");
     body.textContent = formatTemplateSummary(data);
     $("templateSummary").append(title, body);
+    $("templatePane").textContent = formatTemplateSummary(data);
   } catch (error) {
     state.templateSlots = [];
     $("templateSummary").innerHTML = "";
@@ -312,6 +332,7 @@ async function inspectTemplate() {
     const body = document.createElement("span");
     body.textContent = error.message;
     $("templateSummary").append(title, body);
+    $("templatePane").textContent = error.message;
   } finally {
     $("inspectTemplateButton").disabled = false;
   }
@@ -320,16 +341,19 @@ async function inspectTemplate() {
 async function fillTemplateFromStructured() {
   const templatePath = $("templatePath").value.trim();
   if (!canFillFromStructured()) {
-    $("templateReport").textContent = "需要先运行并获得结构化 JSON，或者使用上方智能模板填充。";
+    $("templatePane").textContent = "需要先运行并获得结构化 JSON，或者使用上方智能模板填充。";
+    setPane("template");
     return;
   }
   if (!templatePath) {
-    $("templateReport").textContent = "请输入 Word 模板路径。";
+    $("templatePane").textContent = "请输入 Word 模板路径。";
+    setPane("template");
     return;
   }
 
   $("fillTemplateButton").disabled = true;
-  $("templateReport").textContent = "正在用结构化 JSON 填充模板...";
+  $("templatePane").textContent = "正在用结构化 JSON 填充模板...";
+  setPane("template");
 
   try {
     const data = await postJson("/api/fill-template", {
@@ -338,7 +362,8 @@ async function fillTemplateFromStructured() {
     });
     updateTemplateResult(data);
   } catch (error) {
-    $("templateReport").textContent = error.message;
+    $("templatePane").textContent = error.message;
+    setPane("template");
   } finally {
     updateTemplateAvailability();
   }
@@ -445,7 +470,8 @@ async function uploadTemplate() {
     return;
   }
   setPathDisplay("uploadedTemplatePath", null);
-  $("templateReport").textContent = "正在上传模板...";
+  $("templatePane").textContent = "正在上传模板...";
+  setPane("template");
   try {
     const contentBase64 = await fileToBase64(file);
     const data = await postJson("/api/upload", {
@@ -456,21 +482,19 @@ async function uploadTemplate() {
     });
     $("templatePath").value = data.upload.stored_path;
     setPathDisplay("uploadedTemplatePath", data.upload.stored_path, false);
-    $("templateReport").textContent = "模板已上传，可以扫描栏目或智能填充。";
+    $("templatePane").textContent = "模板已上传，可以扫描栏目或智能填充。";
   } catch (error) {
-    $("templateReport").textContent = error.message;
+    $("templatePane").textContent = error.message;
   }
 }
 
-document.querySelectorAll(".workflow").forEach((button) => {
-  button.addEventListener("click", () => {
-    state.workflow = button.dataset.workflow;
-    document.querySelectorAll(".workflow").forEach((item) => item.classList.toggle("active", item === button));
-  });
-});
-
 document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => setPane(button.dataset.tab));
+});
+
+document.addEventListener("pointermove", (event) => {
+  document.documentElement.style.setProperty("--mouse-x", `${event.clientX}px`);
+  document.documentElement.style.setProperty("--mouse-y", `${event.clientY}px`);
 });
 
 $("runButton").addEventListener("click", runAgent);

@@ -3,157 +3,100 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>咨询师助理工作台</title>
+    <title>咨询师助理</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="rippleField" class="ripple-field" aria-hidden="true"></div>
+
     <section id="loginOverlay" class="login-overlay" aria-label="登录">
-      <form id="loginForm" class="login-panel">
+      <form id="loginForm" class="login-drop">
+        <div class="drop-mark">
+          <img src="/agent-icon.png" alt="" />
+        </div>
         <h1>咨询师助理</h1>
-        <p>登录后使用本地工作台。默认本地账号可通过环境变量 WORKBENCH_USER / WORKBENCH_PASSWORD 修改。</p>
+        <p>把材料交给我，我会自动判断是初访、个案整理、咨询记录，或是模板填充。</p>
         <label>
-          账号
+          <span>账号</span>
           <input id="loginUsername" type="text" autocomplete="username" value="demo" />
         </label>
         <label>
-          密码
+          <span>密码</span>
           <input id="loginPassword" type="password" autocomplete="current-password" value="demo123" />
         </label>
-        <button class="primary-button" type="submit">登录</button>
+        <button class="liquid-button primary-button" type="submit">进入</button>
         <span id="loginMessage" class="login-message"></span>
       </form>
     </section>
-    <main class="workbench">
-      <aside class="workflow-rail" aria-label="工作流导航">
-        <header class="brand">
+
+    <main class="liquid-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img src="/agent-icon.png" alt="" />
           <div>
             <h1>咨询师助理</h1>
-            <p>本地 Web Workbench</p>
+            <p id="ambientCaption">自动识别意图，生成记录、表单和模板文档。</p>
           </div>
-          <span id="runStatus" class="status idle">未运行</span>
-        </header>
-        <div class="privacy-notice">
-          <strong>隐私提示</strong>
-          <span>请优先使用个案编号，避免在测试材料中输入可识别身份信息。所有运行、上传和个案操作会写入本地审计日志。</span>
         </div>
-
-        <section class="case-panel" aria-label="个案管理">
-          <div class="case-heading">
-            <strong>个案</strong>
-            <button id="logoutButton" class="icon-button" type="button" title="退出登录">退出</button>
-          </div>
-          <label class="field">
-            <span>当前个案</span>
-            <select id="caseSelect">
-              <option value="">未选择个案</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>新建个案标题</span>
-            <input id="caseTitleInput" type="text" placeholder="如：初访-匿名编号A001" />
-          </label>
-          <label class="field">
-            <span>来访者编号</span>
-            <input id="clientCodeInput" type="text" placeholder="建议使用去识别编号" />
-          </label>
-          <button id="createCaseButton" class="secondary-button" type="button">新建个案</button>
-        </section>
-
-        <button class="workflow active" type="button" data-workflow="W1">
-          <strong>W1 初访信息收集</strong>
-          <span>生成初访前提问表；在需求明确时整理已完成初访材料。</span>
-        </button>
-        <button class="workflow" type="button" data-workflow="W2">
-          <strong>W2 个案信息整理</strong>
-          <span>按 BPS 框架和风险边界整理背景、问题与支持资源。</span>
-        </button>
-        <button class="workflow" type="button" data-workflow="W3">
-          <strong>W3 Session 记录</strong>
-          <span>整理单次咨询记录，生成结构化摘要和后续关注点。</span>
-        </button>
-      </aside>
-
-      <section class="result-area" aria-label="结果观察区">
-        <div class="tabs" role="tablist" aria-label="结果视图">
-          <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="markdown">
-            模型输出
-          </button>
-          <button class="tab" type="button" role="tab" aria-selected="false" data-tab="json">
-            结构化 JSON
-          </button>
-          <button class="tab" type="button" role="tab" aria-selected="false" data-tab="checks">
-            校验结果
-          </button>
+        <div class="top-actions">
+          <span id="runStatus" class="status idle">静候输入</span>
+          <button id="logoutButton" class="ghost-button" type="button">退出</button>
         </div>
-        <pre id="markdownPane" class="pane active" role="tabpanel">运行后显示模型 Markdown 输出。</pre>
-        <pre id="jsonPane" class="pane" role="tabpanel">运行后显示结构化 JSON。</pre>
-        <pre id="checksPane" class="pane" role="tabpanel">运行后显示结构化校验、安全校验、元数据和问题列表。</pre>
+      </header>
+
+      <section class="notice-stream" aria-label="能力提示">
+        <div class="stream-orbit">
+          <span>初访信息收集</span>
+          <span>个案背景整理</span>
+          <span>BPS 视角</span>
+          <span>Session 记录</span>
+          <span>风险变化单列</span>
+          <span>Word 模板填充</span>
+          <span>去识别摘要</span>
+          <span>下次咨询重点</span>
+        </div>
       </section>
 
-      <aside class="template-panel" aria-label="智能模板填充">
-        <header class="panel-heading">
-          <h2>智能模板填充</h2>
-          <span>从原始材料理解模板栏目</span>
-        </header>
-        <label class="field">
-          <span>Word 模板路径</span>
-          <input id="templatePath" type="text" placeholder="C:\Users\win\Desktop\template.docx" />
-        </label>
-        <label class="field">
-          <span>上传 Word 模板</span>
-          <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-        </label>
-        <label class="field">
-          <span>语言风格</span>
-          <select id="styleSelect">
-            <option value="professional_concise">专业简洁</option>
-            <option value="warm_clinical">温和临床</option>
-            <option value="institutional_record">机构记录</option>
-            <option value="supervision_summary">督导摘要</option>
-            <option value="custom">自定义</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>自定义风格</span>
-          <input id="customStyle" type="text" placeholder="例如：更口语、更精炼、贴近某机构表述" />
-        </label>
-        <label class="field">
-          <span>已有内容处理</span>
-          <select id="existingPolicy">
-            <option value="merge">保留并续写/润色</option>
-            <option value="ask">不覆盖，列出需确认项</option>
-            <option value="replace">允许重写对应栏目</option>
-            <option value="blank_only">只填空白</option>
-          </select>
-        </label>
-        <p class="hint">默认使用下方“咨询师材料”作为模板填充原始材料；可以先不运行 W1/W2/W3。</p>
-        <button id="inspectTemplateButton" class="secondary-button" type="button">扫描模板栏目</button>
-        <button id="draftTemplateButton" class="primary-button" type="button">智能整理并填充模板</button>
-        <button id="fillTemplateButton" class="secondary-button" type="button" disabled>用结构化 JSON 填充</button>
-        <div id="templateSummary" class="summary-box">
-          <strong>模板识别</strong>
-          <span>尚未扫描模板。</span>
-        </div>
-        <div class="path-list" aria-label="模板输出路径">
-          <p><strong>上传文件</strong><span id="uploadedTemplatePath">无</span></p>
-          <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
-          <p><strong>草稿 JSON</strong><span id="templateDraftPath">无</span></p>
-          <p><strong>填充报告</strong><span id="templateReportPath">无</span></p>
-        </div>
-        <pre id="templateReport" class="report-box">输入模板路径和咨询师材料后，可以直接进行智能模板填充。</pre>
-      </aside>
+      <section class="workspace">
+        <aside class="glass-panel side-panel" aria-label="个案与文档">
+          <section class="soft-section">
+            <div class="section-title">
+              <strong>个案</strong>
+              <span>建议使用去识别编号</span>
+            </div>
+            <label class="field">
+              <span>当前个案</span>
+              <select id="caseSelect">
+                <option value="">未选择个案</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>新建标题</span>
+              <input id="caseTitleInput" type="text" placeholder="初访-A001" />
+            </label>
+            <label class="field">
+              <span>来访编号</span>
+              <input id="clientCodeInput" type="text" placeholder="A001" />
+            </label>
+            <button id="createCaseButton" class="liquid-button secondary-button" type="button">新建个案</button>
+          </section>
 
-      <section class="input-panel" aria-label="输入与运行控制">
-        <label class="input-field">
-          <span>咨询师材料</span>
-          <textarea id="inputText" placeholder="输入咨询师材料、访谈笔记、表单需求或 session 记录"></textarea>
-        </label>
-        <div class="run-side">
-          <div class="controls" aria-label="运行选项">
-            <label>
-              输出风格
-              <select id="outputStyleSelect">
-                <option value="default">默认</option>
+          <section class="soft-section">
+            <div class="section-title">
+              <strong>文档模板</strong>
+              <span>上传后可直接填充</span>
+            </div>
+            <label class="field">
+              <span>上传 Word</span>
+              <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+            </label>
+            <label class="field">
+              <span>模板路径</span>
+              <input id="templatePath" type="text" placeholder="上传后自动填入，也可粘贴本地路径" />
+            </label>
+            <label class="field">
+              <span>语言风格</span>
+              <select id="styleSelect">
                 <option value="professional_concise">专业简洁</option>
                 <option value="warm_clinical">温和临床</option>
                 <option value="institutional_record">机构记录</option>
@@ -161,18 +104,88 @@
                 <option value="custom">自定义</option>
               </select>
             </label>
-            <input id="outputCustomStyle" class="compact-input" type="text" placeholder="自定义输出风格" />
-            <label><input id="structuredToggle" type="checkbox" checked /> 结构化输出</label>
-            <label><input id="docxToggle" type="checkbox" /> 生成固定 Word</label>
-            <label><input id="dryRunToggle" type="checkbox" /> Dry run</label>
-            <button id="runButton" class="primary-button" type="button">运行</button>
+            <input id="customStyle" class="subtle-input" type="text" placeholder="自定义风格" />
+            <label class="field">
+              <span>已有内容</span>
+              <select id="existingPolicy">
+                <option value="merge">保留并续写/润色</option>
+                <option value="ask">不覆盖，列出需确认项</option>
+                <option value="replace">允许重写对应栏目</option>
+                <option value="blank_only">只填空白</option>
+              </select>
+            </label>
+            <div class="button-row">
+              <button id="inspectTemplateButton" class="ghost-button" type="button">扫描</button>
+              <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">填充模板</button>
+            </div>
+            <button id="fillTemplateButton" class="ghost-button wide" type="button" disabled>用结构化结果填充</button>
+          </section>
+        </aside>
+
+        <section class="glass-panel conversation" aria-label="对话与输出">
+          <div class="result-tabs" role="tablist" aria-label="结果视图">
+            <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="markdown">输出</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="json">JSON</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="checks">校验</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="template">模板</button>
           </div>
-          <div class="path-list" aria-label="运行输出路径">
-            <p><strong>Run 目录</strong><span id="runDir">无</span></p>
-            <p><strong>固定 Word</strong><span id="docxPath">无</span></p>
-            <p><strong>审计</strong><span id="auditStatus">登录后记录操作</span></p>
+
+          <div class="panes">
+            <pre id="markdownPane" class="pane active" role="tabpanel">把咨询师材料放到底部输入框，我会自动判断任务类型并生成结果。</pre>
+            <pre id="jsonPane" class="pane" role="tabpanel">结构化 JSON 会显示在这里。</pre>
+            <pre id="checksPane" class="pane" role="tabpanel">校验结果、风险边界和运行元数据会显示在这里。</pre>
+            <pre id="templatePane" class="pane" role="tabpanel">模板扫描和填充报告会显示在这里。</pre>
           </div>
-        </div>
+
+          <div class="composer">
+            <textarea id="inputText" placeholder="粘贴初访需求、个案笔记、session 记录，或告诉我想按模板整理材料"></textarea>
+            <div class="composer-footer">
+              <div class="quiet-controls">
+                <select id="outputStyleSelect" aria-label="输出风格">
+                  <option value="default">默认风格</option>
+                  <option value="professional_concise">专业简洁</option>
+                  <option value="warm_clinical">温和临床</option>
+                  <option value="institutional_record">机构记录</option>
+                  <option value="supervision_summary">督导摘要</option>
+                  <option value="custom">自定义</option>
+                </select>
+                <input id="outputCustomStyle" class="subtle-input" type="text" placeholder="自定义" />
+                <label><input id="structuredToggle" type="checkbox" checked /> 结构化</label>
+                <label><input id="docxToggle" type="checkbox" /> Word</label>
+                <label><input id="dryRunToggle" type="checkbox" /> Dry</label>
+              </div>
+              <button id="runButton" class="send-button" type="button">发送</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="glass-panel trace-panel" aria-label="运行记录">
+          <section class="soft-section">
+            <div class="section-title">
+              <strong>运行</strong>
+              <span id="auditStatus">登录后记录操作</span>
+            </div>
+            <div class="path-list">
+              <p><strong>识别意图</strong><span id="intentDisplay">自动判断</span></p>
+              <p><strong>Run 目录</strong><span id="runDir">无</span></p>
+              <p><strong>固定 Word</strong><span id="docxPath">无</span></p>
+              <p><strong>上传文件</strong><span id="uploadedTemplatePath">无</span></p>
+              <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
+              <p><strong>草稿 JSON</strong><span id="templateDraftPath">无</span></p>
+              <p><strong>填充报告</strong><span id="templateReportPath">无</span></p>
+            </div>
+          </section>
+
+          <section class="soft-section privacy-copy">
+            <strong>隐私边界</strong>
+            <span>请优先使用编号，不在测试材料中输入姓名、电话、身份证等可识别信息。上传、运行和模板操作会保存在本机并写入审计日志。</span>
+          </section>
+
+          <div id="templateSummary" class="summary-box">
+            <strong>模板识别</strong>
+            <span>尚未扫描模板。</span>
+          </div>
+        </aside>
       </section>
     </main>
     <script src="/app.js"></script>
