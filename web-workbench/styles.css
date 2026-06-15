@@ -392,6 +392,72 @@ button {
   padding: 12px;
 }
 
+.accordion-section {
+  padding: 8px;
+}
+
+.accordion-trigger {
+  width: 100%;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.36);
+  color: var(--ink);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.accordion-trigger span {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.accordion-trigger strong {
+  font-size: 15px;
+}
+
+.accordion-trigger em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.accordion-trigger b {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--blue-deep);
+  font-size: 18px;
+  font-weight: 500;
+  transition: transform 180ms ease;
+}
+
+.accordion-section.active .accordion-trigger {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.accordion-section.active .accordion-trigger b {
+  transform: rotate(45deg);
+}
+
+.accordion-body {
+  display: none;
+  gap: 10px;
+  padding: 10px 4px 4px;
+}
+
+.accordion-section.active .accordion-body {
+  display: grid;
+}
+
 .section-title {
   display: grid;
   gap: 3px;

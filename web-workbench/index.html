@@ -76,11 +76,15 @@
 
       <section class="workspace">
         <aside class="glass-panel side-panel" aria-label="个案与文档">
-          <section class="soft-section">
-            <div class="section-title">
-              <strong>个案</strong>
-              <span>建议使用去识别编号</span>
-            </div>
+          <section class="soft-section accordion-section active" data-accordion="case">
+            <button class="accordion-trigger" type="button" aria-expanded="true">
+              <span>
+                <strong>个案</strong>
+                <em>建议使用去识别编号</em>
+              </span>
+              <b>+</b>
+            </button>
+            <div class="accordion-body">
             <label class="field">
               <span>当前个案</span>
               <select id="caseSelect">
@@ -96,13 +100,18 @@
               <input id="clientCodeInput" type="text" placeholder="A001" />
             </label>
             <button id="createCaseButton" class="liquid-button secondary-button" type="button">新建个案</button>
+            </div>
           </section>
 
-          <section class="soft-section">
-            <div class="section-title">
-              <strong>文档模板</strong>
-              <span>上传后可直接填充</span>
-            </div>
+          <section class="soft-section accordion-section" data-accordion="template">
+            <button class="accordion-trigger" type="button" aria-expanded="false">
+              <span>
+                <strong>文档模板</strong>
+                <em>上传后可直接填充</em>
+              </span>
+              <b>+</b>
+            </button>
+            <div class="accordion-body">
             <label class="field">
               <span>上传 Word</span>
               <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
@@ -136,6 +145,7 @@
               <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">填充模板</button>
             </div>
             <button id="fillTemplateButton" class="ghost-button wide" type="button" disabled>用结构化结果填充</button>
+            </div>
           </section>
         </aside>
 

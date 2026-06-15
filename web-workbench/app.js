@@ -519,6 +519,21 @@ document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => setPane(button.dataset.tab));
 });
 
+document.querySelectorAll(".accordion-trigger").forEach((button) => {
+  button.addEventListener("click", () => {
+    const section = button.closest(".accordion-section");
+    const nextActive = !section.classList.contains("active");
+    document.querySelectorAll(".accordion-section").forEach((item) => {
+      item.classList.remove("active");
+      item.querySelector(".accordion-trigger").setAttribute("aria-expanded", "false");
+    });
+    if (nextActive) {
+      section.classList.add("active");
+      button.setAttribute("aria-expanded", "true");
+    }
+  });
+});
+
 document.addEventListener("pointermove", (event) => {
   document.documentElement.style.setProperty("--mouse-x", `${event.clientX}px`);
   document.documentElement.style.setProperty("--mouse-y", `${event.clientY}px`);
