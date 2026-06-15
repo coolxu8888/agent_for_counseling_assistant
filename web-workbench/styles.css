@@ -14,6 +14,7 @@
   --danger: #b42318;
   --shadow: 0 24px 80px rgba(58, 132, 178, 0.18);
   --soft-shadow: 0 10px 30px rgba(58, 132, 178, 0.12);
+  --side-width: 280px;
 }
 
 * {
@@ -362,8 +363,13 @@ button {
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(230px, 280px) minmax(420px, 1fr) minmax(230px, 300px);
-  gap: 14px;
+  grid-template-columns: minmax(230px, var(--side-width)) 10px minmax(420px, 1fr) minmax(230px, 300px);
+  gap: 10px;
+  transition: grid-template-columns 180ms ease;
+}
+
+.workspace.side-collapsed {
+  grid-template-columns: 58px 0 minmax(420px, 1fr) minmax(230px, 300px);
 }
 
 .glass-panel {
@@ -379,6 +385,78 @@ button {
   flex-direction: column;
   gap: 12px;
   overflow: auto;
+}
+
+.side-panel {
+  position: relative;
+  transition: padding 180ms ease, border-radius 180ms ease;
+}
+
+.panel-collapse {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 32px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--blue-deep);
+  background: rgba(255, 255, 255, 0.52);
+  cursor: pointer;
+}
+
+.side-dock-tab {
+  display: none;
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  border: 0;
+  border-radius: 26px;
+  color: var(--blue-deep);
+  background: rgba(255, 255, 255, 0.46);
+  cursor: pointer;
+  writing-mode: vertical-rl;
+  letter-spacing: 0;
+  place-items: center;
+  gap: 8px;
+}
+
+.side-dock-tab span {
+  display: block;
+}
+
+.workspace.side-collapsed .side-panel {
+  padding: 8px;
+  overflow: hidden;
+}
+
+.workspace.side-collapsed .accordion-section,
+.workspace.side-collapsed .panel-collapse {
+  display: none;
+}
+
+.workspace.side-collapsed .side-dock-tab {
+  display: grid;
+}
+
+.side-resize-handle {
+  align-self: stretch;
+  width: 10px;
+  border-radius: 999px;
+  cursor: col-resize;
+  background: linear-gradient(180deg, transparent, rgba(63, 159, 232, 0.2), transparent);
+  transition: background 160ms ease, opacity 160ms ease;
+}
+
+.side-resize-handle:hover,
+.workspace.resizing .side-resize-handle {
+  background: rgba(63, 159, 232, 0.34);
+}
+
+.workspace.side-collapsed .side-resize-handle {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .soft-section,
@@ -645,11 +723,15 @@ button:disabled {
 
 @media (max-width: 1120px) {
   .workspace {
-    grid-template-columns: minmax(220px, 280px) minmax(380px, 1fr);
+    grid-template-columns: minmax(220px, var(--side-width)) 10px minmax(380px, 1fr);
+  }
+
+  .workspace.side-collapsed {
+    grid-template-columns: 58px 0 minmax(380px, 1fr);
   }
 
   .trace-panel {
-    grid-column: 1 / span 2;
+    grid-column: 1 / span 3;
     min-height: 220px;
   }
 }
@@ -686,6 +768,25 @@ button:disabled {
   .workspace {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .workspace.side-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .side-resize-handle {
+    display: none;
+  }
+
+  .workspace.side-collapsed .side-panel {
+    min-height: 58px;
+  }
+
+  .workspace.side-collapsed .side-dock-tab {
+    min-height: 58px;
+    writing-mode: horizontal-tb;
+    grid-auto-flow: column;
+    justify-content: center;
   }
 
   .top-actions,

@@ -9,6 +9,8 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 const INTRO_KEY = "counselor_agent_intro_seen";
+const SIDE_COLLAPSED_KEY = "counselor_agent_side_collapsed";
+const SIDE_WIDTH_KEY = "counselor_agent_side_width";
 
 function pretty(value) {
   if (value === null || value === undefined || value === "") {
@@ -126,6 +128,48 @@ function shouldShowIntro() {
     return true;
   }
   return localStorage.getItem(INTRO_KEY) !== "1";
+}
+
+function workspace() {
+  return document.querySelector(".workspace");
+}
+
+function setSideCollapsed(collapsed) {
+  workspace().classList.toggle("side-collapsed", collapsed);
+  localStorage.setItem(SIDE_COLLAPSED_KEY, collapsed ? "1" : "0");
+}
+
+function applySavedSidePanelState() {
+  const savedWidth = Number(localStorage.getItem(SIDE_WIDTH_KEY));
+  if (savedWidth >= 220 && savedWidth <= 420) {
+    document.documentElement.style.setProperty("--side-width", `${savedWidth}px`);
+  }
+  setSideCollapsed(localStorage.getItem(SIDE_COLLAPSED_KEY) === "1");
+}
+
+function beginSideResize(event) {
+  if (workspace().classList.contains("side-collapsed")) {
+    return;
+  }
+  event.preventDefault();
+  const startX = event.clientX;
+  const currentWidth = document.querySelector(".side-panel").getBoundingClientRect().width;
+  workspace().classList.add("resizing");
+
+  function move(pointerEvent) {
+    const nextWidth = Math.min(420, Math.max(220, currentWidth + pointerEvent.clientX - startX));
+    document.documentElement.style.setProperty("--side-width", `${nextWidth}px`);
+    localStorage.setItem(SIDE_WIDTH_KEY, String(Math.round(nextWidth)));
+  }
+
+  function stop() {
+    workspace().classList.remove("resizing");
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", stop);
+  }
+
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", stop);
 }
 
 function selectedCaseId() {
@@ -540,6 +584,9 @@ document.addEventListener("pointermove", (event) => {
 });
 
 $("runButton").addEventListener("click", runAgent);
+$("sideCollapseButton").addEventListener("click", () => setSideCollapsed(true));
+$("sideExpandButton").addEventListener("click", () => setSideCollapsed(false));
+$("sideResizeHandle").addEventListener("pointerdown", beginSideResize);
 $("startLoginButton").addEventListener("click", completeIntro);
 $("skipIntroButton").addEventListener("click", completeIntro);
 $("replayIntroButton").addEventListener("click", (event) => {
@@ -556,5 +603,6 @@ $("templateUpload").addEventListener("change", uploadTemplate);
 $("inspectTemplateButton").addEventListener("click", inspectTemplate);
 $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
+applySavedSidePanelState();
 updateTemplateAvailability();
 checkSession();

@@ -76,6 +76,11 @@
 
       <section class="workspace">
         <aside class="glass-panel side-panel" aria-label="个案与文档">
+          <button id="sideCollapseButton" class="panel-collapse" type="button" aria-label="收起个案与文档">×</button>
+          <button id="sideExpandButton" class="side-dock-tab" type="button" aria-label="展开个案与文档">
+            <span>个案</span>
+            <span>文档</span>
+          </button>
           <section class="soft-section accordion-section active" data-accordion="case">
             <button class="accordion-trigger" type="button" aria-expanded="true">
               <span>
@@ -148,6 +153,7 @@
             </div>
           </section>
         </aside>
+        <div id="sideResizeHandle" class="side-resize-handle" role="separator" aria-label="调整侧栏宽度"></div>
 
         <section class="glass-panel conversation" aria-label="对话与输出">
           <div class="result-tabs" role="tablist" aria-label="结果视图">
