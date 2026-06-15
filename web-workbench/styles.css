@@ -290,8 +290,7 @@ button {
 }
 
 .topbar,
-.glass-panel,
-.notice-stream {
+.glass-panel {
   border: 1px solid rgba(255, 255, 255, 0.68);
   background: var(--glass);
   backdrop-filter: blur(24px) saturate(1.4);
@@ -355,33 +354,6 @@ button {
 
 .status.error {
   color: var(--danger);
-}
-
-.notice-stream {
-  height: 54px;
-  overflow: hidden;
-  border-radius: 27px;
-  display: grid;
-  place-items: center;
-}
-
-.stream-orbit {
-  display: flex;
-  gap: 34px;
-  color: rgba(21, 48, 68, 0.58);
-  font-size: 14px;
-  white-space: nowrap;
-  transform-style: preserve-3d;
-  animation: streamRoll 28s linear infinite;
-}
-
-@keyframes streamRoll {
-  from {
-    transform: translateX(42%) rotateX(0deg);
-  }
-  to {
-    transform: translateX(-42%) rotateX(360deg);
-  }
 }
 
 .workspace {
