@@ -158,8 +158,7 @@ button {
   text-align: center;
   color: rgba(21, 48, 68, 0.68);
   font-size: 18px;
-  transform-style: preserve-3d;
-  animation: sphereCredits 16s linear infinite;
+  animation: sphereCredits 18s linear infinite;
 }
 
 .demo-roll span {
@@ -167,12 +166,16 @@ button {
   white-space: nowrap;
 }
 
+.demo-sphere:hover .demo-roll {
+  animation-play-state: paused;
+}
+
 @keyframes sphereCredits {
   from {
-    transform: translateY(54%) rotateX(18deg);
+    transform: translateY(56%);
   }
   to {
-    transform: translateY(-54%) rotateX(378deg);
+    transform: translateY(-56%);
   }
 }
 
