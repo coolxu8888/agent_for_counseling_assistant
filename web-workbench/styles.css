@@ -56,6 +56,7 @@ button {
   filter: blur(14px);
 }
 
+.intro-overlay,
 .login-overlay {
   position: fixed;
   inset: 0;
@@ -67,8 +68,119 @@ button {
   backdrop-filter: blur(22px) saturate(1.35);
 }
 
+.intro-overlay.hidden,
 .login-overlay.hidden {
   display: none;
+}
+
+.intro-water {
+  width: min(980px, calc(100vw - 32px));
+  min-height: min(680px, calc(100vh - 32px));
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(280px, 1.1fr);
+  grid-template-rows: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  border-radius: 48px;
+  padding: 42px;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.78), transparent 180px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.68), rgba(203, 239, 255, 0.42));
+  box-shadow: var(--shadow), inset 0 1px 32px rgba(255, 255, 255, 0.7);
+}
+
+.intro-orb {
+  width: 112px;
+  height: 112px;
+  display: grid;
+  place-items: center;
+  border-radius: 42% 58% 52% 48% / 48% 42% 58% 52%;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: inset 0 1px 24px rgba(255, 255, 255, 0.85), 0 20px 44px rgba(58, 132, 178, 0.14);
+}
+
+.intro-orb img {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  object-fit: cover;
+}
+
+.intro-copy {
+  grid-column: 1;
+  display: grid;
+  gap: 12px;
+  align-self: start;
+}
+
+.intro-copy span {
+  color: var(--blue-deep);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.intro-copy h1 {
+  max-width: 520px;
+  margin: 0;
+  font-size: clamp(32px, 5vw, 58px);
+  line-height: 1.06;
+  letter-spacing: 0;
+}
+
+.intro-copy p {
+  max-width: 460px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.demo-sphere {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  justify-self: center;
+  width: min(420px, 42vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, rgba(255, 255, 255, 0.92), transparent 72px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.5), rgba(123, 202, 241, 0.18) 62%, rgba(255, 255, 255, 0.22));
+  box-shadow: inset 0 4px 38px rgba(255, 255, 255, 0.74), inset 0 -22px 58px rgba(75, 162, 218, 0.16), 0 28px 70px rgba(58, 132, 178, 0.18);
+}
+
+.demo-roll {
+  display: grid;
+  gap: 20px;
+  text-align: center;
+  color: rgba(21, 48, 68, 0.68);
+  font-size: 18px;
+  transform-style: preserve-3d;
+  animation: sphereCredits 16s linear infinite;
+}
+
+.demo-roll span {
+  display: block;
+  white-space: nowrap;
+}
+
+@keyframes sphereCredits {
+  from {
+    transform: translateY(54%) rotateX(18deg);
+  }
+  to {
+    transform: translateY(-54%) rotateX(378deg);
+  }
+}
+
+.intro-actions {
+  grid-column: 1;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .login-drop {
@@ -117,6 +229,11 @@ button {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.55;
+}
+
+.login-drop .ghost-button {
+  justify-self: center;
+  min-width: 116px;
 }
 
 .login-drop label,
@@ -497,6 +614,29 @@ button:disabled {
 }
 
 @media (max-width: 780px) {
+  .intro-water {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    padding: 28px 22px;
+    border-radius: 34px;
+  }
+
+  .intro-copy,
+  .intro-actions {
+    grid-column: 1;
+  }
+
+  .demo-sphere {
+    grid-column: 1;
+    grid-row: auto;
+    width: min(300px, 74vw);
+  }
+
+  .demo-roll {
+    font-size: 15px;
+  }
+
   .liquid-shell {
     padding: 10px;
   }

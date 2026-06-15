@@ -9,6 +9,35 @@
   <body>
     <div id="rippleField" class="ripple-field" aria-hidden="true"></div>
 
+    <section id="introOverlay" class="intro-overlay" aria-label="功能引导">
+      <div class="intro-water">
+        <div class="intro-orb">
+          <img src="/agent-icon.png" alt="" />
+        </div>
+        <div class="intro-copy">
+          <span>咨询师助理</span>
+          <h1>把材料放进来，剩下的交给系统判断。</h1>
+          <p>我会自动识别你是在准备初访、整理个案、生成咨询记录，还是要把口述材料填进 Word 模板。</p>
+        </div>
+        <div class="demo-sphere" aria-hidden="true">
+          <div class="demo-roll">
+            <span>粘贴初访需求</span>
+            <span>自动生成信息收集表</span>
+            <span>整理个案背景与 BPS 线索</span>
+            <span>单独标注风险变化</span>
+            <span>生成 session 记录</span>
+            <span>上传 Word 模板</span>
+            <span>按栏目填充文档</span>
+            <span>保留审计日志与隐私边界</span>
+          </div>
+        </div>
+        <div class="intro-actions">
+          <button id="startLoginButton" class="liquid-button primary-button" type="button">开始使用</button>
+          <button id="skipIntroButton" class="ghost-button" type="button">跳过演示</button>
+        </div>
+      </div>
+    </section>
+
     <section id="loginOverlay" class="login-overlay" aria-label="登录">
       <form id="loginForm" class="login-drop">
         <div class="drop-mark">
@@ -25,6 +54,7 @@
           <input id="loginPassword" type="password" autocomplete="current-password" value="demo123" />
         </label>
         <button class="liquid-button primary-button" type="submit">进入</button>
+        <button id="replayIntroButton" class="ghost-button" type="button">重看演示</button>
         <span id="loginMessage" class="login-message"></span>
       </form>
     </section>

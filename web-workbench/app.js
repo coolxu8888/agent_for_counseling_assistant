@@ -8,6 +8,7 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
+const INTRO_KEY = "counselor_agent_intro_seen";
 
 function pretty(value) {
   if (value === null || value === undefined || value === "") {
@@ -103,6 +104,28 @@ function showLogin(message = "") {
 function hideLogin() {
   $("loginOverlay").classList.add("hidden");
   $("loginMessage").textContent = "";
+}
+
+function showIntro() {
+  $("introOverlay").classList.remove("hidden");
+  $("loginOverlay").classList.add("hidden");
+}
+
+function hideIntro() {
+  $("introOverlay").classList.add("hidden");
+}
+
+function completeIntro() {
+  localStorage.setItem(INTRO_KEY, "1");
+  hideIntro();
+  showLogin();
+}
+
+function shouldShowIntro() {
+  if (new URLSearchParams(window.location.search).get("intro") === "1") {
+    return true;
+  }
+  return localStorage.getItem(INTRO_KEY) !== "1";
 }
 
 function selectedCaseId() {
@@ -396,6 +419,10 @@ async function logout() {
 
 async function checkSession() {
   try {
+    if (shouldShowIntro()) {
+      showIntro();
+      return;
+    }
     const data = await getJson("/api/session");
     if (data.authenticated) {
       state.user = data.user;
@@ -498,6 +525,12 @@ document.addEventListener("pointermove", (event) => {
 });
 
 $("runButton").addEventListener("click", runAgent);
+$("startLoginButton").addEventListener("click", completeIntro);
+$("skipIntroButton").addEventListener("click", completeIntro);
+$("replayIntroButton").addEventListener("click", (event) => {
+  event.preventDefault();
+  showIntro();
+});
 $("loginForm").addEventListener("submit", login);
 $("logoutButton").addEventListener("click", logout);
 $("createCaseButton").addEventListener("click", createCase);
