@@ -625,6 +625,9 @@ def send_response_tuple(handler, response):
 class WorkbenchHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == "/health":
+            send_response_tuple(self, json_response({"status": "ok"}))
+            return
         if path == "/api/session":
             send_response_tuple(self, handle_session(self))
             return

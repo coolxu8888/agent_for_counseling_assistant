@@ -93,6 +93,26 @@ http://127.0.0.1:8765
 
 ## Coze Demo API
 
+## Web MVP Deployment
+
+The fastest market-validation path is the hosted Web MVP. The repository includes a Render Blueprint with two services:
+
+- `counselor-agent-web`: the user-facing web product.
+- `counselor-agent-coze-api`: the Coze plugin API.
+
+For the web service, set these Render environment variables:
+
+- `DEEPSEEK_API_KEY`: required for real model calls.
+- `DEEPSEEK_BASE_URL`: `https://api.deepseek.com`
+- `DEEPSEEK_MODEL`: `deepseek-v4-flash`
+- `DEEPSEEK_TIMEOUT_SECONDS`: `120`
+- `WORKBENCH_USER`: public demo login username.
+- `WORKBENCH_PASSWORD`: public demo login password.
+
+The web service health check is `/health`. Runtime data is stored in the service filesystem (`workbench-data/`, `agent-runs/`, `workbench-run-log.jsonl`). On Render free instances this storage is ephemeral; for a paid pilot, add persistent storage or move user/case data to a managed database and object storage.
+
+Do not use real identifiable client information in the public MVP. Use de-identified demo cases for market validation.
+
 启动本地 Coze 演示 API：
 
 ```powershell
