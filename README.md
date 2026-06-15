@@ -113,6 +113,8 @@ The web service health check is `/health`. Runtime data is stored in the service
 
 Do not use real identifiable client information in the public MVP. Use de-identified demo cases for market validation.
 
+The Coze API server also serves the Web MVP at `/` while keeping Coze endpoints under `/coze/*`. This allows the existing Render service URL to act as a product landing URL after redeploy. Plugin metadata remains available at `/service-info`, and the OpenAPI spec remains at `/openapi.json`.
+
 启动本地 Coze 演示 API：
 
 ```powershell

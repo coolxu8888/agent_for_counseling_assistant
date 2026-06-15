@@ -2,6 +2,7 @@
 import base64
 import binascii
 import json
+import mimetypes
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -17,9 +18,22 @@ from web_workbench import (
     RUN_ROOT,
     error_response,
     handle_api_run,
+    handle_audit_logs,
+    handle_cases,
     handle_draft_template,
+    handle_fill_template,
+    handle_file_download,
+    handle_inspect_template,
+    handle_login,
+    handle_logout,
+    handle_render_docx,
+    handle_session,
+    handle_upload,
+    handle_uploads,
     json_response,
     read_json_body,
+    require_user,
+    resolve_static_path,
     send_response_tuple,
 )
 from run_agent import create_run_dir
@@ -418,10 +432,6 @@ def openapi_spec(base_url="https://your-domain.example"):
 class CozeApiHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
-        if path == "/":
-            base_url = request_base_url(self) or "https://your-domain.example"
-            send_response_tuple(self, json_response(service_info(base_url=base_url)))
-            return
         if path == "/health":
             send_response_tuple(self, json_response({"status": "ok"}))
             return
@@ -429,17 +439,28 @@ class CozeApiHandler(BaseHTTPRequestHandler):
             base_url = request_base_url(self) or "https://your-domain.example"
             send_response_tuple(self, json_response(openapi_spec(base_url=base_url)))
             return
+        if path == "/api/session":
+            send_response_tuple(self, handle_session(self))
+            return
+        if path == "/service-info":
+            base_url = request_base_url(self) or "https://your-domain.example"
+            send_response_tuple(self, json_response(service_info(base_url=base_url)))
+            return
         if path.startswith("/files/"):
-            from web_workbench import handle_file_download
-
             send_response_tuple(self, handle_file_download(self.path))
             return
-        send_response_tuple(self, error_response(404, "Endpoint not found."))
+        try:
+            static_path = resolve_static_path(self.path)
+            content_type = mimetypes.guess_type(static_path.name)[0] or "application/octet-stream"
+            body = static_path.read_bytes()
+            response = 200, {"Content-Type": content_type}, body
+        except FileNotFoundError:
+            response = error_response(404, "Static file not found.")
+        except Exception as exc:
+            response = error_response(400, str(exc))
+        send_response_tuple(self, response)
 
     def do_POST(self):
-        if not is_authorized(self):
-            send_response_tuple(self, auth_error())
-            return
         try:
             payload = read_json_body(self)
         except json.JSONDecodeError:
@@ -447,13 +468,50 @@ class CozeApiHandler(BaseHTTPRequestHandler):
             return
 
         path = urlparse(self.path).path
-        if path == "/coze/run_workflow":
+        if path.startswith("/api/"):
+            response = handle_web_api(path, payload, self)
+        elif not is_authorized(self):
+            response = auth_error()
+        elif path == "/coze/run_workflow":
             response = handle_coze_run_workflow(payload, self)
         elif path == "/coze/draft_template":
             response = handle_coze_draft_template(payload, self)
         else:
             response = error_response(404, "Endpoint not found.")
         send_response_tuple(self, response)
+
+
+def handle_web_api(path, payload, handler):
+    if path == "/api/login":
+        return handle_login(payload)
+    if path == "/api/logout":
+        return handle_logout(handler)
+
+    user, error = require_user(handler)
+    if error:
+        return error
+    if isinstance(payload, dict):
+        payload["user_id"] = user["id"]
+
+    if path == "/api/run":
+        return handle_api_run(payload)
+    if path == "/api/render-docx":
+        return handle_render_docx(payload)
+    if path == "/api/fill-template":
+        return handle_fill_template(payload)
+    if path == "/api/inspect-template":
+        return handle_inspect_template(payload)
+    if path == "/api/draft-template":
+        return handle_draft_template(payload)
+    if path == "/api/cases":
+        return handle_cases(user, payload)
+    if path == "/api/uploads":
+        return handle_uploads(user, payload)
+    if path == "/api/upload":
+        return handle_upload(user, payload)
+    if path == "/api/audit":
+        return handle_audit_logs(user)
+    return error_response(404, "Endpoint not found.")
 
 
 def create_server(host="127.0.0.1", port=8770):
