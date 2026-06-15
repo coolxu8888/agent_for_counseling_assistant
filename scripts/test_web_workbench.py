@@ -143,9 +143,10 @@ class WebWorkbenchTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
             with patch.object(web_workbench, "STORE", store):
-                status, headers, body = web_workbench.handle_login(
-                    {"username": "demo", "password": "demo123"}
-                )
+                with patch.object(web_workbench, "RUN_LOG_PATH", Path(tmp) / "run-log.jsonl"):
+                    status, headers, body = web_workbench.handle_login(
+                        {"username": "demo", "password": "demo123"}
+                    )
 
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 200)

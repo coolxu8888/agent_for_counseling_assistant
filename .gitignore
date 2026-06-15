@@ -24,3 +24,6 @@ agent-runs/
 
 # Local workbench product data. May contain uploaded templates and case metadata.
 workbench-data/
+
+# Local product operation log. Contains run metadata and file paths.
+workbench-run-log.jsonl

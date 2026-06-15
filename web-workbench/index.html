@@ -186,23 +186,7 @@
           </div>
         </section>
 
-        <aside class="glass-panel trace-panel" aria-label="运行记录">
-          <section class="soft-section">
-            <div class="section-title">
-              <strong>运行</strong>
-              <span id="auditStatus">登录后记录操作</span>
-            </div>
-            <div class="path-list">
-              <p><strong>识别意图</strong><span id="intentDisplay">自动判断</span></p>
-              <p><strong>Run 目录</strong><span id="runDir">无</span></p>
-              <p><strong>固定 Word</strong><span id="docxPath">无</span></p>
-              <p><strong>上传文件</strong><span id="uploadedTemplatePath">无</span></p>
-              <p><strong>输出文件</strong><span id="filledTemplatePath">无</span></p>
-              <p><strong>草稿 JSON</strong><span id="templateDraftPath">无</span></p>
-              <p><strong>填充报告</strong><span id="templateReportPath">无</span></p>
-            </div>
-          </section>
-
+        <aside class="glass-panel trace-panel" aria-label="提示与模板">
           <section class="soft-section privacy-copy">
             <strong>隐私边界</strong>
             <span>请优先使用编号，不在测试材料中输入姓名、电话、身份证等可识别信息。上传、运行和模板操作会保存在本机并写入审计日志。</span>
@@ -215,6 +199,16 @@
         </aside>
       </section>
     </main>
+    <div class="app-telemetry" hidden>
+      <span id="auditStatus">登录后记录操作</span>
+      <span id="intentDisplay">自动判断</span>
+      <span id="runDir">无</span>
+      <span id="docxPath">无</span>
+      <span id="uploadedTemplatePath">无</span>
+      <span id="filledTemplatePath">无</span>
+      <span id="templateDraftPath">无</span>
+      <span id="templateReportPath">无</span>
+    </div>
     <script src="/app.js"></script>
   </body>
 </html>

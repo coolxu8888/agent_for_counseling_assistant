@@ -3,6 +3,7 @@ import json
 import mimetypes
 import sys
 import zipfile
+from datetime import datetime, timezone
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -31,6 +32,7 @@ DATA_ROOT = ROOT / "workbench-data"
 UPLOAD_ROOT = DATA_ROOT / "uploads"
 DB_PATH = DATA_ROOT / "workbench.sqlite3"
 ICON_PATH = ROOT / "Gemini_Generated_Image_agent图标.png"
+RUN_LOG_PATH = ROOT / "workbench-run-log.jsonl"
 SESSION_COOKIE = "workbench_session"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
 
@@ -55,6 +57,18 @@ def detect_workflow(user_input):
     if any(keyword in text for keyword in ["记录", "总结", "干预", "来访者反应", "下次"]):
         return "W3"
     return "W2"
+
+
+def append_run_log(action, user_id=None, case_id=None, details=None):
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "action": action,
+        "user_id": user_id,
+        "case_id": case_id,
+        "details": details or {},
+    }
+    with RUN_LOG_PATH.open("a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def json_response(payload, status=200):
@@ -244,14 +258,30 @@ def handle_api_run(payload):
         )
         case_id = payload.get("case_id")
         if payload.get("user_id"):
+            user_id = int(payload["user_id"])
+            resolved_case_id = int(case_id) if case_id else None
             STORE.audit(
-                int(payload["user_id"]),
-                int(case_id) if case_id else None,
+                user_id,
+                resolved_case_id,
                 "workflow.run",
                 {
                     "workflow": workflow,
                     "requested_workflow": requested_workflow,
                     "run_dir": path_for_ui(result.run_dir),
+                },
+            )
+            append_run_log(
+                "workflow.run",
+                user_id=user_id,
+                case_id=resolved_case_id,
+                details={
+                    "workflow": workflow,
+                    "requested_workflow": requested_workflow,
+                    "status": result.status,
+                    "run_dir": path_for_ui(result.run_dir),
+                    "structured": structured or render_docx,
+                    "render_docx": render_docx,
+                    "dry_run": dry_run,
                 },
             )
         response_payload = load_run_payload(result)
@@ -387,11 +417,25 @@ def handle_draft_template(payload):
         )
         case_id = payload.get("case_id")
         if payload.get("user_id"):
+            user_id = int(payload["user_id"])
+            resolved_case_id = int(case_id) if case_id else None
             STORE.audit(
-                int(payload["user_id"]),
-                int(case_id) if case_id else None,
+                user_id,
+                resolved_case_id,
                 "template.draft",
                 {"template_path": str(template_path), "run_dir": path_for_ui(run_dir)},
+            )
+            append_run_log(
+                "template.draft",
+                user_id=user_id,
+                case_id=resolved_case_id,
+                details={
+                    "template_path": str(template_path),
+                    "run_dir": path_for_ui(run_dir),
+                    "status": report.get("status"),
+                    "output_path": path_for_ui(output_path) if output_path.exists() else None,
+                    "report_path": path_for_ui(report_path),
+                },
             )
         status = "success" if report.get("status") != "FAIL" else "error"
         return json_response(
@@ -419,6 +463,7 @@ def handle_login(payload):
     if not auth:
         return error_response(401, "Invalid username or password.")
     STORE.audit(auth["user"]["id"], None, "auth.login", {"username": username})
+    append_run_log("auth.login", user_id=auth["user"]["id"], details={"username": username})
     return json_response_with_headers(
         {"status": "success", "user": auth["user"], "expires_at": auth["expires_at"]},
         {"Set-Cookie": cookie_header(auth["token"])},
@@ -430,6 +475,7 @@ def handle_logout(handler):
     user = STORE.session_user(token)
     if user:
         STORE.audit(user["id"], None, "auth.logout", {})
+        append_run_log("auth.logout", user_id=user["id"])
     STORE.logout(token)
     return json_response_with_headers(
         {"status": "success"},
@@ -451,6 +497,12 @@ def handle_cases(user, payload=None):
             client_code=str(payload.get("client_code") or ""),
             notes=str(payload.get("notes") or ""),
         )
+        append_run_log(
+            "case.create",
+            user_id=user["id"],
+            case_id=case_record["id"],
+            details={"title": case_record["title"], "client_code": case_record["client_code"]},
+        )
         return json_response({"status": "success", "case": case_record})
     if payload.get("action") == "update":
         case_id = int(payload.get("case_id") or 0)
@@ -463,6 +515,12 @@ def handle_cases(user, payload=None):
         )
         if not case_record:
             return error_response(404, "Case not found.")
+        append_run_log(
+            "case.update",
+            user_id=user["id"],
+            case_id=case_record["id"],
+            details={"title": case_record["title"], "client_code": case_record["client_code"]},
+        )
         return json_response({"status": "success", "case": case_record})
     return json_response({"status": "success", "cases": STORE.list_cases(user["id"])})
 
@@ -479,6 +537,17 @@ def handle_upload(user, payload):
         content_b64,
         content_type=str(payload.get("content_type") or ""),
         case_id=int(case_id) if case_id else None,
+    )
+    append_run_log(
+        "file.upload",
+        user_id=user["id"],
+        case_id=int(case_id) if case_id else None,
+        details={
+            "original_name": upload["original_name"],
+            "stored_path": upload["stored_path"],
+            "size_bytes": upload["size_bytes"],
+            "content_type": upload["content_type"],
+        },
     )
     return json_response({"status": "success", "upload": upload})
 
