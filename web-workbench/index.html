@@ -90,21 +90,21 @@
               <b>+</b>
             </button>
             <div class="accordion-body">
-            <label class="field">
-              <span>当前个案</span>
-              <select id="caseSelect">
-                <option value="">未选择个案</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>新建标题</span>
-              <input id="caseTitleInput" type="text" placeholder="初访-A001" />
-            </label>
-            <label class="field">
-              <span>来访编号</span>
-              <input id="clientCodeInput" type="text" placeholder="A001" />
-            </label>
-            <button id="createCaseButton" class="liquid-button secondary-button" type="button">新建个案</button>
+              <label class="field">
+                <span>当前个案</span>
+                <select id="caseSelect">
+                  <option value="">未选择个案</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>新建标题</span>
+                <input id="caseTitleInput" type="text" placeholder="初访-A001" />
+              </label>
+              <label class="field">
+                <span>来访编号</span>
+                <input id="clientCodeInput" type="text" placeholder="A001" />
+              </label>
+              <button id="createCaseButton" class="liquid-button secondary-button" type="button">新建个案</button>
             </div>
           </section>
 
@@ -117,39 +117,39 @@
               <b>+</b>
             </button>
             <div class="accordion-body">
-            <label class="field">
-              <span>上传 Word</span>
-              <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-            </label>
-            <label class="field">
-              <span>模板路径</span>
-              <input id="templatePath" type="text" placeholder="上传后自动填入，也可粘贴本地路径" />
-            </label>
-            <label class="field">
-              <span>语言风格</span>
-              <select id="styleSelect">
-                <option value="professional_concise">专业简洁</option>
-                <option value="warm_clinical">温和临床</option>
-                <option value="institutional_record">机构记录</option>
-                <option value="supervision_summary">督导摘要</option>
-                <option value="custom">自定义</option>
-              </select>
-            </label>
-            <input id="customStyle" class="subtle-input" type="text" placeholder="自定义风格" />
-            <label class="field">
-              <span>已有内容</span>
-              <select id="existingPolicy">
-                <option value="merge">保留并续写/润色</option>
-                <option value="ask">不覆盖，列出需确认项</option>
-                <option value="replace">允许重写对应栏目</option>
-                <option value="blank_only">只填空白</option>
-              </select>
-            </label>
-            <div class="button-row">
-              <button id="inspectTemplateButton" class="ghost-button" type="button">扫描</button>
-              <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">填充模板</button>
-            </div>
-            <button id="fillTemplateButton" class="ghost-button wide" type="button" disabled>用结构化结果填充</button>
+              <label class="field">
+                <span>上传 Word</span>
+                <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+              </label>
+              <label class="field">
+                <span>模板路径</span>
+                <input id="templatePath" type="text" placeholder="上传后自动填入，也可粘贴本地路径" />
+              </label>
+              <label class="field">
+                <span>语言风格</span>
+                <select id="styleSelect">
+                  <option value="professional_concise">专业简洁</option>
+                  <option value="warm_clinical">温和临床</option>
+                  <option value="institutional_record">机构记录</option>
+                  <option value="supervision_summary">督导摘要</option>
+                  <option value="custom">自定义</option>
+                </select>
+              </label>
+              <input id="customStyle" class="subtle-input" type="text" placeholder="自定义风格" />
+              <label class="field">
+                <span>已有内容</span>
+                <select id="existingPolicy">
+                  <option value="merge">保留并续写/润色</option>
+                  <option value="ask">不覆盖，列出需确认项</option>
+                  <option value="replace">允许重写对应栏目</option>
+                  <option value="blank_only">只填空白</option>
+                </select>
+              </label>
+              <div class="button-row">
+                <button id="inspectTemplateButton" class="ghost-button" type="button">扫描</button>
+                <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">填充模板</button>
+              </div>
+              <button id="fillTemplateButton" class="ghost-button wide" type="button" disabled>用结构化结果填充</button>
             </div>
           </section>
         </aside>
