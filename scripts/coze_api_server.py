@@ -27,6 +27,7 @@ from web_workbench import (
     handle_login,
     handle_logout,
     handle_render_docx,
+    handle_runs,
     handle_session,
     handle_upload,
     handle_uploads,
@@ -512,6 +513,8 @@ def handle_web_api(path, payload, handler):
         return handle_draft_template(payload)
     if path == "/api/cases":
         return handle_cases(user, payload)
+    if path == "/api/runs":
+        return handle_runs(user, payload)
     if path == "/api/uploads":
         return handle_uploads(user, payload)
     if path == "/api/upload":

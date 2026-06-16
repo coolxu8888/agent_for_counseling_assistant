@@ -266,6 +266,30 @@ class CozeApiServerTest(unittest.TestCase):
         self.assertEqual(fake.call_args.args[1]["action"], "export")
         self.assertEqual(fake.call_args.args[1]["user_id"], user["id"])
 
+    def test_handle_web_api_routes_saved_runs_actions(self):
+        handler = FakeHandler()
+        user = {"id": 7, "username": "demo", "role": "counselor"}
+
+        with patch.object(coze_api_server, "require_user", return_value=(user, None)):
+            with patch.object(
+                coze_api_server,
+                "handle_runs",
+                return_value=coze_api_server.json_response({"status": "success", "runs": []}),
+            ) as fake:
+                status, _headers, body = coze_api_server.handle_web_api(
+                    "/api/runs",
+                    {"action": "detail", "run_dir": "/tmp/run-1"},
+                    handler,
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(fake.call_args.args[0], user)
+        self.assertEqual(fake.call_args.args[1]["action"], "detail")
+        self.assertEqual(fake.call_args.args[1]["run_dir"], "/tmp/run-1")
+        self.assertEqual(fake.call_args.args[1]["user_id"], user["id"])
+
     def test_write_openapi_writes_json_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "openapi.json"
