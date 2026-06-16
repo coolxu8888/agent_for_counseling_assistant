@@ -43,6 +43,18 @@ WORKSPACE_BACKUP_VERSION = 1
 
 DEMO_SCENARIOS = [
     {
+        "id": "case-family-boundary",
+        "title": "Recommended demo: W2 case summary",
+        "workflow": "W2",
+        "summary": "A de-identified BPS-style case summary request focused on family pressure and uncertainty. This is the strongest end-to-end sample for first-pass validation.",
+        "input": (
+            "请整理个案信息。来访者 24 岁，刚入职，最近半年经常因父母催婚和工作绩效焦虑失眠，"
+            "上周和父亲争执后独自喝了很多酒，但否认自伤想法。已有两次校外咨询经历，"
+            "目前最困扰的是情绪波动、注意力下降和回避与家人沟通。请区分已知事实、推测和待补充信息。"
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "intake_sleep-stress",
         "title": "W1 Demo: Intake guide",
         "workflow": "W1",
@@ -53,18 +65,6 @@ DEMO_SCENARIOS = [
             "咨询师希望准备首访提问提纲，并单独标出需要进一步核实的风险与保护因素。"
         ),
         "output_style": "professional_concise",
-    },
-    {
-        "id": "case-family-boundary",
-        "title": "W2 Demo: Case summary",
-        "workflow": "W2",
-        "summary": "A de-identified BPS-style case summary request focused on family pressure and uncertainty.",
-        "input": (
-            "请整理个案信息。来访者 24 岁，刚入职，最近半年经常因父母催婚和工作绩效焦虑失眠，"
-            "上周和父亲争执后独自喝了很多酒，但否认自伤想法。已有两次校外咨询经历，"
-            "目前最困扰的是情绪波动、注意力下降和回避与家人沟通。请区分已知事实、推测和待补充信息。"
-        ),
-        "output_style": "supervision_summary",
     },
     {
         "id": "session-sleep-communication",

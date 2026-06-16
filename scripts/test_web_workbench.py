@@ -919,7 +919,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["status"], "success")
         self.assertGreaterEqual(len(payload["scenarios"]), 3)
-        self.assertEqual(payload["scenarios"][0]["workflow"], "W1")
+        self.assertEqual(payload["scenarios"][0]["workflow"], "W2")
         self.assertEqual(payload["templates"][0]["path"], str(template_path.resolve()))
         self.assertIn("de-identified", payload["privacy_notice"])
 
