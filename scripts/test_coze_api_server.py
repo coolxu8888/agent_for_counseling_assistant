@@ -233,6 +233,15 @@ class CozeApiServerTest(unittest.TestCase):
             self.assertTrue(coze_api_server.is_authorized(FakeHandler({"X-API-Key": "secret"})))
             self.assertTrue(coze_api_server.is_authorized(FakeHandler({"Authorization": "Bearer secret"})))
 
+    def test_file_download_requires_matching_key_when_configured(self):
+        with patch.dict(os.environ, {"COZE_DEMO_API_KEY": "secret"}, clear=True):
+            response = coze_api_server.handle_coze_file_download("/files/test.docx", FakeHandler({}))
+
+        status, _headers, body = response
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["message"], "Unauthorized.")
+
     def test_write_openapi_writes_json_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "openapi.json"

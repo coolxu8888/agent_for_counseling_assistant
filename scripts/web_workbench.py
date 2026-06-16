@@ -30,6 +30,7 @@ WEB_ROOT = ROOT / "web-workbench"
 RUN_ROOT = ROOT / "agent-runs"
 DATA_ROOT = ROOT / "workbench-data"
 UPLOAD_ROOT = DATA_ROOT / "uploads"
+DOCS_ROOT = ROOT / "docs"
 DB_PATH = DATA_ROOT / "workbench.sqlite3"
 ICON_PATH = ROOT / "Gemini_Generated_Image_agent图标.png"
 RUN_LOG_PATH = ROOT / "workbench-run-log.jsonl"
@@ -90,15 +91,24 @@ def error_response(status, message, issues=None):
     return json_response(payload, status=status)
 
 
-def cookie_header(token, max_age=604800):
+def request_is_https(handler):
+    if handler is None:
+        return False
+    proto = str(handler.headers.get("X-Forwarded-Proto", "")).split(",", 1)[0].strip().lower()
+    return proto == "https"
+
+
+def cookie_header(token, max_age=604800, secure=False):
+    secure_part = "; Secure" if secure else ""
     return (
         f"{SESSION_COOKIE}={token}; Path=/; Max-Age={max_age}; "
-        "HttpOnly; SameSite=Lax"
+        f"HttpOnly; SameSite=Lax{secure_part}"
     )
 
 
-def clear_cookie_header():
-    return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"
+def clear_cookie_header(secure=False):
+    secure_part = "; Secure" if secure else ""
+    return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax{secure_part}"
 
 
 def cookie_token(handler):
@@ -160,13 +170,50 @@ def require_run_file(run_dir_value, filename):
     return run_dir, target
 
 
-def optional_run_dir(run_dir_value, workflow_id="TEMPLATE"):
+def active_upload_root():
+    return getattr(STORE, "upload_root", UPLOAD_ROOT)
+
+
+def user_upload_root(user_id):
+    return active_upload_root() / f"user-{int(user_id)}"
+
+
+def require_run_dir_access(user_id, run_dir):
+    if not user_id:
+        return
+    for candidate in [run_dir, *run_dir.parents]:
+        record = STORE.get_run_artifact(int(user_id), str(candidate))
+        if record:
+            return
+        if candidate == RUN_ROOT:
+            break
+    raise PermissionError("Run directory is not available for this account.")
+
+
+def resolve_template_path(path_value, user_id=None, allow_run_root=False):
+    candidate = Path(str(path_value)).resolve()
+    if not candidate.is_file():
+        raise FileNotFoundError("Template file not found.")
+    if not user_id and not allow_run_root:
+        return candidate
+    allowed_roots = [DOCS_ROOT.resolve()]
+    if user_id:
+        allowed_roots.append(user_upload_root(user_id).resolve())
+    if allow_run_root:
+        allowed_roots.append(RUN_ROOT.resolve())
+    if not any(is_relative_to(candidate, root) for root in allowed_roots):
+        raise ValueError("Template path must stay inside approved template directories.")
+    return candidate
+
+
+def optional_run_dir(run_dir_value, workflow_id="TEMPLATE", user_id=None):
     if run_dir_value:
         run_dir = Path(str(run_dir_value)).resolve()
         if not run_dir.is_dir():
             raise FileNotFoundError("Run directory not found.")
         if not is_relative_to(run_dir, RUN_ROOT):
             raise PermissionError("Run directory is outside approved output directory.")
+        require_run_dir_access(user_id, run_dir)
         return run_dir
     return create_run_dir(run_root=RUN_ROOT, workflow_id=workflow_id)
 
@@ -197,6 +244,24 @@ def safe_content_disposition(filename):
     cleaned = cleaned or "download"
     encoded = quote(filename, safe="")
     return f"attachment; filename=\"{cleaned}\"; filename*=UTF-8''{encoded}"
+
+
+def authorize_download_path(candidate, user=None):
+    upload_root = active_upload_root()
+    if is_relative_to(candidate, upload_root):
+        if not user:
+            raise PermissionError("Download file is not available for this account.")
+        if not is_relative_to(candidate, user_upload_root(user["id"])):
+            raise PermissionError("Download file is not available for this account.")
+        return
+
+    if is_relative_to(candidate, RUN_ROOT):
+        if not user:
+            return
+        require_run_dir_access(user["id"], candidate.parent if candidate.is_file() else candidate)
+        return
+
+    raise PermissionError("Download file is not available for this account.")
 
 
 def load_run_payload(result):
@@ -260,6 +325,13 @@ def handle_api_run(payload):
         if payload.get("user_id"):
             user_id = int(payload["user_id"])
             resolved_case_id = int(case_id) if case_id else None
+            STORE.register_run_artifact(
+                user_id,
+                path_for_ui(result.run_dir),
+                workflow=workflow,
+                case_id=resolved_case_id,
+                source_action="workflow.run",
+            )
             STORE.audit(
                 user_id,
                 resolved_case_id,
@@ -298,6 +370,7 @@ def handle_api_run(payload):
 def handle_render_docx(payload):
     try:
         run_dir, structured_path = require_run_file(payload.get("run_dir"), "structured_output.json")
+        require_run_dir_access(payload.get("user_id"), run_dir)
         data = json.loads(structured_path.read_text(encoding="utf-8"))
         output_path = run_dir / "output.docx"
         check_path = run_dir / "docx_check.json"
@@ -323,9 +396,8 @@ def handle_render_docx(payload):
 def handle_fill_template(payload):
     try:
         run_dir, structured_path = require_run_file(payload.get("run_dir"), "structured_output.json")
-        template_path = Path(str(payload.get("template_path"))).resolve()
-        if not template_path.exists():
-            return error_response(400, "Template file not found.")
+        require_run_dir_access(payload.get("user_id"), run_dir)
+        template_path = resolve_template_path(payload.get("template_path"), user_id=payload.get("user_id"))
 
         output_path = run_dir / "filled_template.docx"
         report_path = run_dir / "template_fill_report.json"
@@ -373,9 +445,7 @@ def summarize_template_slots(slots):
 
 def handle_inspect_template(payload):
     try:
-        template_path = Path(str(payload.get("template_path"))).resolve()
-        if not template_path.exists():
-            return error_response(400, "Template file not found.")
+        template_path = resolve_template_path(payload.get("template_path"), user_id=payload.get("user_id"))
         slots = extract_template_slots(template_path, include_prefilled=True)
         return json_response(
             {
@@ -394,14 +464,16 @@ def handle_inspect_template(payload):
 
 def handle_draft_template(payload):
     try:
-        template_path = Path(str(payload.get("template_path"))).resolve()
-        if not template_path.exists():
-            return error_response(400, "Template file not found.")
+        user_id = int(payload["user_id"]) if payload.get("user_id") else None
         raw_input = str(payload.get("raw_input") or "").strip()
         if not raw_input:
             return error_response(400, "Raw input is required.")
+        template_path = resolve_template_path(
+            payload.get("template_path"),
+            user_id=user_id,
+        )
 
-        run_dir = optional_run_dir(payload.get("run_dir"), workflow_id="TEMPLATE")
+        run_dir = optional_run_dir(payload.get("run_dir"), workflow_id="TEMPLATE", user_id=user_id)
         output_path = run_dir / "filled_template.docx"
         draft_path = run_dir / "template_draft.json"
         report_path = run_dir / "template_fill_report.json"
@@ -416,9 +488,15 @@ def handle_draft_template(payload):
             existing_content_policy=str(payload.get("existing_content_policy") or "merge"),
         )
         case_id = payload.get("case_id")
-        if payload.get("user_id"):
-            user_id = int(payload["user_id"])
+        if user_id:
             resolved_case_id = int(case_id) if case_id else None
+            STORE.register_run_artifact(
+                user_id,
+                path_for_ui(run_dir),
+                workflow="TEMPLATE",
+                case_id=resolved_case_id,
+                source_action="template.draft",
+            )
             STORE.audit(
                 user_id,
                 resolved_case_id,
@@ -456,7 +534,7 @@ def handle_draft_template(payload):
         return error_response(500, "Template draft failed.")
 
 
-def handle_login(payload):
+def handle_login(payload, handler=None):
     username = str(payload.get("username") or "").strip()
     password = str(payload.get("password") or "")
     auth = STORE.authenticate(username, password)
@@ -466,7 +544,7 @@ def handle_login(payload):
     append_run_log("auth.login", user_id=auth["user"]["id"], details={"username": username})
     return json_response_with_headers(
         {"status": "success", "user": auth["user"], "expires_at": auth["expires_at"]},
-        {"Set-Cookie": cookie_header(auth["token"])},
+        {"Set-Cookie": cookie_header(auth["token"], secure=request_is_https(handler))},
     )
 
 
@@ -479,7 +557,7 @@ def handle_logout(handler):
     STORE.logout(token)
     return json_response_with_headers(
         {"status": "success"},
-        {"Set-Cookie": clear_cookie_header()},
+        {"Set-Cookie": clear_cookie_header(secure=request_is_https(handler))},
     )
 
 
@@ -624,12 +702,17 @@ def resolve_static_path(request_path, web_root=WEB_ROOT):
     return resolved_path
 
 
-def handle_file_download(request_path):
+def handle_file_download(request_path, user=None):
     parsed = urlparse(request_path)
     if not parsed.path.startswith("/files/"):
         return error_response(404, "File endpoint not found.")
     encoded_path = parsed.path[len("/files/") :]
-    target = resolve_download_path(unquote(encoded_path))
+    allowed_roots = [RUN_ROOT, active_upload_root()]
+    try:
+        target = resolve_download_path(unquote(encoded_path), allowed_roots=allowed_roots)
+        authorize_download_path(target, user=user)
+    except PermissionError as exc:
+        return error_response(403, str(exc))
     body = target.read_bytes()
     return (
         200,
@@ -676,9 +759,11 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
                 send_response_tuple(self, error)
                 return
             try:
-                response = handle_file_download(self.path)
+                response = handle_file_download(self.path, user=user)
             except FileNotFoundError:
                 response = error_response(404, "Download file not found.")
+            except PermissionError as exc:
+                response = error_response(403, str(exc))
             except Exception as exc:
                 response = error_response(400, str(exc))
             send_response_tuple(self, response)
@@ -705,7 +790,7 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
 
         path = urlparse(self.path).path
         if path == "/api/login":
-            response = handle_login(payload)
+            response = handle_login(payload, handler=self)
             send_response_tuple(self, response)
             return
         if path == "/api/logout":

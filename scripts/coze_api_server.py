@@ -252,6 +252,12 @@ def is_authorized(handler):
     return header_value == f"Bearer {expected}" or api_key_value == expected
 
 
+def handle_coze_file_download(request_path, handler):
+    if not is_authorized(handler):
+        return auth_error()
+    return handle_file_download(request_path)
+
+
 def service_info(base_url="https://your-domain.example"):
     return {
         "service": "Counselor Assistant Coze Demo API",
@@ -447,7 +453,7 @@ class CozeApiHandler(BaseHTTPRequestHandler):
             send_response_tuple(self, json_response(service_info(base_url=base_url)))
             return
         if path.startswith("/files/"):
-            send_response_tuple(self, handle_file_download(self.path))
+            send_response_tuple(self, handle_coze_file_download(self.path, self))
             return
         try:
             static_path = resolve_static_path(self.path)
@@ -483,7 +489,7 @@ class CozeApiHandler(BaseHTTPRequestHandler):
 
 def handle_web_api(path, payload, handler):
     if path == "/api/login":
-        return handle_login(payload)
+        return handle_login(payload, handler=handler)
     if path == "/api/logout":
         return handle_logout(handler)
 

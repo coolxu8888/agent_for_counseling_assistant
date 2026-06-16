@@ -124,6 +124,17 @@ class WorkbenchStore:
                     FOREIGN KEY(user_id) REFERENCES users(id),
                     FOREIGN KEY(case_id) REFERENCES cases(id)
                 );
+
+                CREATE TABLE IF NOT EXISTS run_artifacts (
+                    run_dir TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    case_id INTEGER,
+                    workflow TEXT NOT NULL DEFAULT '',
+                    source_action TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(id),
+                    FOREIGN KEY(case_id) REFERENCES cases(id)
+                );
                 """
             )
         self.ensure_default_user()
@@ -345,6 +356,35 @@ class WorkbenchStore:
                     (user_id, limit),
                 ).fetchall()
             return [row_to_dict(row) for row in rows]
+
+    def register_run_artifact(self, user_id, run_dir, workflow="", case_id=None, source_action=""):
+        resolved_run_dir = str(Path(run_dir).resolve())
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO run_artifacts (run_dir, user_id, case_id, workflow, source_action, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_dir) DO UPDATE SET
+                    user_id = excluded.user_id,
+                    case_id = excluded.case_id,
+                    workflow = excluded.workflow,
+                    source_action = excluded.source_action
+                """,
+                (resolved_run_dir, user_id, case_id, workflow, source_action, utc_iso()),
+            )
+
+    def get_run_artifact(self, user_id, run_dir):
+        resolved_run_dir = str(Path(run_dir).resolve())
+        with self.connect() as conn:
+            row = conn.execute(
+                """
+                SELECT run_dir, user_id, case_id, workflow, source_action, created_at
+                FROM run_artifacts
+                WHERE user_id = ? AND run_dir = ?
+                """,
+                (user_id, resolved_run_dir),
+            ).fetchone()
+            return row_to_dict(row)
 
 
 def json_dumps(value):

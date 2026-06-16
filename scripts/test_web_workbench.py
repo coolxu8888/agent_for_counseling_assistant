@@ -22,6 +22,11 @@ def write_test_docx(path, document_xml):
         package.writestr("word/document.xml", document_xml)
 
 
+class FakeHandler:
+    def __init__(self, headers=None):
+        self.headers = headers or {}
+
+
 class WebWorkbenchTest(unittest.TestCase):
     def test_json_response_encodes_utf8_payload(self):
         status, headers, body = web_workbench.json_response({"message": "咨询师助理"})
@@ -109,6 +114,46 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("%E6%8A%A5%E5%91%8A.docx", headers["Content-Disposition"])
         headers["Content-Disposition"].encode("ascii")
 
+    def test_handle_file_download_rejects_unregistered_run_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_root.mkdir()
+            output = run_root / "output.docx"
+            output.write_bytes(b"docx")
+            request_path = "/files/" + quote(str(output), safe="")
+            user = {"id": 7, "username": "demo", "role": "counselor"}
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                with patch.object(web_workbench, "STORE", store):
+                    status, _headers, body = web_workbench.handle_file_download(request_path, user=user)
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 403)
+        self.assertIn("not available", payload["message"])
+
+    def test_handle_file_download_allows_registered_run_artifact_for_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_root.mkdir()
+            output = run_root / "output.docx"
+            output.write_bytes(b"docx")
+            request_path = "/files/" + quote(str(output), safe="")
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            store.register_run_artifact(user["id"], str(run_root), workflow="W3")
+
+            with patch.object(web_workbench, "RUN_ROOT", run_root):
+                with patch.object(web_workbench, "STORE", store):
+                    status, headers, body = web_workbench.handle_file_download(request_path, user=user)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(body, b"docx")
+        self.assertIn("attachment;", headers["Content-Disposition"])
+
     def test_handle_run_rejects_empty_input(self):
         response = web_workbench.handle_api_run({"workflow": "W1", "input": "   "})
 
@@ -153,6 +198,20 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["status"], "success")
         self.assertIn("Set-Cookie", headers)
         self.assertIn(web_workbench.SESSION_COOKIE, headers["Set-Cookie"])
+
+    def test_handle_login_marks_cookie_secure_on_https(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            handler = FakeHandler({"X-Forwarded-Proto": "https"})
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_LOG_PATH", Path(tmp) / "run-log.jsonl"):
+                    status, headers, _body = web_workbench.handle_login(
+                        {"username": "demo", "password": "demo123"},
+                        handler=handler,
+                    )
+
+        self.assertEqual(status, 200)
+        self.assertIn("Secure", headers["Set-Cookie"])
 
     def test_handle_cases_detail_returns_case_uploads_audit_and_runs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -351,13 +410,20 @@ class WebWorkbenchTest(unittest.TestCase):
 
     def test_handle_fill_template_uses_current_structured_json(self):
         with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            upload = store.store_upload(
+                auth["user"]["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
             run_root = Path(tmp) / "agent-runs"
             run_dir = run_root / "run"
             run_dir.mkdir(parents=True)
             structured = run_dir / "structured_output.json"
             structured.write_text('{"workflow": "W1"}', encoding="utf-8")
-            template = Path(tmp) / "template.docx"
-            template.write_bytes(b"fake docx")
+            store.register_run_artifact(auth["user"]["id"], str(run_dir), workflow="W1")
 
             def fake_fill(template_path, structured_path, output_path, report_path, mapping_path=None):
                 Path(output_path).write_bytes(b"filled")
@@ -365,11 +431,16 @@ class WebWorkbenchTest(unittest.TestCase):
                 Path(report_path).write_text(json.dumps(report), encoding="utf-8")
                 return report
 
-            with patch.object(web_workbench, "fill_docx_template", side_effect=fake_fill):
-                with patch.object(web_workbench, "RUN_ROOT", run_root):
-                    status, _headers, body = web_workbench.handle_fill_template(
-                        {"run_dir": str(run_dir), "template_path": str(template)}
-                    )
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "fill_docx_template", side_effect=fake_fill):
+                    with patch.object(web_workbench, "RUN_ROOT", run_root):
+                        status, _headers, body = web_workbench.handle_fill_template(
+                            {
+                                "run_dir": str(run_dir),
+                                "template_path": upload["stored_path"],
+                                "user_id": auth["user"]["id"],
+                            }
+                        )
 
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 200)
@@ -379,12 +450,23 @@ class WebWorkbenchTest(unittest.TestCase):
 
     def test_handle_draft_template_requires_raw_input(self):
         with tempfile.TemporaryDirectory() as tmp:
-            template = Path(tmp) / "template.docx"
-            template.write_bytes(b"fake docx")
-
-            status, _headers, body = web_workbench.handle_draft_template(
-                {"template_path": str(template), "raw_input": "   "}
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            upload = store.store_upload(
+                auth["user"]["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
+
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_draft_template(
+                    {
+                        "template_path": upload["stored_path"],
+                        "raw_input": "   ",
+                        "user_id": auth["user"]["id"],
+                    }
+                )
 
         self.assertEqual(status, 400)
         self.assertIn("Raw input is required", json.loads(body.decode("utf-8"))["message"])
@@ -459,6 +541,70 @@ class WebWorkbenchTest(unittest.TestCase):
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 400)
         self.assertIn("outside approved output directory", payload["message"])
+
+    def test_handle_draft_template_rejects_template_outside_allowed_roots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            template = root / "template.docx"
+            template.write_bytes(b"fake docx")
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_draft_template(
+                    {
+                        "template_path": str(template),
+                        "raw_input": "鏉愭枡",
+                        "user_id": auth["user"]["id"],
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertIn("approved template directories", payload["message"])
+
+    def test_handle_draft_template_allows_user_uploaded_template(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            upload = store.store_upload(
+                auth["user"]["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+            def fake_fill(
+                template_path,
+                raw_input,
+                output_path,
+                report_path,
+                draft_path,
+                style="professional_concise",
+                custom_style="",
+                existing_content_policy="merge",
+            ):
+                Path(output_path).write_bytes(b"filled")
+                Path(draft_path).write_text('{"drafts": []}', encoding="utf-8")
+                report = {"status": "PASS", "filled_fields": [], "unfilled_fields": [], "issues": []}
+                Path(report_path).write_text(json.dumps(report), encoding="utf-8")
+                return report
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", root / "agent-runs"):
+                    with patch.object(web_workbench, "fill_docx_template_from_raw", side_effect=fake_fill):
+                        status, _headers, body = web_workbench.handle_draft_template(
+                            {
+                                "template_path": upload["stored_path"],
+                                "raw_input": "鏉愭枡",
+                                "user_id": auth["user"]["id"],
+                            }
+                        )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
 
     def test_handle_inspect_template_returns_slots_and_summary(self):
         with tempfile.TemporaryDirectory() as tmp:

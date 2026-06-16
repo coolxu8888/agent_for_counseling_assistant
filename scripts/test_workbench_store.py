@@ -56,6 +56,28 @@ class WorkbenchStoreTest(unittest.TestCase):
             self.assertEqual(upload["size_bytes"], 4)
             self.assertTrue(any(item["action"] == "file.upload" for item in logs))
 
+    def test_register_run_artifact_tracks_owner_and_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+            user_id = auth["user"]["id"]
+            case_record = store.create_case(user_id, "Run Case")
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+
+            store.register_run_artifact(
+                user_id,
+                str(run_dir),
+                workflow="W3",
+                case_id=case_record["id"],
+                source_action="workflow.run",
+            )
+            record = store.get_run_artifact(user_id, str(run_dir))
+
+        self.assertEqual(record["workflow"], "W3")
+        self.assertEqual(record["case_id"], case_record["id"])
+        self.assertEqual(record["source_action"], "workflow.run")
+
 
 if __name__ == "__main__":
     unittest.main()
