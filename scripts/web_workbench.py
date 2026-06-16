@@ -41,6 +41,44 @@ SESSION_COOKIE = "workbench_session"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
 WORKSPACE_BACKUP_VERSION = 1
 
+DEMO_SCENARIOS = [
+    {
+        "id": "intake_sleep-stress",
+        "title": "W1 Demo: Intake guide",
+        "workflow": "W1",
+        "summary": "A de-identified intake request with sleep issues, family stress, and a mild risk prompt.",
+        "input": (
+            "请帮我生成初访信息收集表。来访者为大学女生，近两周因保研压力睡眠变差，"
+            "和室友关系紧张，偶尔说“想消失一下”，但没有计划，也愿意继续上课。"
+            "咨询师希望准备首访提问提纲，并单独标出需要进一步核实的风险与保护因素。"
+        ),
+        "output_style": "professional_concise",
+    },
+    {
+        "id": "case-family-boundary",
+        "title": "W2 Demo: Case summary",
+        "workflow": "W2",
+        "summary": "A de-identified BPS-style case summary request focused on family pressure and uncertainty.",
+        "input": (
+            "请整理个案信息。来访者 24 岁，刚入职，最近半年经常因父母催婚和工作绩效焦虑失眠，"
+            "上周和父亲争执后独自喝了很多酒，但否认自伤想法。已有两次校外咨询经历，"
+            "目前最困扰的是情绪波动、注意力下降和回避与家人沟通。请区分已知事实、推测和待补充信息。"
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
+        "id": "session-sleep-communication",
+        "title": "W3 Demo: Session note",
+        "workflow": "W3",
+        "summary": "A de-identified session note request with clear theme, intervention focus, and risk boundary.",
+        "input": (
+            "来访者表示最近一周入睡困难，和母亲沟通后感到委屈，否认自伤自杀计划，"
+            "本次主要讨论情绪识别与下次沟通准备。请生成本次咨询记录，并保留需要后续补充的信息。"
+        ),
+        "output_style": "institutional_record",
+    },
+]
+
 AGENT_STYLE_INSTRUCTIONS = {
     "default": "",
     "professional_concise": "请使用专业、简洁、清晰的咨询记录语言输出。",
@@ -1063,6 +1101,31 @@ def handle_audit_logs(user):
     return json_response({"status": "success", "audit_logs": STORE.list_audit_logs(user["id"])})
 
 
+def list_demo_templates():
+    templates = []
+    for path in sorted(DOCS_ROOT.glob("*.docx")):
+        templates.append(
+            {
+                "id": path.stem,
+                "title": path.stem,
+                "path": path_for_ui(path),
+                "summary": "Bundled sample Word template stored in the repository docs directory.",
+            }
+        )
+    return templates
+
+
+def handle_demo_catalog():
+    return json_response(
+        {
+            "status": "success",
+            "scenarios": DEMO_SCENARIOS,
+            "templates": list_demo_templates(),
+            "privacy_notice": "Use de-identified demo material only. Avoid names, phone numbers, IDs, and real client data in public MVP validation.",
+        }
+    )
+
+
 def resolve_static_path(request_path, web_root=WEB_ROOT):
     parsed_path = unquote(urlparse(request_path).path)
     if parsed_path == "/agent-icon.png" and ICON_PATH.exists():
@@ -1131,6 +1194,13 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/session":
             send_response_tuple(self, handle_session(self))
+            return
+        if path == "/api/demo-catalog":
+            user, error = require_user(self)
+            if error:
+                send_response_tuple(self, error)
+                return
+            send_response_tuple(self, handle_demo_catalog())
             return
 
         if self.path.startswith("/files/"):
@@ -1204,6 +1274,8 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_upload(user, payload)
         elif path == "/api/audit":
             response = handle_audit_logs(user)
+        elif path == "/api/demo-catalog":
+            response = handle_demo_catalog()
         elif path == "/api/workspace":
             response = handle_workspace(user, payload)
         else:

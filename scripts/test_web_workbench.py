@@ -905,5 +905,24 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["slots"][0]["label"], "主要困扰")
 
 
+    def test_handle_demo_catalog_returns_curated_scenarios_and_repo_templates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            docs_root = Path(tmp) / "docs"
+            docs_root.mkdir()
+            template_path = docs_root / "demo-template.docx"
+            template_path.write_bytes(b"docx")
+
+            with patch.object(web_workbench, "DOCS_ROOT", docs_root):
+                status, _headers, body = web_workbench.handle_demo_catalog()
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertGreaterEqual(len(payload["scenarios"]), 3)
+        self.assertEqual(payload["scenarios"][0]["workflow"], "W1")
+        self.assertEqual(payload["templates"][0]["path"], str(template_path.resolve()))
+        self.assertIn("de-identified", payload["privacy_notice"])
+
+
 if __name__ == "__main__":
     unittest.main()

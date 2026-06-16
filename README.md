@@ -82,6 +82,7 @@ http://127.0.0.1:8765
 工作台可以：
 
 - 使用本地登录会话。默认开发账号为 `demo` / `demo123`，可用 `WORKBENCH_USER` 和 `WORKBENCH_PASSWORD` 环境变量覆盖。
+- 在右侧 `Quick start` 区域一键加载去识别 demo 场景和仓库内置 `.docx` 模板，便于首次产品验证和演示。
 - 创建和选择去识别化个案，运行结果、上传和模板操作会记录到本地审计日志。
 - 上传 `.docx` 模板文件；上传文件保存在 `workbench-data/uploads/`，不会进入 git。
 - 运行 W1/W2/W3，并输入咨询师材料。

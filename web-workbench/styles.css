@@ -733,6 +733,34 @@ button {
   gap: 8px;
 }
 
+.demo-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.54);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 12px;
+}
+
+.demo-card strong {
+  font-size: 13px;
+}
+
+.demo-card span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.demo-card .button-row {
+  margin-top: 2px;
+}
+
+.mini-button {
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
 .muted-list:empty::before {
   content: "暂无数据。";
   color: var(--muted);

@@ -3,6 +3,7 @@ const state = {
   runDir: null,
   structuredOutput: null,
   templateSlots: [],
+  demoCatalog: null,
   user: null,
   caseId: "",
   caseDetail: null,
@@ -246,6 +247,15 @@ function createActionButton(label, onClick) {
   return button;
 }
 
+function createMiniGhostButton(label, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ghost-button mini-button";
+  button.textContent = label;
+  button.addEventListener("click", onClick);
+  return button;
+}
+
 function workflowLabel(workflow) {
   return {
     AUTO: "Auto detect",
@@ -254,6 +264,86 @@ function workflowLabel(workflow) {
     W3: "Session note",
     TEMPLATE: "Template draft",
   }[workflow] || workflow;
+}
+
+function clearDemoCatalog(message = "Sign in to load one-click demos and built-in templates.") {
+  state.demoCatalog = null;
+  $("demoCatalogStatus").innerHTML = `<strong>Demo library</strong><span>${message}</span>`;
+  addStackPlaceholder("demoStarterList", "De-identified sample workflows will appear here.");
+  addStackPlaceholder("demoTemplateList", "Bundled Word templates will appear here.");
+}
+
+function applyDemoTemplate(path, title = "template") {
+  $("templatePath").value = path;
+  $("templatePane").textContent = `Built-in template set to ${title}. You can scan slots or start drafting now.`;
+  $("auditStatus").textContent = `Loaded built-in template: ${title}.`;
+  setPane("template");
+}
+
+function applyDemoScenario(scenarioId) {
+  const scenario = (state.demoCatalog && state.demoCatalog.scenarios || []).find((item) => item.id === scenarioId);
+  if (!scenario) {
+    return;
+  }
+  $("inputText").value = scenario.input || "";
+  $("outputStyleSelect").value = scenario.output_style || "default";
+  $("outputCustomStyle").value = "";
+  $("markdownPane").textContent = `${scenario.title}\n\n${scenario.summary}\n\nThe sample input has been loaded into the composer. Review it and click 发送 to run a real model call.`;
+  setStatus(`Loaded ${workflowLabel(scenario.workflow)} demo`, "idle");
+  $("auditStatus").textContent = `Loaded demo scenario: ${scenario.title}.`;
+  setPane("markdown");
+}
+
+function renderDemoCatalog(payload) {
+  state.demoCatalog = payload;
+  $("demoCatalogStatus").innerHTML = `<strong>Demo library</strong><span>${payload.privacy_notice || "Use de-identified demo material only."}</span>`;
+
+  const starterList = $("demoStarterList");
+  clearNode(starterList);
+  (payload.scenarios || []).forEach((scenario) => {
+    const card = document.createElement("div");
+    card.className = "demo-card";
+    const title = document.createElement("strong");
+    title.textContent = scenario.title;
+    const summary = document.createElement("span");
+    summary.textContent = `${workflowLabel(scenario.workflow)} · ${scenario.summary}`;
+    const actions = document.createElement("div");
+    actions.className = "button-row";
+    actions.appendChild(createMiniGhostButton("Load sample", () => applyDemoScenario(scenario.id)));
+    card.append(title, summary, actions);
+    starterList.appendChild(card);
+  });
+  if (!starterList.children.length) {
+    addStackPlaceholder("demoStarterList", "No demo scenarios are available in this environment.");
+  }
+
+  const templateList = $("demoTemplateList");
+  clearNode(templateList);
+  (payload.templates || []).forEach((template) => {
+    const card = document.createElement("div");
+    card.className = "demo-card";
+    const title = document.createElement("strong");
+    title.textContent = template.title;
+    const summary = document.createElement("span");
+    summary.textContent = template.summary || template.path;
+    const actions = document.createElement("div");
+    actions.className = "button-row";
+    actions.appendChild(createMiniGhostButton("Use template", () => applyDemoTemplate(template.path, template.title)));
+    card.append(title, summary, actions);
+    templateList.appendChild(card);
+  });
+  if (!templateList.children.length) {
+    addStackPlaceholder("demoTemplateList", "No bundled Word templates were found.");
+  }
+}
+
+async function loadDemoCatalog() {
+  try {
+    const payload = await postJson("/api/demo-catalog", {});
+    renderDemoCatalog(payload);
+  } catch (error) {
+    clearDemoCatalog(error.message);
+  }
 }
 
 function actionLabel(action) {
@@ -664,7 +754,7 @@ async function login(event) {
     });
     state.user = data.user;
     hideLogin();
-    await loadCases();
+    await Promise.all([loadCases(), loadDemoCatalog()]);
     $("auditStatus").textContent = `Signed in as ${data.user.username}`;
   } catch (error) {
     $("loginMessage").textContent = error.message;
@@ -677,6 +767,7 @@ async function logout() {
   state.caseId = "";
   $("caseSelect").innerHTML = '<option value="">No case selected</option>';
   clearCaseDetail();
+  clearDemoCatalog();
   showLogin("Signed out.");
 }
 
@@ -690,12 +781,14 @@ async function checkSession() {
     if (data.authenticated) {
       state.user = data.user;
       hideLogin();
-      await loadCases();
+      await Promise.all([loadCases(), loadDemoCatalog()]);
       $("auditStatus").textContent = `Signed in as ${data.user.username}`;
     } else {
+      clearDemoCatalog();
       showLogin();
     }
   } catch (error) {
+    clearDemoCatalog();
     showLogin(error.message);
   }
 }
@@ -966,4 +1059,5 @@ initializeWorkspaceBackupUi();
 applySavedSidePanelState();
 updateTemplateAvailability();
 clearCaseDetail();
+clearDemoCatalog();
 checkSession();
