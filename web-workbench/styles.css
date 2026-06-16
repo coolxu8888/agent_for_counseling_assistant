@@ -251,6 +251,7 @@ button {
 .login-drop input,
 .field input,
 .field select,
+.field textarea,
 .subtle-input,
 .composer textarea,
 .quiet-controls select {
@@ -266,6 +267,7 @@ button {
 .login-drop input,
 .field input,
 .field select,
+.field textarea,
 .subtle-input,
 .quiet-controls select {
   min-height: 38px;
@@ -275,6 +277,7 @@ button {
 .login-drop input:focus,
 .field input:focus,
 .field select:focus,
+.field textarea:focus,
 .subtle-input:focus,
 .composer textarea:focus,
 .quiet-controls select:focus {
@@ -470,6 +473,11 @@ button {
   padding: 12px;
 }
 
+.compact-box {
+  gap: 6px;
+  padding: 10px 12px;
+}
+
 .accordion-section {
   padding: 8px;
 }
@@ -553,6 +561,11 @@ button {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.field-textarea {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .liquid-button,
@@ -712,6 +725,55 @@ button {
 }
 
 .download-link:hover {
+  text-decoration: underline;
+}
+
+.stack-list {
+  display: grid;
+  gap: 8px;
+}
+
+.muted-list:empty::before {
+  content: "暂无数据。";
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stack-item {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.34);
+  padding: 10px 12px;
+}
+
+.stack-item strong {
+  font-size: 13px;
+}
+
+.stack-item span,
+.stack-item time {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.stack-item button,
+.stack-item a {
+  justify-self: start;
+}
+
+.link-button {
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  color: var(--blue-deep);
+  background: transparent;
+  cursor: pointer;
+}
+
+.link-button:hover {
   text-decoration: underline;
 }
 

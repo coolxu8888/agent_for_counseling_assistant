@@ -5,6 +5,7 @@ const state = {
   templateSlots: [],
   user: null,
   caseId: "",
+  caseDetail: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -59,7 +60,14 @@ function setPane(tabName) {
   });
 
   document.querySelectorAll(".pane").forEach((pane) => pane.classList.remove("active"));
-  const paneId = tabName === "markdown" ? "markdownPane" : tabName === "json" ? "jsonPane" : "checksPane";
+  const paneId =
+    tabName === "markdown"
+      ? "markdownPane"
+      : tabName === "json"
+        ? "jsonPane"
+        : tabName === "template"
+          ? "templatePane"
+          : "checksPane";
   $(paneId).classList.add("active");
 }
 
@@ -176,12 +184,63 @@ function selectedCaseId() {
   return $("caseSelect").value || "";
 }
 
+function selectedCaseTitle() {
+  return state.caseDetail && state.caseDetail.case ? state.caseDetail.case.title : "";
+}
+
+function selectedClientCode() {
+  return state.caseDetail && state.caseDetail.case ? state.caseDetail.case.client_code || "" : "";
+}
+
 function canFillFromStructured() {
   return Boolean(state.runDir && state.structuredOutput);
 }
 
 function updateTemplateAvailability() {
   $("fillTemplateButton").disabled = !canFillFromStructured();
+}
+
+function formatTimestamp(value) {
+  if (!value) {
+    return "未记录时间";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
+}
+
+function clearNode(node) {
+  while (node.firstChild) {
+    node.removeChild(node.firstChild);
+  }
+}
+
+function addStackPlaceholder(id, text) {
+  const container = $(id);
+  clearNode(container);
+  const item = document.createElement("div");
+  item.className = "stack-item";
+  const label = document.createElement("span");
+  label.textContent = text;
+  item.appendChild(label);
+  container.appendChild(item);
+}
+
+function createDownloadLink(path, label) {
+  const link = document.createElement("a");
+  link.className = "download-link";
+  link.href = downloadUrl(path);
+  link.textContent = label;
+  link.download = "";
+  return link;
+}
+
+function createActionButton(label, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "link-button";
+  button.textContent = label;
+  button.addEventListener("click", onClick);
+  return button;
 }
 
 function formatTemplateSummary(data) {
@@ -269,6 +328,111 @@ function workflowLabel(workflow) {
   }[workflow] || workflow;
 }
 
+function actionLabel(action) {
+  return {
+    "workflow.run": "工作流运行",
+    "template.draft": "模板填充",
+    "file.upload": "文件上传",
+    "case.create": "创建个案",
+    "case.update": "更新个案",
+  }[action] || action;
+}
+
+function renderCaseUploads(uploads) {
+  const summary = $("caseUploadsSummary");
+  const list = $("caseUploadsList");
+  clearNode(list);
+  if (!uploads.length) {
+    summary.innerHTML = "<strong>已关联文件</strong><span>当前个案还没有上传文件。</span>";
+    addStackPlaceholder("caseUploadsList", "上传的 Word 模板和材料会显示在这里。");
+    return;
+  }
+
+  summary.innerHTML = `<strong>已关联文件</strong><span>当前个案已关联 ${uploads.length} 个文件，可直接带回模板区继续使用。</span>`;
+  uploads.forEach((upload) => {
+    const item = document.createElement("div");
+    item.className = "stack-item";
+    const title = document.createElement("strong");
+    title.textContent = upload.original_name;
+    const meta = document.createElement("span");
+    const sizeKb = Math.max(1, Math.round((upload.size_bytes || 0) / 1024));
+    meta.textContent = `${formatTimestamp(upload.created_at)} · ${sizeKb} KB`;
+    item.append(title, meta);
+    item.appendChild(createDownloadLink(upload.stored_path, "下载文件"));
+    item.appendChild(
+      createActionButton("用作当前模板", () => {
+        $("templatePath").value = upload.stored_path;
+        setPathDisplay("uploadedTemplatePath", upload.stored_path, false);
+        $("templatePane").textContent = `已将模板路径切换为：${upload.original_name}`;
+        setPane("template");
+      }),
+    );
+    list.appendChild(item);
+  });
+}
+
+function renderCaseActivity(entries) {
+  const list = $("caseActivityList");
+  clearNode(list);
+  if (!entries.length) {
+    addStackPlaceholder("caseActivityList", "运行、模板和上传操作会按时间倒序记录在这里。");
+    return;
+  }
+
+  entries.forEach((entry) => {
+    const item = document.createElement("div");
+    item.className = "stack-item";
+    const title = document.createElement("strong");
+    title.textContent = actionLabel(entry.action);
+    const meta = document.createElement("time");
+    meta.textContent = formatTimestamp(entry.timestamp || entry.created_at);
+    const detail = document.createElement("span");
+    const details = entry.details || {};
+    detail.textContent =
+      details.workflow
+        ? `${workflowLabel(details.workflow)} · ${details.status || "已完成"}`
+        : details.original_name
+          ? `文件：${details.original_name}`
+          : details.title || "查看最近操作";
+    item.append(title, meta, detail);
+    if (details.output_path) {
+      item.appendChild(createDownloadLink(details.output_path, "下载生成文件"));
+    } else if (details.stored_path) {
+      item.appendChild(createDownloadLink(details.stored_path, "下载上传文件"));
+    } else if (details.run_dir) {
+      const runDir = document.createElement("span");
+      runDir.textContent = `Run: ${details.run_dir}`;
+      item.appendChild(runDir);
+    }
+    list.appendChild(item);
+  });
+}
+
+function renderCaseDetail(payload) {
+  state.caseDetail = payload;
+  const caseRecord = payload.case;
+  $("caseNotesInput").value = caseRecord.notes || "";
+  $("caseSummary").innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = caseRecord.title;
+  const body = document.createElement("span");
+  body.textContent = caseRecord.client_code
+    ? `编号 ${caseRecord.client_code} · ${payload.uploads.length} 个文件 · ${payload.recent_runs.length} 条最近活动`
+    : `${payload.uploads.length} 个文件 · ${payload.recent_runs.length} 条最近活动`;
+  $("caseSummary").append(title, body);
+  renderCaseUploads(payload.uploads || []);
+  renderCaseActivity(payload.recent_runs || []);
+}
+
+function clearCaseDetail() {
+  state.caseDetail = null;
+  $("caseNotesInput").value = "";
+  $("caseSummary").innerHTML = "<strong>当前个案</strong><span>尚未选择个案。</span>";
+  $("caseUploadsSummary").innerHTML = "<strong>已关联文件</strong><span>选择个案后显示已上传模板与材料。</span>";
+  addStackPlaceholder("caseUploadsList", "上传的 Word 模板和材料会显示在这里。");
+  addStackPlaceholder("caseActivityList", "运行、模板和上传操作会按时间倒序记录在这里。");
+}
+
 function showRunError(message) {
   $("checksPane").textContent = message;
   setPane("checks");
@@ -316,6 +480,9 @@ async function runAgent() {
       case_id: selectedCaseId(),
     });
     updateRunResult(data);
+    if (selectedCaseId()) {
+      await loadCaseDetail(selectedCaseId());
+    }
     setStatus(data.status === "success" ? "成功" : data.status || "完成", data.status === "error" ? "error" : "success");
   } catch (error) {
     state.runDir = null;
@@ -358,6 +525,9 @@ async function draftTemplate() {
       case_id: selectedCaseId(),
     });
     updateTemplateResult(data);
+    if (selectedCaseId()) {
+      await loadCaseDetail(selectedCaseId());
+    }
   } catch (error) {
     $("templatePane").textContent = error.message;
     setPane("template");
@@ -428,6 +598,9 @@ async function fillTemplateFromStructured() {
       ...templatePayloadBase(),
     });
     updateTemplateResult(data);
+    if (selectedCaseId()) {
+      await loadCaseDetail(selectedCaseId());
+    }
   } catch (error) {
     $("templatePane").textContent = error.message;
     setPane("template");
@@ -502,6 +675,23 @@ function renderCases(cases) {
 async function loadCases() {
   const data = await postJson("/api/cases", {});
   renderCases(data.cases || []);
+  if (state.caseId) {
+    await loadCaseDetail(state.caseId);
+  } else {
+    clearCaseDetail();
+  }
+}
+
+async function loadCaseDetail(caseId = selectedCaseId()) {
+  if (!caseId) {
+    clearCaseDetail();
+    return;
+  }
+  const data = await postJson("/api/cases", {
+    action: "detail",
+    case_id: caseId,
+  });
+  renderCaseDetail(data);
 }
 
 async function createCase() {
@@ -518,9 +708,27 @@ async function createCase() {
   await loadCases();
   $("caseSelect").value = String(data.case.id);
   state.caseId = String(data.case.id);
+  await loadCaseDetail(state.caseId);
   $("caseTitleInput").value = "";
   $("clientCodeInput").value = "";
   $("auditStatus").textContent = "个案已创建。";
+}
+
+async function saveCaseNotes() {
+  const caseId = selectedCaseId();
+  if (!caseId) {
+    $("auditStatus").textContent = "请先选择个案，再保存备注。";
+    return;
+  }
+  const payload = await postJson("/api/cases", {
+    action: "update",
+    case_id: caseId,
+    title: selectedCaseTitle(),
+    client_code: selectedClientCode(),
+    notes: $("caseNotesInput").value.trim(),
+  });
+  await loadCaseDetail(caseId);
+  $("auditStatus").textContent = `已保存个案备注：${payload.case.title}`;
 }
 
 function fileToBase64(file) {
@@ -553,6 +761,9 @@ async function uploadTemplate() {
     });
     $("templatePath").value = data.upload.stored_path;
     setPathDisplay("uploadedTemplatePath", data.upload.stored_path, false);
+    if (selectedCaseId()) {
+      await loadCaseDetail(selectedCaseId());
+    }
     $("templatePane").textContent = "模板已上传，可以扫描栏目或智能填充。";
   } catch (error) {
     $("templatePane").textContent = error.message;
@@ -596,8 +807,10 @@ $("replayIntroButton").addEventListener("click", (event) => {
 $("loginForm").addEventListener("submit", login);
 $("logoutButton").addEventListener("click", logout);
 $("createCaseButton").addEventListener("click", createCase);
+$("saveCaseButton").addEventListener("click", saveCaseNotes);
 $("caseSelect").addEventListener("change", () => {
   state.caseId = selectedCaseId();
+  loadCaseDetail(state.caseId);
 });
 $("templateUpload").addEventListener("change", uploadTemplate);
 $("inspectTemplateButton").addEventListener("click", inspectTemplate);
@@ -605,4 +818,5 @@ $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 applySavedSidePanelState();
 updateTemplateAvailability();
+clearCaseDetail();
 checkSession();

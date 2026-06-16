@@ -488,6 +488,30 @@ def handle_session(handler):
     return json_response({"status": "success", "user": user, "authenticated": bool(user)})
 
 
+def list_recent_runs(user_id, case_id=None, limit=12):
+    if not RUN_LOG_PATH.exists():
+        return []
+
+    entries = []
+    for line in RUN_LOG_PATH.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("user_id") != user_id:
+            continue
+        if case_id is not None and entry.get("case_id") != case_id:
+            continue
+        if entry.get("action") not in {"workflow.run", "template.draft", "file.upload", "case.create", "case.update"}:
+            continue
+        entries.append(entry)
+
+    entries.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
+    return entries[:limit]
+
+
 def handle_cases(user, payload=None):
     payload = payload or {}
     if payload.get("action") == "create":
@@ -522,6 +546,20 @@ def handle_cases(user, payload=None):
             details={"title": case_record["title"], "client_code": case_record["client_code"]},
         )
         return json_response({"status": "success", "case": case_record})
+    if payload.get("action") == "detail":
+        case_id = int(payload.get("case_id") or 0)
+        case_record = STORE.get_case(user["id"], case_id)
+        if not case_record:
+            return error_response(404, "Case not found.")
+        return json_response(
+            {
+                "status": "success",
+                "case": case_record,
+                "uploads": STORE.list_uploads(user["id"], case_id=case_id),
+                "audit_logs": STORE.list_audit_logs(user["id"], case_id=case_id),
+                "recent_runs": list_recent_runs(user["id"], case_id=case_id),
+            }
+        )
     return json_response({"status": "success", "cases": STORE.list_cases(user["id"])})
 
 

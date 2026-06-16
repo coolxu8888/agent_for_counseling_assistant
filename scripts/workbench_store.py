@@ -320,18 +320,30 @@ class WorkbenchStore:
                 (user_id, case_id, action, json_dumps(details or {}), utc_iso()),
             )
 
-    def list_audit_logs(self, user_id, limit=50):
+    def list_audit_logs(self, user_id, limit=50, case_id=None):
         with self.connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT id, case_id, action, details, created_at
-                FROM audit_logs
-                WHERE user_id = ?
-                ORDER BY id DESC
-                LIMIT ?
-                """,
-                (user_id, limit),
-            ).fetchall()
+            if case_id is not None:
+                rows = conn.execute(
+                    """
+                    SELECT id, case_id, action, details, created_at
+                    FROM audit_logs
+                    WHERE user_id = ? AND case_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (user_id, case_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, case_id, action, details, created_at
+                    FROM audit_logs
+                    WHERE user_id = ?
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (user_id, limit),
+                ).fetchall()
             return [row_to_dict(row) for row in rows]
 
 

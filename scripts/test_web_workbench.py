@@ -154,6 +154,88 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("Set-Cookie", headers)
         self.assertIn(web_workbench.SESSION_COOKIE, headers["Set-Cookie"])
 
+    def test_handle_cases_detail_returns_case_uploads_audit_and_runs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            run_log = Path(tmp) / "run-log.jsonl"
+            user = {"id": 7, "username": "demo", "role": "counselor"}
+            case_record = store.create_case(user["id"], "Case A", client_code="A-001", notes="baseline")
+            upload = store.store_upload(
+                user["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                case_id=case_record["id"],
+            )
+            store.audit(user["id"], case_record["id"], "workflow.run", {"workflow": "W2"})
+
+            run_log.write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "timestamp": "2026-06-16T10:00:00+00:00",
+                                "action": "workflow.run",
+                                "user_id": user["id"],
+                                "case_id": case_record["id"],
+                                "details": {
+                                    "workflow": "W2",
+                                    "run_dir": r"C:\runs\run-1",
+                                    "status": "success",
+                                },
+                            },
+                            ensure_ascii=False,
+                        ),
+                        json.dumps(
+                            {
+                                "timestamp": "2026-06-16T11:00:00+00:00",
+                                "action": "template.draft",
+                                "user_id": user["id"],
+                                "case_id": case_record["id"],
+                                "details": {
+                                    "output_path": r"C:\runs\run-1\filled_template.docx",
+                                    "report_path": r"C:\runs\run-1\template_fill_report.json",
+                                    "status": "PASS",
+                                },
+                            },
+                            ensure_ascii=False,
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                    status, _headers, body = web_workbench.handle_cases(
+                        user,
+                        {"action": "detail", "case_id": case_record["id"]},
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["case"]["id"], case_record["id"])
+        self.assertEqual(payload["uploads"][0]["id"], upload["id"])
+        self.assertEqual(payload["audit_logs"][0]["action"], "workflow.run")
+        self.assertEqual(payload["recent_runs"][0]["action"], "template.draft")
+        self.assertEqual(payload["recent_runs"][1]["details"]["workflow"], "W2")
+
+    def test_handle_cases_detail_rejects_unknown_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            user = {"id": 7, "username": "demo", "role": "counselor"}
+
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_cases(
+                    user,
+                    {"action": "detail", "case_id": 999},
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["message"], "Case not found.")
+
     def test_apply_output_style_adds_style_instruction(self):
         styled = web_workbench.apply_output_style("材料", style="warm_clinical")
 
