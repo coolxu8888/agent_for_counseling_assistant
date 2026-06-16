@@ -40,6 +40,21 @@ RUN_LOG_PATH = ROOT / "workbench-run-log.jsonl"
 SESSION_COOKIE = "workbench_session"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
 WORKSPACE_BACKUP_VERSION = 1
+RUN_ARTIFACT_FILE_NAMES = {
+    "input": "input.json",
+    "prompt_package": "prompt_package.txt",
+    "metadata": "metadata.json",
+    "raw_output": "raw_output.txt",
+    "clean_output": "clean_output.md",
+    "structured_output": "structured_output.json",
+    "structured_check": "structured_check.json",
+    "safety_check": "safety_check.json",
+    "docx": "output.docx",
+    "docx_check": "docx_check.json",
+    "filled_template": "filled_template.docx",
+    "template_draft": "template_draft.json",
+    "template_report": "template_fill_report.json",
+}
 
 DEMO_SCENARIOS = [
     {
@@ -337,6 +352,37 @@ def load_run_payload(result):
         },
         "issues": issues,
     }
+
+
+def available_run_files(run_dir):
+    files = {}
+    for key, filename in RUN_ARTIFACT_FILE_NAMES.items():
+        path = run_dir / filename
+        if path.exists():
+            files[key] = path_for_ui(path)
+    return files
+
+
+def summarize_run_artifact(record):
+    run_dir = Path(record["run_dir"]).resolve()
+    summary = dict(record)
+    summary["run_name"] = run_dir.name
+    summary["available_files"] = sorted(path.name for path in run_dir.iterdir() if path.is_file()) if run_dir.is_dir() else []
+    summary["download_files"] = available_run_files(run_dir) if run_dir.is_dir() else {}
+    return summary
+
+
+def load_saved_run_payload(run_record):
+    run_dir = Path(run_record["run_dir"]).resolve()
+    if not run_dir.is_dir():
+        raise FileNotFoundError("Run directory not found.")
+    result = AgentRunResult(run_record.get("workflow") or "UNKNOWN", "success", run_dir)
+    payload = load_run_payload(result)
+    payload["available_files"] = available_run_files(run_dir)
+    payload["source_action"] = run_record.get("source_action") or ""
+    payload["created_at"] = run_record.get("created_at")
+    payload["run_name"] = run_dir.name
+    return payload
 
 
 def handle_api_run(payload):
@@ -1001,8 +1047,35 @@ def handle_workspace(user, payload=None):
     return error_response(400, "Unknown workspace action.")
 
 
+def handle_runs(user, payload=None):
+    payload = payload or {}
+    action = payload.get("action") or "list"
+    if action == "detail":
+        run_dir = str(payload.get("run_dir") or "").strip()
+        if not run_dir:
+            return error_response(400, "run_dir is required.")
+        run_record = STORE.get_run_artifact(user["id"], run_dir)
+        if not run_record:
+            return error_response(404, "Run not found.")
+        try:
+            require_run_dir_access(user["id"], Path(run_record["run_dir"]))
+            return json_response({"status": "success", **load_saved_run_payload(run_record)})
+        except (FileNotFoundError, PermissionError, ValueError) as exc:
+            return error_response(400, str(exc))
+    case_id = payload.get("case_id")
+    run_artifacts = STORE.list_run_artifacts(user["id"], case_id=int(case_id) if case_id else None)
+    return json_response(
+        {
+            "status": "success",
+            "runs": [summarize_run_artifact(record) for record in run_artifacts],
+        }
+    )
+
+
 def handle_cases(user, payload=None):
     payload = payload or {}
+    if payload.get("action") == "demo_catalog":
+        return handle_demo_catalog()
     if payload.get("action") == "create":
         case_record = STORE.create_case(
             user["id"],
@@ -1040,6 +1113,7 @@ def handle_cases(user, payload=None):
         case_record = STORE.get_case(user["id"], case_id)
         if not case_record:
             return error_response(404, "Case not found.")
+        run_artifacts = STORE.list_run_artifacts(user["id"], case_id=case_id)
         return json_response(
             {
                 "status": "success",
@@ -1047,6 +1121,7 @@ def handle_cases(user, payload=None):
                 "uploads": STORE.list_uploads(user["id"], case_id=case_id),
                 "audit_logs": STORE.list_audit_logs(user["id"], case_id=case_id),
                 "recent_runs": list_recent_runs(user["id"], case_id=case_id),
+                "run_artifacts": [summarize_run_artifact(record) for record in run_artifacts],
             }
         )
     if payload.get("action") == "export":
@@ -1195,7 +1270,7 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         if path == "/api/session":
             send_response_tuple(self, handle_session(self))
             return
-        if path == "/api/demo-catalog":
+        if path in {"/api/demo-catalog", "/api/demo_catalog"}:
             user, error = require_user(self)
             if error:
                 send_response_tuple(self, error)
@@ -1270,11 +1345,13 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_cases(user, payload)
         elif path == "/api/uploads":
             response = handle_uploads(user, payload)
+        elif path == "/api/runs":
+            response = handle_runs(user, payload)
         elif path == "/api/upload":
             response = handle_upload(user, payload)
         elif path == "/api/audit":
             response = handle_audit_logs(user)
-        elif path == "/api/demo-catalog":
+        elif path in {"/api/demo-catalog", "/api/demo_catalog"}:
             response = handle_demo_catalog()
         elif path == "/api/workspace":
             response = handle_workspace(user, payload)

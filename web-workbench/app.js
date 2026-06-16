@@ -9,6 +9,40 @@ const state = {
   caseDetail: null,
 };
 
+const FALLBACK_DEMO_CATALOG = {
+  scenarios: [
+    {
+      id: "case-family-boundary",
+      title: "Recommended demo: W2 case summary",
+      workflow: "W2",
+      summary: "A de-identified BPS-style case summary request focused on family pressure and uncertainty.",
+      input:
+        "请整理个案信息。来访者 24 岁，刚入职，最近半年经常因父母催婚和工作绩效焦虑失眠，上周和父亲争执后独自喝了很多酒，但否认自伤想法。已进行过两次校外咨询，目前最困扰的是情绪波动、注意力下降和回避与家人沟通。请区分已知事实、推测和待补充信息。",
+      output_style: "supervision_summary",
+    },
+    {
+      id: "intake_sleep-stress",
+      title: "W1 Demo: Intake guide",
+      workflow: "W1",
+      summary: "A de-identified intake request with sleep issues, family stress, and a mild risk prompt.",
+      input:
+        "请帮我生成初访信息收集表。来访者为大学女生，近两周因保研压力睡眠变差，和室友关系紧张，偶尔说“想消失一下”，但没有计划，也愿意继续上课。咨询师希望准备首访提问提纲，并单独标出需要进一步核实的风险与保护因素。",
+      output_style: "professional_concise",
+    },
+    {
+      id: "session-sleep-communication",
+      title: "W3 Demo: Session note",
+      workflow: "W3",
+      summary: "A de-identified session note request with clear theme, intervention focus, and risk boundary.",
+      input:
+        "来访者表示最近一周入睡困难，和母亲沟通后感到委屈，否认自伤自杀计划。本次主要讨论情绪识别与下次沟通准备。请生成本次咨询记录，并保留需要后续补充的信息。",
+      output_style: "institutional_record",
+    },
+  ],
+  templates: [],
+  privacy_notice: "Use de-identified demo material only. Avoid names, phone numbers, IDs, and real client data in public MVP validation.",
+};
+
 const $ = (id) => document.getElementById(id);
 const INTRO_KEY = "counselor_agent_intro_seen";
 const SIDE_COLLAPSED_KEY = "counselor_agent_side_collapsed";
@@ -339,10 +373,14 @@ function renderDemoCatalog(payload) {
 
 async function loadDemoCatalog() {
   try {
-    const payload = await postJson("/api/demo-catalog", {});
-    renderDemoCatalog(payload);
+    const payload = await postJson("/api/cases", { action: "demo_catalog" });
+    if (Array.isArray(payload.scenarios) && payload.scenarios.length) {
+      renderDemoCatalog(payload);
+      return;
+    }
+    renderDemoCatalog({ ...FALLBACK_DEMO_CATALOG, templates: payload.templates || [] });
   } catch (error) {
-    clearDemoCatalog(error.message);
+    renderDemoCatalog(FALLBACK_DEMO_CATALOG);
   }
 }
 
@@ -528,6 +566,9 @@ function renderCaseActivity(entries) {
           ? `File: ${details.original_name}`
           : details.title || "Recent activity";
     item.append(title, meta, detail);
+    if (details.run_dir) {
+      item.appendChild(createActionButton("Open result", () => openSavedRun(details.run_dir)));
+    }
     if (details.output_path) {
       item.appendChild(createDownloadLink(details.output_path, "Download output"));
     } else if (details.stored_path) {
@@ -536,6 +577,55 @@ function renderCaseActivity(entries) {
       const runDir = document.createElement("span");
       runDir.textContent = `Run: ${details.run_dir}`;
       item.appendChild(runDir);
+    }
+    list.appendChild(item);
+  });
+}
+
+function ensureSavedRunsSection() {
+  if ($("runArtifactList")) {
+    return $("runArtifactList");
+  }
+  const activitySection = $("caseActivityList") && $("caseActivityList").closest(".soft-section");
+  if (!activitySection || !activitySection.parentNode) {
+    return null;
+  }
+  const section = document.createElement("div");
+  section.className = "soft-section";
+  section.innerHTML = [
+    '<div class="section-title">',
+    "<strong>Saved runs</strong>",
+    "<span>Reopen prior outputs, JSON checks, and generated Word files for this case.</span>",
+    "</div>",
+    '<div id="runArtifactList" class="stack-list muted-list"></div>',
+  ].join("");
+  activitySection.parentNode.insertBefore(section, activitySection);
+  return $("runArtifactList");
+}
+
+function renderSavedRuns(runs) {
+  const list = ensureSavedRunsSection();
+  if (!list) {
+    return;
+  }
+  clearNode(list);
+  if (!runs.length) {
+    addStackPlaceholder("runArtifactList", "Saved workflow and template runs will appear here for reopening.");
+    return;
+  }
+
+  runs.forEach((run) => {
+    const item = document.createElement("div");
+    item.className = "stack-item";
+    const title = document.createElement("strong");
+    title.textContent = `${workflowLabel(run.workflow)} 璺?${run.run_name || "saved run"}`;
+    const meta = document.createElement("span");
+    const fileCount = Array.isArray(run.available_files) ? run.available_files.length : 0;
+    meta.textContent = `${formatTimestamp(run.created_at)} 璺?${fileCount} artifact(s)`;
+    item.append(title, meta);
+    item.appendChild(createActionButton("Open result", () => openSavedRun(run.run_dir)));
+    if (run.download_files && run.download_files.docx) {
+      item.appendChild(createDownloadLink(run.download_files.docx, "Download Word"));
     }
     list.appendChild(item);
   });
@@ -554,6 +644,7 @@ function renderCaseDetail(payload) {
     : `${payload.uploads.length} files 路 ${payload.recent_runs.length} recent items`;
   $("caseSummary").append(title, body);
   renderCaseUploads(payload.uploads || []);
+  renderSavedRuns(payload.run_artifacts || []);
   renderCaseActivity(payload.recent_runs || []);
 }
 
@@ -565,6 +656,8 @@ function clearCaseDetail() {
   renderCaseExportSummary(null);
   renderWorkspaceBackupSummary(null);
   addStackPlaceholder("caseUploadsList", "Uploaded Word templates and materials will appear here.");
+  ensureSavedRunsSection();
+  addStackPlaceholder("runArtifactList", "Saved workflow and template runs will appear here for reopening.");
   addStackPlaceholder("caseActivityList", "Runs, template actions, and uploads will appear here in reverse chronological order.");
 }
 
@@ -741,6 +834,26 @@ async function fillTemplateFromStructured() {
     setPane("template");
   } finally {
     updateTemplateAvailability();
+  }
+}
+
+async function openSavedRun(runDir) {
+  if (!runDir) {
+    return;
+  }
+  setStatus("Loading saved run", "running");
+  try {
+    const data = await postJson("/api/runs", {
+      action: "detail",
+      run_dir: runDir,
+    });
+    updateRunResult(data);
+    $("auditStatus").textContent = `Loaded saved run ${data.run_name || ""}`.trim();
+    setStatus(`Loaded ${workflowLabel(data.workflow)}`, "success");
+    setPane("markdown");
+  } catch (error) {
+    setStatus("Failed", "error");
+    showRunError(error.message);
   }
 }
 

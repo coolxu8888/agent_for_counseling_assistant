@@ -268,6 +268,17 @@ class WebWorkbenchTest(unittest.TestCase):
 
             with patch.object(web_workbench, "STORE", store):
                 with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                    run_root = Path(tmp) / "agent-runs"
+                    run_dir = run_root / "run-1"
+                    run_dir.mkdir(parents=True)
+                    (run_dir / "clean_output.md").write_text("saved output", encoding="utf-8")
+                    store.register_run_artifact(
+                        user["id"],
+                        str(run_dir),
+                        workflow="W2",
+                        case_id=case_record["id"],
+                        source_action="workflow.run",
+                    )
                     status, _headers, body = web_workbench.handle_cases(
                         user,
                         {"action": "detail", "case_id": case_record["id"]},
@@ -280,6 +291,8 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["audit_logs"][0]["action"], "workflow.run")
         self.assertEqual(payload["recent_runs"][0]["action"], "template.draft")
         self.assertEqual(payload["recent_runs"][1]["details"]["workflow"], "W2")
+        self.assertEqual(payload["run_artifacts"][0]["workflow"], "W2")
+        self.assertIn("clean_output.md", payload["run_artifacts"][0]["available_files"])
 
     def test_handle_cases_detail_rejects_unknown_case(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -922,6 +935,60 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["scenarios"][0]["workflow"], "W2")
         self.assertEqual(payload["templates"][0]["path"], str(template_path.resolve()))
         self.assertIn("de-identified", payload["privacy_notice"])
+
+    def test_handle_runs_detail_returns_saved_payload_for_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_dir = run_root / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("saved output", encoding="utf-8")
+            (run_dir / "structured_output.json").write_text('{"workflow":"W3"}', encoding="utf-8")
+            (run_dir / "structured_check.json").write_text('{"status":"PASS"}', encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success"}', encoding="utf-8")
+            (run_dir / "output.docx").write_bytes(b"docx")
+
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            store.register_run_artifact(user["id"], str(run_dir), workflow="W3", source_action="workflow.run")
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    status, _headers, body = web_workbench.handle_runs(
+                        user,
+                        {"action": "detail", "run_dir": str(run_dir)},
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["workflow"], "W3")
+        self.assertEqual(payload["clean_output"], "saved output")
+        self.assertEqual(payload["available_files"]["docx"], str((run_dir / "output.docx").resolve()))
+
+    def test_handle_runs_detail_rejects_unregistered_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_root = root / "agent-runs"
+            run_dir = run_root / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("saved output", encoding="utf-8")
+
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    status, _headers, body = web_workbench.handle_runs(
+                        user,
+                        {"action": "detail", "run_dir": str(run_dir)},
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["message"], "Run not found.")
 
 
 if __name__ == "__main__":
