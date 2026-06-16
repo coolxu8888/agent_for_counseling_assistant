@@ -582,12 +582,126 @@ def list_recent_runs(user_id, case_id=None, limit=12):
             continue
         if case_id is not None and entry.get("case_id") != case_id:
             continue
-        if entry.get("action") not in {"workflow.run", "template.draft", "file.upload", "case.create", "case.update"}:
+        if entry.get("action") not in {"workflow.run", "template.draft", "file.upload", "case.create", "case.update", "case.export"}:
             continue
         entries.append(entry)
 
     entries.sort(key=lambda item: item.get("timestamp", ""), reverse=True)
     return entries[:limit]
+
+
+def parse_audit_log_entry(entry):
+    parsed = dict(entry)
+    details = parsed.get("details")
+    if isinstance(details, str):
+        try:
+            parsed["details"] = json.loads(details)
+        except json.JSONDecodeError:
+            pass
+    return parsed
+
+
+def case_export_file_name(case_record):
+    slug_parts = [f"case-{case_record['id']}"]
+    if case_record.get("client_code"):
+        slug_parts.append(str(case_record["client_code"]).strip())
+    return "-".join(slug_parts) + "-package.zip"
+
+
+def add_file_to_zip(archive, source_path, archive_path):
+    source = Path(source_path)
+    if source.is_file():
+        archive.write(source, archive_path)
+        return True
+    return False
+
+
+def build_case_export_bundle(user, case_record):
+    uploads = STORE.list_uploads(user["id"], case_id=case_record["id"])
+    audit_logs = [parse_audit_log_entry(item) for item in STORE.list_audit_logs(user["id"], limit=200, case_id=case_record["id"])]
+    recent_runs = list_recent_runs(user["id"], case_id=case_record["id"], limit=50)
+    run_artifacts = STORE.list_run_artifacts(user["id"], case_id=case_record["id"], limit=50)
+
+    export_dir = create_run_dir(run_root=RUN_ROOT, workflow_id=f"CASE-EXPORT-{case_record['id']}")
+    bundle_path = export_dir / case_export_file_name(case_record)
+    manifest = {
+        "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "case": case_record,
+        "artifacts": {
+            "upload_count": len(uploads),
+            "run_count": len(run_artifacts),
+            "audit_log_count": len(audit_logs),
+            "recent_activity_count": len(recent_runs),
+        },
+    }
+    included_files = []
+
+    with zipfile.ZipFile(bundle_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("case-summary.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+        archive.writestr("audit-log.json", json.dumps(audit_logs, ensure_ascii=False, indent=2))
+        archive.writestr("recent-runs.json", json.dumps(recent_runs, ensure_ascii=False, indent=2))
+
+        for upload in uploads:
+            source = Path(upload["stored_path"])
+            archive_name = f"uploads/{Path(upload['original_name']).name}"
+            if add_file_to_zip(archive, source, archive_name):
+                included_files.append(archive_name)
+
+        artifact_names = [
+            "input.json",
+            "prompt_package.txt",
+            "metadata.json",
+            "raw_output.txt",
+            "clean_output.md",
+            "structured_output.json",
+            "structured_check.json",
+            "safety_check.json",
+            "output.docx",
+            "docx_check.json",
+            "filled_template.docx",
+            "template_draft.json",
+            "template_fill_report.json",
+        ]
+        for run_record in run_artifacts:
+            run_dir = Path(run_record["run_dir"])
+            if not is_relative_to(run_dir, RUN_ROOT):
+                continue
+            for artifact_name in artifact_names:
+                source = run_dir / artifact_name
+                archive_name = f"runs/{run_dir.name}/{artifact_name}"
+                if add_file_to_zip(archive, source, archive_name):
+                    included_files.append(archive_name)
+
+    STORE.register_run_artifact(
+        user["id"],
+        str(export_dir),
+        workflow="CASE-EXPORT",
+        case_id=case_record["id"],
+        source_action="case.export",
+    )
+    STORE.audit(
+        user["id"],
+        case_record["id"],
+        "case.export",
+        {"output_path": path_for_ui(bundle_path), "file_count": len(included_files)},
+    )
+    append_run_log(
+        "case.export",
+        user_id=user["id"],
+        case_id=case_record["id"],
+        details={
+            "run_dir": path_for_ui(export_dir),
+            "output_path": path_for_ui(bundle_path),
+            "file_count": len(included_files),
+            "status": "success",
+        },
+    )
+    manifest["artifacts"]["included_files"] = included_files
+    return {
+        "run_dir": path_for_ui(export_dir),
+        "output_path": path_for_ui(bundle_path),
+        "manifest": manifest,
+    }
 
 
 def handle_cases(user, payload=None):
@@ -638,6 +752,13 @@ def handle_cases(user, payload=None):
                 "recent_runs": list_recent_runs(user["id"], case_id=case_id),
             }
         )
+    if payload.get("action") == "export":
+        case_id = int(payload.get("case_id") or 0)
+        case_record = STORE.get_case(user["id"], case_id)
+        if not case_record:
+            return error_response(404, "Case not found.")
+        export_payload = build_case_export_bundle(user, case_record)
+        return json_response({"status": "success", **export_payload})
     return json_response({"status": "success", "cases": STORE.list_cases(user["id"])})
 
 

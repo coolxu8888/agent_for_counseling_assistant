@@ -108,6 +108,7 @@
                 <button id="createCaseButton" class="liquid-button secondary-button" type="button">新建个案</button>
                 <button id="saveCaseButton" class="ghost-button" type="button">保存备注</button>
               </div>
+              <button id="exportCaseButton" class="ghost-button wide" type="button">导出个案包</button>
               <label class="field">
                 <span>个案备注</span>
                 <textarea id="caseNotesInput" class="field-textarea" placeholder="记录本次个案的去识别备注、跟进提醒或模板说明"></textarea>
@@ -226,6 +227,11 @@
           <div id="templateSummary" class="summary-box">
             <strong>模板识别</strong>
             <span>尚未扫描模板。</span>
+          </div>
+
+          <div id="caseExportSummary" class="summary-box">
+            <strong>个案导出</strong>
+            <span>选择个案后，可将该个案的备注、文件、近期运行与输出打包为一个可下载 bundle。</span>
           </div>
         </aside>
       </section>

@@ -300,6 +300,23 @@ function formatReportSummary(report) {
   return lines.join("\n");
 }
 
+function renderCaseExportSummary(data) {
+  const box = $("caseExportSummary");
+  box.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = "个案导出";
+  const body = document.createElement("span");
+  if (!data || !data.output_path) {
+    body.textContent = "选择个案后，可将该个案的备注、文件、近期运行与输出打包为一个可下载 bundle。";
+    box.append(title, body);
+    return;
+  }
+  const manifest = data.manifest || {};
+  const artifacts = manifest.artifacts || {};
+  body.textContent = `已打包 ${artifacts.run_count || 0} 次运行、${artifacts.upload_count || 0} 个文件和 ${artifacts.audit_log_count || 0} 条审计记录。`;
+  box.append(title, body, createDownloadLink(data.output_path, "下载 bundle"));
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -335,6 +352,7 @@ function actionLabel(action) {
     "file.upload": "文件上传",
     "case.create": "创建个案",
     "case.update": "更新个案",
+    "case.export": "导出个案包",
   }[action] || action;
 }
 
@@ -429,6 +447,7 @@ function clearCaseDetail() {
   $("caseNotesInput").value = "";
   $("caseSummary").innerHTML = "<strong>当前个案</strong><span>尚未选择个案。</span>";
   $("caseUploadsSummary").innerHTML = "<strong>已关联文件</strong><span>选择个案后显示已上传模板与材料。</span>";
+  renderCaseExportSummary(null);
   addStackPlaceholder("caseUploadsList", "上传的 Word 模板和材料会显示在这里。");
   addStackPlaceholder("caseActivityList", "运行、模板和上传操作会按时间倒序记录在这里。");
 }
@@ -731,6 +750,35 @@ async function saveCaseNotes() {
   $("auditStatus").textContent = `已保存个案备注：${payload.case.title}`;
 }
 
+async function exportCasePackage() {
+  const caseId = selectedCaseId();
+  if (!caseId) {
+    $("auditStatus").textContent = "请先选择个案，再导出个案包。";
+    return;
+  }
+  $("exportCaseButton").disabled = true;
+  $("checksPane").textContent = "正在整理个案备注、运行产物和已上传文件...";
+  setPane("checks");
+  try {
+    const payload = await postJson("/api/cases", {
+      action: "export",
+      case_id: caseId,
+    });
+    renderCaseExportSummary(payload);
+    $("checksPane").textContent = pretty(payload.manifest || payload);
+    if (selectedCaseId()) {
+      await loadCaseDetail(selectedCaseId());
+    }
+    $("auditStatus").textContent = "个案包已生成，可直接下载。";
+  } catch (error) {
+    $("checksPane").textContent = error.message;
+    $("auditStatus").textContent = error.message;
+    setPane("checks");
+  } finally {
+    $("exportCaseButton").disabled = false;
+  }
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -808,6 +856,7 @@ $("loginForm").addEventListener("submit", login);
 $("logoutButton").addEventListener("click", logout);
 $("createCaseButton").addEventListener("click", createCase);
 $("saveCaseButton").addEventListener("click", saveCaseNotes);
+$("exportCaseButton").addEventListener("click", exportCasePackage);
 $("caseSelect").addEventListener("change", () => {
   state.caseId = selectedCaseId();
   loadCaseDetail(state.caseId);

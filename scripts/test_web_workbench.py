@@ -295,6 +295,72 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(payload["message"], "Case not found.")
 
+    def test_handle_cases_export_builds_case_package_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            case_record = store.create_case(user["id"], "Case Export", client_code="A-101", notes="De-identified notes")
+            upload = store.store_upload(
+                user["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                case_id=case_record["id"],
+            )
+            store.audit(user["id"], case_record["id"], "workflow.run", {"workflow": "W3"})
+
+            run_root = root / "agent-runs"
+            run_dir = run_root / "2026-06-16-W3"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("session summary", encoding="utf-8")
+            (run_dir / "structured_output.json").write_text('{"workflow":"W3"}', encoding="utf-8")
+            (run_dir / "output.docx").write_bytes(b"docx")
+            store.register_run_artifact(user["id"], str(run_dir), workflow="W3", case_id=case_record["id"], source_action="workflow.run")
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", root / "workbench-run-log.jsonl"):
+                        status, _headers, body = web_workbench.handle_cases(
+                            user,
+                            {"action": "export", "case_id": case_record["id"]},
+                        )
+
+            payload = json.loads(body.decode("utf-8"))
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["status"], "success")
+            self.assertTrue(payload["output_path"].endswith(".zip"))
+            package_path = Path(payload["output_path"])
+            self.assertTrue(package_path.exists())
+            with zipfile.ZipFile(package_path) as archive:
+                names = set(archive.namelist())
+                self.assertIn("case-summary.json", names)
+                self.assertIn("audit-log.json", names)
+                self.assertIn("recent-runs.json", names)
+                self.assertIn("uploads/template.docx", names)
+                self.assertIn("runs/2026-06-16-W3/clean_output.md", names)
+                self.assertIn("runs/2026-06-16-W3/output.docx", names)
+                summary = json.loads(archive.read("case-summary.json").decode("utf-8"))
+            self.assertEqual(summary["case"]["client_code"], "A-101")
+            self.assertEqual(summary["artifacts"]["upload_count"], 1)
+            self.assertEqual(summary["artifacts"]["run_count"], 1)
+
+    def test_handle_cases_export_rejects_unknown_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            user = {"id": 7, "username": "demo", "role": "counselor"}
+
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_cases(
+                    user,
+                    {"action": "export", "case_id": 999},
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["message"], "Case not found.")
+
     def test_apply_output_style_adds_style_instruction(self):
         styled = web_workbench.apply_output_style("材料", style="warm_clinical")
 

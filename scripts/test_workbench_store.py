@@ -78,6 +78,32 @@ class WorkbenchStoreTest(unittest.TestCase):
         self.assertEqual(record["case_id"], case_record["id"])
         self.assertEqual(record["source_action"], "workflow.run")
 
+    def test_list_run_artifacts_returns_case_scoped_runs_newest_first(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+            user_id = auth["user"]["id"]
+            case_a = store.create_case(user_id, "Case A")
+            case_b = store.create_case(user_id, "Case B")
+            run_root = Path(tmp) / "agent-runs"
+            run_one = run_root / "run-1"
+            run_two = run_root / "run-2"
+            run_three = run_root / "run-3"
+            run_one.mkdir(parents=True)
+            run_two.mkdir(parents=True)
+            run_three.mkdir(parents=True)
+
+            store.register_run_artifact(user_id, str(run_one), workflow="W1", case_id=case_a["id"], source_action="workflow.run")
+            store.register_run_artifact(user_id, str(run_two), workflow="W3", case_id=case_a["id"], source_action="template.draft")
+            store.register_run_artifact(user_id, str(run_three), workflow="W2", case_id=case_b["id"], source_action="workflow.run")
+
+            case_a_runs = store.list_run_artifacts(user_id, case_id=case_a["id"])
+            all_runs = store.list_run_artifacts(user_id)
+
+        self.assertEqual([item["run_dir"] for item in case_a_runs], [str(run_two.resolve()), str(run_one.resolve())])
+        self.assertEqual(case_a_runs[0]["workflow"], "W3")
+        self.assertEqual(len(all_runs), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

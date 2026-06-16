@@ -386,6 +386,32 @@ class WorkbenchStore:
             ).fetchone()
             return row_to_dict(row)
 
+    def list_run_artifacts(self, user_id, case_id=None, limit=100):
+        with self.connect() as conn:
+            if case_id is not None:
+                rows = conn.execute(
+                    """
+                    SELECT run_dir, user_id, case_id, workflow, source_action, created_at
+                    FROM run_artifacts
+                    WHERE user_id = ? AND case_id = ?
+                    ORDER BY created_at DESC, run_dir DESC
+                    LIMIT ?
+                    """,
+                    (user_id, case_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT run_dir, user_id, case_id, workflow, source_action, created_at
+                    FROM run_artifacts
+                    WHERE user_id = ?
+                    ORDER BY created_at DESC, run_dir DESC
+                    LIMIT ?
+                    """,
+                    (user_id, limit),
+                ).fetchall()
+            return [row_to_dict(row) for row in rows]
+
 
 def json_dumps(value):
     import json
