@@ -357,8 +357,9 @@ class WorkbenchStore:
                 ).fetchall()
             return [row_to_dict(row) for row in rows]
 
-    def register_run_artifact(self, user_id, run_dir, workflow="", case_id=None, source_action=""):
+    def register_run_artifact(self, user_id, run_dir, workflow="", case_id=None, source_action="", created_at=None):
         resolved_run_dir = str(Path(run_dir).resolve())
+        created_at = created_at or utc_iso()
         with self.connect() as conn:
             conn.execute(
                 """
@@ -368,10 +369,66 @@ class WorkbenchStore:
                     user_id = excluded.user_id,
                     case_id = excluded.case_id,
                     workflow = excluded.workflow,
-                    source_action = excluded.source_action
+                    source_action = excluded.source_action,
+                    created_at = excluded.created_at
                 """,
-                (resolved_run_dir, user_id, case_id, workflow, source_action, utc_iso()),
+                (resolved_run_dir, user_id, case_id, workflow, source_action, created_at),
             )
+
+    def import_case(self, user_id, title, client_code="", notes="", created_at=None, updated_at=None):
+        created_at = created_at or utc_iso()
+        updated_at = updated_at or created_at
+        with self.connect() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO cases (user_id, title, client_code, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, title.strip() or "Untitled case", client_code.strip(), notes.strip(), created_at, updated_at),
+            )
+            case_id = cursor.lastrowid
+        return self.get_case(user_id, case_id)
+
+    def import_upload_record(
+        self,
+        user_id,
+        case_id,
+        original_name,
+        stored_path,
+        content_type="",
+        size_bytes=0,
+        created_at=None,
+    ):
+        created_at = created_at or utc_iso()
+        with self.connect() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO uploads (
+                    user_id, case_id, original_name, stored_path, content_type, size_bytes, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, case_id, original_name, str(Path(stored_path).resolve()), content_type, int(size_bytes), created_at),
+            )
+            upload_id = cursor.lastrowid
+        return self.get_upload(user_id, upload_id)
+
+    def import_audit_log(self, user_id, case_id, action, details=None, created_at=None):
+        created_at = created_at or utc_iso()
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO audit_logs (user_id, case_id, action, details, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (user_id, case_id, action, json_dumps(details or {}), created_at),
+            )
+
+    def clear_workspace(self, user_id):
+        with self.connect() as conn:
+            conn.execute("DELETE FROM uploads WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM audit_logs WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM run_artifacts WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM cases WHERE user_id = ?", (user_id,))
 
     def get_run_artifact(self, user_id, run_dir):
         resolved_run_dir = str(Path(run_dir).resolve())

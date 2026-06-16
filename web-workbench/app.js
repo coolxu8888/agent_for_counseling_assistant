@@ -15,7 +15,7 @@ const SIDE_WIDTH_KEY = "counselor_agent_side_width";
 
 function pretty(value) {
   if (value === null || value === undefined || value === "") {
-    return "无";
+    return "None";
   }
   if (typeof value === "string") {
     return value;
@@ -27,11 +27,20 @@ function downloadUrl(path) {
   return `/files/${encodeURIComponent(path)}`;
 }
 
+function clearNode(node) {
+  while (node.firstChild) {
+    node.removeChild(node.firstChild);
+  }
+}
+
 function setPathDisplay(id, path, downloadable = false) {
   const target = $(id);
-  target.textContent = "";
+  if (!target) {
+    return;
+  }
+  clearNode(target);
   if (!path) {
-    target.textContent = "无";
+    target.textContent = "None";
     return;
   }
   if (!downloadable) {
@@ -81,15 +90,15 @@ async function postJson(url, payload) {
   let data = null;
   try {
     data = await response.json();
-  } catch (error) {
-    data = { message: "响应不是有效 JSON。" };
+  } catch (_error) {
+    data = { message: "Response was not valid JSON." };
   }
 
   if (!response.ok) {
     if (response.status === 401) {
       showLogin();
     }
-    throw new Error(data.message || "请求失败。");
+    throw new Error(data.message || "Request failed.");
   }
   return data;
 }
@@ -101,7 +110,7 @@ async function getJson(url) {
     if (response.status === 401) {
       showLogin();
     }
-    throw new Error(data.message || "请求失败。");
+    throw new Error(data.message || "Request failed.");
   }
   return data;
 }
@@ -202,16 +211,10 @@ function updateTemplateAvailability() {
 
 function formatTimestamp(value) {
   if (!value) {
-    return "未记录时间";
+    return "Unknown time";
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
-}
-
-function clearNode(node) {
-  while (node.firstChild) {
-    node.removeChild(node.firstChild);
-  }
 }
 
 function addStackPlaceholder(id, text) {
@@ -243,27 +246,50 @@ function createActionButton(label, onClick) {
   return button;
 }
 
+function workflowLabel(workflow) {
+  return {
+    AUTO: "Auto detect",
+    W1: "Intake",
+    W2: "Case summary",
+    W3: "Session note",
+    TEMPLATE: "Template draft",
+  }[workflow] || workflow;
+}
+
+function actionLabel(action) {
+  return {
+    "workflow.run": "Workflow run",
+    "template.draft": "Template draft",
+    "file.upload": "File upload",
+    "case.create": "Case created",
+    "case.update": "Case updated",
+    "case.export": "Case export",
+    "workspace.export": "Workspace backup",
+    "workspace.restore": "Workspace restore",
+  }[action] || action;
+}
+
 function formatTemplateSummary(data) {
   const summary = data.summary || {};
   const slots = data.slots || [];
   const typeText = Object.entries(summary.slot_types || {})
     .map(([type, count]) => `${type}: ${count}`)
-    .join("；") || "无";
+    .join(", ") || "None";
   const preview = slots
     .slice(0, 30)
     .map((slot, index) => {
-      const current = slot.current_text && slot.current_text !== slot.label ? `｜当前：${slot.current_text}` : "";
-      return `${index + 1}. ${slot.label || "未命名栏目"}（${slot.slot_type}）${current}`;
+      const current = slot.current_text && slot.current_text !== slot.label ? ` current: ${slot.current_text}` : "";
+      return `${index + 1}. ${slot.label || "Unnamed slot"} (${slot.slot_type})${current}`;
     })
     .join("\n");
-  const more = slots.length > 30 ? `\n... 还有 ${slots.length - 30} 个栏目未显示` : "";
+  const more = slots.length > 30 ? `\n... ${slots.length - 30} more slots not shown` : "";
   return [
-    `识别栏目：${summary.total_slots || 0} 个`,
-    `可填空位：${summary.fillable_slots || 0} 个`,
-    `已有内容：${summary.prefilled_slots || 0} 个`,
-    `栏目类型：${typeText}`,
+    `Detected slots: ${summary.total_slots || 0}`,
+    `Fillable slots: ${summary.fillable_slots || 0}`,
+    `Prefilled slots: ${summary.prefilled_slots || 0}`,
+    `Slot types: ${typeText}`,
     "",
-    preview || "没有识别到可填栏目。模板可能不是普通表格/冒号占位格式，或内容在文本框、图片、复杂控件中。",
+    preview || "No fillable slots were detected in this template.",
     more,
   ].join("\n");
 }
@@ -279,24 +305,24 @@ function formatReportSummary(report) {
   const unfilled = report.unfilled_fields || [];
   const issues = report.issues || [];
   const lines = [
-    `状态：${report.status || "未知"}`,
-    `已填字段：${filled.length}`,
-    `模型草稿写入：${drafted.length}`,
-    `保留原内容：${kept.length}`,
-    `跳过字段：${skipped.length}`,
-    `未填字段：${unfilled.length}`,
-    `警告/问题：${issues.length}`,
+    `Status: ${report.status || "Unknown"}`,
+    `Filled fields: ${filled.length}`,
+    `Drafted fields: ${drafted.length}`,
+    `Kept fields: ${kept.length}`,
+    `Skipped fields: ${skipped.length}`,
+    `Unfilled fields: ${unfilled.length}`,
+    `Issues: ${issues.length}`,
   ];
   const important = [...unfilled, ...skipped, ...issues].slice(0, 12);
   if (important.length) {
-    lines.push("", "需要查看的项目：");
+    lines.push("", "Needs review:");
     important.forEach((item, index) => {
-      const label = item.template_label || item.location || item.slot_id || "未命名";
-      const reason = item.reason || item.message || "未说明";
-      lines.push(`${index + 1}. ${label}：${reason}`);
+      const label = item.template_label || item.location || item.slot_id || "Unnamed item";
+      const reason = item.reason || item.message || "No reason provided";
+      lines.push(`${index + 1}. ${label}: ${reason}`);
     });
   }
-  lines.push("", "完整报告：", pretty(report));
+  lines.push("", "Full report:", pretty(report));
   return lines.join("\n");
 }
 
@@ -304,24 +330,43 @@ function renderCaseExportSummary(data) {
   const box = $("caseExportSummary");
   box.innerHTML = "";
   const title = document.createElement("strong");
-  title.textContent = "个案导出";
+  title.textContent = "Case export";
   const body = document.createElement("span");
   if (!data || !data.output_path) {
-    body.textContent = "选择个案后，可将该个案的备注、文件、近期运行与输出打包为一个可下载 bundle。";
+    body.textContent = "Select a case to bundle its notes, uploads, recent runs, and generated outputs.";
     box.append(title, body);
     return;
   }
   const manifest = data.manifest || {};
   const artifacts = manifest.artifacts || {};
-  body.textContent = `已打包 ${artifacts.run_count || 0} 次运行、${artifacts.upload_count || 0} 个文件和 ${artifacts.audit_log_count || 0} 条审计记录。`;
-  box.append(title, body, createDownloadLink(data.output_path, "下载 bundle"));
+  body.textContent = `Includes ${artifacts.run_count || 0} runs, ${artifacts.upload_count || 0} uploads, and ${artifacts.audit_log_count || 0} audit entries.`;
+  box.append(title, body, createDownloadLink(data.output_path, "Download bundle"));
+}
+
+function renderWorkspaceBackupSummary(data) {
+  const box = $("workspaceBackupSummary");
+  if (!box) {
+    return;
+  }
+  box.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = "Workspace backup";
+  const body = document.createElement("span");
+  if (!data || !data.output_path) {
+    body.textContent = "Download a full snapshot of this account's cases, uploads, run folders, and activity for restore on a fresh instance.";
+    box.append(title, body);
+    return;
+  }
+  const counts = (data.manifest && data.manifest.counts) || {};
+  body.textContent = `Includes ${counts.cases || 0} cases, ${counts.uploads || 0} uploads, and ${counts.runs || 0} run folders.`;
+  box.append(title, body, createDownloadLink(data.output_path, "Download backup"));
 }
 
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
 
-  $("markdownPane").textContent = data.clean_output || data.raw_output || "无模型输出。";
+  $("markdownPane").textContent = data.clean_output || data.raw_output || "No model output returned.";
   $("jsonPane").textContent = pretty(data.structured_output);
   $("checksPane").textContent = pretty({
     structured_check: data.structured_check,
@@ -336,37 +381,17 @@ function updateRunResult(data) {
   updateTemplateAvailability();
 }
 
-function workflowLabel(workflow) {
-  return {
-    AUTO: "自动判断",
-    W1: "初访信息",
-    W2: "个案整理",
-    W3: "咨询记录",
-  }[workflow] || workflow;
-}
-
-function actionLabel(action) {
-  return {
-    "workflow.run": "工作流运行",
-    "template.draft": "模板填充",
-    "file.upload": "文件上传",
-    "case.create": "创建个案",
-    "case.update": "更新个案",
-    "case.export": "导出个案包",
-  }[action] || action;
-}
-
 function renderCaseUploads(uploads) {
   const summary = $("caseUploadsSummary");
   const list = $("caseUploadsList");
   clearNode(list);
   if (!uploads.length) {
-    summary.innerHTML = "<strong>已关联文件</strong><span>当前个案还没有上传文件。</span>";
-    addStackPlaceholder("caseUploadsList", "上传的 Word 模板和材料会显示在这里。");
+    summary.innerHTML = "<strong>Linked files</strong><span>No files are attached to this case yet.</span>";
+    addStackPlaceholder("caseUploadsList", "Uploaded Word templates and materials will appear here.");
     return;
   }
 
-  summary.innerHTML = `<strong>已关联文件</strong><span>当前个案已关联 ${uploads.length} 个文件，可直接带回模板区继续使用。</span>`;
+  summary.innerHTML = `<strong>Linked files</strong><span>This case has ${uploads.length} uploaded file(s) ready for reuse in the template workflow.</span>`;
   uploads.forEach((upload) => {
     const item = document.createElement("div");
     item.className = "stack-item";
@@ -374,14 +399,14 @@ function renderCaseUploads(uploads) {
     title.textContent = upload.original_name;
     const meta = document.createElement("span");
     const sizeKb = Math.max(1, Math.round((upload.size_bytes || 0) / 1024));
-    meta.textContent = `${formatTimestamp(upload.created_at)} · ${sizeKb} KB`;
+    meta.textContent = `${formatTimestamp(upload.created_at)} 路 ${sizeKb} KB`;
     item.append(title, meta);
-    item.appendChild(createDownloadLink(upload.stored_path, "下载文件"));
+    item.appendChild(createDownloadLink(upload.stored_path, "Download"));
     item.appendChild(
-      createActionButton("用作当前模板", () => {
+      createActionButton("Use as template", () => {
         $("templatePath").value = upload.stored_path;
         setPathDisplay("uploadedTemplatePath", upload.stored_path, false);
-        $("templatePane").textContent = `已将模板路径切换为：${upload.original_name}`;
+        $("templatePane").textContent = `Current template set to ${upload.original_name}.`;
         setPane("template");
       }),
     );
@@ -393,7 +418,7 @@ function renderCaseActivity(entries) {
   const list = $("caseActivityList");
   clearNode(list);
   if (!entries.length) {
-    addStackPlaceholder("caseActivityList", "运行、模板和上传操作会按时间倒序记录在这里。");
+    addStackPlaceholder("caseActivityList", "Runs, template actions, and uploads will appear here in reverse chronological order.");
     return;
   }
 
@@ -408,15 +433,15 @@ function renderCaseActivity(entries) {
     const details = entry.details || {};
     detail.textContent =
       details.workflow
-        ? `${workflowLabel(details.workflow)} · ${details.status || "已完成"}`
+        ? `${workflowLabel(details.workflow)} 路 ${details.status || "Completed"}`
         : details.original_name
-          ? `文件：${details.original_name}`
-          : details.title || "查看最近操作";
+          ? `File: ${details.original_name}`
+          : details.title || "Recent activity";
     item.append(title, meta, detail);
     if (details.output_path) {
-      item.appendChild(createDownloadLink(details.output_path, "下载生成文件"));
+      item.appendChild(createDownloadLink(details.output_path, "Download output"));
     } else if (details.stored_path) {
-      item.appendChild(createDownloadLink(details.stored_path, "下载上传文件"));
+      item.appendChild(createDownloadLink(details.stored_path, "Download file"));
     } else if (details.run_dir) {
       const runDir = document.createElement("span");
       runDir.textContent = `Run: ${details.run_dir}`;
@@ -435,8 +460,8 @@ function renderCaseDetail(payload) {
   title.textContent = caseRecord.title;
   const body = document.createElement("span");
   body.textContent = caseRecord.client_code
-    ? `编号 ${caseRecord.client_code} · ${payload.uploads.length} 个文件 · ${payload.recent_runs.length} 条最近活动`
-    : `${payload.uploads.length} 个文件 · ${payload.recent_runs.length} 条最近活动`;
+    ? `Code ${caseRecord.client_code} 路 ${payload.uploads.length} files 路 ${payload.recent_runs.length} recent items`
+    : `${payload.uploads.length} files 路 ${payload.recent_runs.length} recent items`;
   $("caseSummary").append(title, body);
   renderCaseUploads(payload.uploads || []);
   renderCaseActivity(payload.recent_runs || []);
@@ -445,11 +470,12 @@ function renderCaseDetail(payload) {
 function clearCaseDetail() {
   state.caseDetail = null;
   $("caseNotesInput").value = "";
-  $("caseSummary").innerHTML = "<strong>当前个案</strong><span>尚未选择个案。</span>";
-  $("caseUploadsSummary").innerHTML = "<strong>已关联文件</strong><span>选择个案后显示已上传模板与材料。</span>";
+  $("caseSummary").innerHTML = "<strong>Current case</strong><span>No case selected.</span>";
+  $("caseUploadsSummary").innerHTML = "<strong>Linked files</strong><span>Select a case to view its uploaded templates and source materials.</span>";
   renderCaseExportSummary(null);
-  addStackPlaceholder("caseUploadsList", "上传的 Word 模板和材料会显示在这里。");
-  addStackPlaceholder("caseActivityList", "运行、模板和上传操作会按时间倒序记录在这里。");
+  renderWorkspaceBackupSummary(null);
+  addStackPlaceholder("caseUploadsList", "Uploaded Word templates and materials will appear here.");
+  addStackPlaceholder("caseActivityList", "Runs, template actions, and uploads will appear here in reverse chronological order.");
 }
 
 function showRunError(message) {
@@ -460,7 +486,7 @@ function showRunError(message) {
 function updateTemplateResult(data) {
   if (data.run_dir) {
     state.runDir = data.run_dir;
-    $("runDir").textContent = data.run_dir;
+    setPathDisplay("runDir", data.run_dir, false);
   }
   setPathDisplay("filledTemplatePath", data.output_path, true);
   setPathDisplay("templateDraftPath", data.draft_path, true);
@@ -479,12 +505,12 @@ function templatePayloadBase() {
 async function runAgent() {
   const input = $("inputText").value.trim();
   if (!input) {
-    setStatus("缺少输入", "error");
-    showRunError("请输入咨询师材料后再运行。");
+    setStatus("Missing input", "error");
+    showRunError("Enter counselor material before running a workflow.");
     return;
   }
 
-  setStatus("运行中", "running");
+  setStatus("Running", "running");
   $("runButton").disabled = true;
 
   try {
@@ -502,12 +528,12 @@ async function runAgent() {
     if (selectedCaseId()) {
       await loadCaseDetail(selectedCaseId());
     }
-    setStatus(data.status === "success" ? "成功" : data.status || "完成", data.status === "error" ? "error" : "success");
+    setStatus(data.status === "success" ? "Success" : data.status || "Complete", data.status === "error" ? "error" : "success");
   } catch (error) {
     state.runDir = null;
     state.structuredOutput = null;
     updateTemplateAvailability();
-    setStatus("失败", "error");
+    setStatus("Failed", "error");
     showRunError(error.message);
   } finally {
     $("runButton").disabled = false;
@@ -518,19 +544,19 @@ async function draftTemplate() {
   const templatePath = $("templatePath").value.trim();
   const rawInput = $("inputText").value.trim();
   if (!templatePath) {
-    $("templatePane").textContent = "请输入 Word 模板路径。";
+    $("templatePane").textContent = "Enter a Word template path or upload a .docx template first.";
     setPane("template");
     return;
   }
   if (!rawInput) {
-    $("templatePane").textContent = "请输入咨询师材料。智能填充需要 raw data。";
+    $("templatePane").textContent = "Enter counselor material before drafting the template.";
     setPane("template");
     return;
   }
 
   $("draftTemplateButton").disabled = true;
   $("fillTemplateButton").disabled = true;
-  $("templatePane").textContent = "正在理解模板并整理填充内容...";
+  $("templatePane").textContent = "Understanding the template and drafting slot content...";
   setPane("template");
 
   try {
@@ -559,15 +585,15 @@ async function draftTemplate() {
 async function inspectTemplate() {
   const templatePath = $("templatePath").value.trim();
   if (!templatePath) {
-    $("templateSummary").innerHTML = "<strong>模板识别</strong><span>请输入 Word 模板路径。</span>";
-    $("templatePane").textContent = "请输入 Word 模板路径。";
+    $("templateSummary").innerHTML = "<strong>Template scan</strong><span>Enter a Word template path or upload a .docx file first.</span>";
+    $("templatePane").textContent = "Enter a Word template path or upload a .docx file first.";
     setPane("template");
     return;
   }
 
   $("inspectTemplateButton").disabled = true;
-  $("templateSummary").innerHTML = "<strong>模板识别</strong><span>正在扫描模板栏目...</span>";
-  $("templatePane").textContent = "正在扫描模板栏目...";
+  $("templateSummary").innerHTML = "<strong>Template scan</strong><span>Scanning template slots...</span>";
+  $("templatePane").textContent = "Scanning template slots...";
   setPane("template");
 
   try {
@@ -575,7 +601,7 @@ async function inspectTemplate() {
     state.templateSlots = data.slots || [];
     $("templateSummary").innerHTML = "";
     const title = document.createElement("strong");
-    title.textContent = "模板识别";
+    title.textContent = "Template scan";
     const body = document.createElement("span");
     body.textContent = formatTemplateSummary(data);
     $("templateSummary").append(title, body);
@@ -584,7 +610,7 @@ async function inspectTemplate() {
     state.templateSlots = [];
     $("templateSummary").innerHTML = "";
     const title = document.createElement("strong");
-    title.textContent = "模板识别失败";
+    title.textContent = "Template scan failed";
     const body = document.createElement("span");
     body.textContent = error.message;
     $("templateSummary").append(title, body);
@@ -597,18 +623,18 @@ async function inspectTemplate() {
 async function fillTemplateFromStructured() {
   const templatePath = $("templatePath").value.trim();
   if (!canFillFromStructured()) {
-    $("templatePane").textContent = "需要先运行并获得结构化 JSON，或者使用上方智能模板填充。";
+    $("templatePane").textContent = "Run a workflow with structured output first, or use intelligent template drafting above.";
     setPane("template");
     return;
   }
   if (!templatePath) {
-    $("templatePane").textContent = "请输入 Word 模板路径。";
+    $("templatePane").textContent = "Enter a Word template path or upload a .docx template first.";
     setPane("template");
     return;
   }
 
   $("fillTemplateButton").disabled = true;
-  $("templatePane").textContent = "正在用结构化 JSON 填充模板...";
+  $("templatePane").textContent = "Filling the template from structured JSON...";
   setPane("template");
 
   try {
@@ -630,7 +656,7 @@ async function fillTemplateFromStructured() {
 
 async function login(event) {
   event.preventDefault();
-  $("loginMessage").textContent = "登录中...";
+  $("loginMessage").textContent = "Signing in...";
   try {
     const data = await postJson("/api/login", {
       username: $("loginUsername").value.trim(),
@@ -639,7 +665,7 @@ async function login(event) {
     state.user = data.user;
     hideLogin();
     await loadCases();
-    $("auditStatus").textContent = `已登录：${data.user.username}`;
+    $("auditStatus").textContent = `Signed in as ${data.user.username}`;
   } catch (error) {
     $("loginMessage").textContent = error.message;
   }
@@ -649,8 +675,9 @@ async function logout() {
   await postJson("/api/logout", {});
   state.user = null;
   state.caseId = "";
-  $("caseSelect").innerHTML = '<option value="">未选择个案</option>';
-  showLogin("已退出登录。");
+  $("caseSelect").innerHTML = '<option value="">No case selected</option>';
+  clearCaseDetail();
+  showLogin("Signed out.");
 }
 
 async function checkSession() {
@@ -664,7 +691,7 @@ async function checkSession() {
       state.user = data.user;
       hideLogin();
       await loadCases();
-      $("auditStatus").textContent = `已登录：${data.user.username}`;
+      $("auditStatus").textContent = `Signed in as ${data.user.username}`;
     } else {
       showLogin();
     }
@@ -676,13 +703,11 @@ async function checkSession() {
 function renderCases(cases) {
   const select = $("caseSelect");
   const current = select.value;
-  select.innerHTML = '<option value="">未选择个案</option>';
+  select.innerHTML = '<option value="">No case selected</option>';
   cases.forEach((caseItem) => {
     const option = document.createElement("option");
     option.value = String(caseItem.id);
-    option.textContent = caseItem.client_code
-      ? `${caseItem.title}（${caseItem.client_code}）`
-      : caseItem.title;
+    option.textContent = caseItem.client_code ? `${caseItem.title} (${caseItem.client_code})` : caseItem.title;
     select.appendChild(option);
   });
   if ([...select.options].some((option) => option.value === current)) {
@@ -716,7 +741,7 @@ async function loadCaseDetail(caseId = selectedCaseId()) {
 async function createCase() {
   const title = $("caseTitleInput").value.trim();
   if (!title) {
-    $("auditStatus").textContent = "请先输入个案标题。";
+    $("auditStatus").textContent = "Enter a case title first.";
     return;
   }
   const data = await postJson("/api/cases", {
@@ -730,13 +755,13 @@ async function createCase() {
   await loadCaseDetail(state.caseId);
   $("caseTitleInput").value = "";
   $("clientCodeInput").value = "";
-  $("auditStatus").textContent = "个案已创建。";
+  $("auditStatus").textContent = "Case created.";
 }
 
 async function saveCaseNotes() {
   const caseId = selectedCaseId();
   if (!caseId) {
-    $("auditStatus").textContent = "请先选择个案，再保存备注。";
+    $("auditStatus").textContent = "Select a case before saving notes.";
     return;
   }
   const payload = await postJson("/api/cases", {
@@ -747,17 +772,17 @@ async function saveCaseNotes() {
     notes: $("caseNotesInput").value.trim(),
   });
   await loadCaseDetail(caseId);
-  $("auditStatus").textContent = `已保存个案备注：${payload.case.title}`;
+  $("auditStatus").textContent = `Saved case notes for ${payload.case.title}.`;
 }
 
 async function exportCasePackage() {
   const caseId = selectedCaseId();
   if (!caseId) {
-    $("auditStatus").textContent = "请先选择个案，再导出个案包。";
+    $("auditStatus").textContent = "Select a case before exporting a bundle.";
     return;
   }
   $("exportCaseButton").disabled = true;
-  $("checksPane").textContent = "正在整理个案备注、运行产物和已上传文件...";
+  $("checksPane").textContent = "Building case bundle...";
   setPane("checks");
   try {
     const payload = await postJson("/api/cases", {
@@ -769,13 +794,61 @@ async function exportCasePackage() {
     if (selectedCaseId()) {
       await loadCaseDetail(selectedCaseId());
     }
-    $("auditStatus").textContent = "个案包已生成，可直接下载。";
+    $("auditStatus").textContent = "Case bundle generated.";
   } catch (error) {
     $("checksPane").textContent = error.message;
     $("auditStatus").textContent = error.message;
     setPane("checks");
   } finally {
     $("exportCaseButton").disabled = false;
+  }
+}
+
+async function exportWorkspaceBackup() {
+  $("exportWorkspaceButton").disabled = true;
+  $("checksPane").textContent = "Building workspace backup...";
+  setPane("checks");
+  try {
+    const payload = await postJson("/api/workspace", { action: "export" });
+    renderWorkspaceBackupSummary(payload);
+    $("checksPane").textContent = pretty(payload.manifest || payload);
+    $("auditStatus").textContent = "Workspace backup generated.";
+  } catch (error) {
+    $("checksPane").textContent = error.message;
+    $("auditStatus").textContent = error.message;
+  } finally {
+    $("exportWorkspaceButton").disabled = false;
+  }
+}
+
+async function restoreWorkspaceBackup() {
+  const file = $("workspaceBackupUpload").files[0];
+  if (!file) {
+    $("auditStatus").textContent = "Choose a workspace backup .zip first.";
+    return;
+  }
+  if (!window.confirm("Restoring a backup will replace this account's current cases, uploads, and run history. Continue?")) {
+    return;
+  }
+  $("restoreWorkspaceButton").disabled = true;
+  $("checksPane").textContent = "Restoring workspace backup...";
+  setPane("checks");
+  try {
+    const backupBase64 = await fileToBase64(file);
+    const payload = await postJson("/api/workspace", {
+      action: "restore",
+      backup_base64: backupBase64,
+    });
+    renderWorkspaceBackupSummary(null);
+    $("workspaceBackupUpload").value = "";
+    $("checksPane").textContent = pretty(payload.manifest || payload);
+    await loadCases();
+    $("auditStatus").textContent = "Workspace restored from backup.";
+  } catch (error) {
+    $("checksPane").textContent = error.message;
+    $("auditStatus").textContent = error.message;
+  } finally {
+    $("restoreWorkspaceButton").disabled = false;
   }
 }
 
@@ -797,7 +870,7 @@ async function uploadTemplate() {
     return;
   }
   setPathDisplay("uploadedTemplatePath", null);
-  $("templatePane").textContent = "正在上传模板...";
+  $("templatePane").textContent = "Uploading template...";
   setPane("template");
   try {
     const contentBase64 = await fileToBase64(file);
@@ -812,9 +885,30 @@ async function uploadTemplate() {
     if (selectedCaseId()) {
       await loadCaseDetail(selectedCaseId());
     }
-    $("templatePane").textContent = "模板已上传，可以扫描栏目或智能填充。";
+    $("templatePane").textContent = "Template uploaded. You can scan slots or start intelligent drafting now.";
   } catch (error) {
     $("templatePane").textContent = error.message;
+  }
+}
+
+function initializeWorkspaceBackupUi() {
+  const exportButton = $("exportWorkspaceButton");
+  const restoreButton = $("restoreWorkspaceButton");
+  if (exportButton) {
+    exportButton.textContent = "Backup workspace";
+  }
+  if (restoreButton) {
+    restoreButton.textContent = "Restore backup";
+  }
+  const uploadInput = $("workspaceBackupUpload");
+  if (uploadInput) {
+    const fieldLabel = uploadInput.closest(".field");
+    if (fieldLabel) {
+      const span = fieldLabel.querySelector("span");
+      if (span) {
+        span.textContent = "Workspace backup (.zip)";
+      }
+    }
   }
 }
 
@@ -857,6 +951,8 @@ $("logoutButton").addEventListener("click", logout);
 $("createCaseButton").addEventListener("click", createCase);
 $("saveCaseButton").addEventListener("click", saveCaseNotes);
 $("exportCaseButton").addEventListener("click", exportCasePackage);
+$("exportWorkspaceButton").addEventListener("click", exportWorkspaceBackup);
+$("restoreWorkspaceButton").addEventListener("click", restoreWorkspaceBackup);
 $("caseSelect").addEventListener("change", () => {
   state.caseId = selectedCaseId();
   loadCaseDetail(state.caseId);
@@ -865,6 +961,8 @@ $("templateUpload").addEventListener("change", uploadTemplate);
 $("inspectTemplateButton").addEventListener("click", inspectTemplate);
 $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
+
+initializeWorkspaceBackupUi();
 applySavedSidePanelState();
 updateTemplateAvailability();
 clearCaseDetail();

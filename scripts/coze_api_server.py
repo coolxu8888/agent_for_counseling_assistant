@@ -30,6 +30,7 @@ from web_workbench import (
     handle_session,
     handle_upload,
     handle_uploads,
+    handle_workspace,
     json_response,
     read_json_body,
     require_user,
@@ -517,6 +518,8 @@ def handle_web_api(path, payload, handler):
         return handle_upload(user, payload)
     if path == "/api/audit":
         return handle_audit_logs(user)
+    if path == "/api/workspace":
+        return handle_workspace(user, payload)
     return error_response(404, "Endpoint not found.")
 
 

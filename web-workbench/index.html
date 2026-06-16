@@ -117,6 +117,14 @@
                 <strong>已关联文件</strong>
                 <span>选择个案后显示已上传模板与材料。</span>
               </div>
+              <div class="button-row">
+                <button id="exportWorkspaceButton" class="ghost-button" type="button">澶囦唤宸ヤ綔鍙?/button>
+                <button id="restoreWorkspaceButton" class="ghost-button" type="button">鎭㈠澶囦唤</button>
+              </div>
+              <label class="field">
+                <span>宸ヤ綔鍙板浠?zip</span>
+                <input id="workspaceBackupUpload" type="file" accept=".zip,application/zip" />
+              </label>
               <div id="caseUploadsList" class="stack-list muted-list"></div>
             </div>
           </section>
@@ -232,6 +240,10 @@
           <div id="caseExportSummary" class="summary-box">
             <strong>个案导出</strong>
             <span>选择个案后，可将该个案的备注、文件、近期运行与输出打包为一个可下载 bundle。</span>
+          </div>
+          <div id="workspaceBackupSummary" class="summary-box">
+            <strong>宸ヤ綔鍙板浠?</strong>
+            <span>鍙笅杞藉綋鍓嶈处鍙风殑涓銆佹枃浠躲€佽繍琛屼骇鐗╁拰娲诲姩璁板綍锛屽苟鍦ㄦ柊瀹炰緥涓婃仮澶嶃€?/span>
           </div>
         </aside>
       </section>

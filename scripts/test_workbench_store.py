@@ -104,6 +104,63 @@ class WorkbenchStoreTest(unittest.TestCase):
         self.assertEqual(case_a_runs[0]["workflow"], "W3")
         self.assertEqual(len(all_runs), 3)
 
+    def test_import_helpers_and_clear_workspace_preserve_metadata_then_remove_rows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+            user_id = auth["user"]["id"]
+
+            imported_case = store.import_case(
+                user_id,
+                "Imported Case",
+                client_code="RESTORE-001",
+                notes="restored notes",
+                created_at="2026-06-01T10:00:00+00:00",
+                updated_at="2026-06-02T11:00:00+00:00",
+            )
+            upload_path = Path(tmp) / "uploads" / "user-1" / "case-1" / "restored-template.docx"
+            upload_path.parent.mkdir(parents=True, exist_ok=True)
+            upload_path.write_bytes(b"docx")
+            imported_upload = store.import_upload_record(
+                user_id,
+                imported_case["id"],
+                "template.docx",
+                str(upload_path),
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                size_bytes=4,
+                created_at="2026-06-03T12:00:00+00:00",
+            )
+            store.import_audit_log(
+                user_id,
+                imported_case["id"],
+                "workspace.restore",
+                {"source": "backup"},
+                created_at="2026-06-04T13:00:00+00:00",
+            )
+            run_dir = Path(tmp) / "agent-runs" / "restore-run"
+            run_dir.mkdir(parents=True)
+            store.register_run_artifact(
+                user_id,
+                str(run_dir),
+                workflow="W2",
+                case_id=imported_case["id"],
+                source_action="workspace.restore",
+                created_at="2026-06-05T14:00:00+00:00",
+            )
+
+            self.assertEqual(imported_case["created_at"], "2026-06-01T10:00:00+00:00")
+            self.assertEqual(imported_case["updated_at"], "2026-06-02T11:00:00+00:00")
+            self.assertEqual(imported_upload["created_at"], "2026-06-03T12:00:00+00:00")
+            self.assertEqual(store.list_audit_logs(user_id)[0]["created_at"], "2026-06-04T13:00:00+00:00")
+            self.assertEqual(store.list_run_artifacts(user_id)[0]["created_at"], "2026-06-05T14:00:00+00:00")
+
+            store.clear_workspace(user_id)
+
+            self.assertEqual(store.list_cases(user_id), [])
+            self.assertEqual(store.list_uploads(user_id), [])
+            self.assertEqual(store.list_audit_logs(user_id), [])
+            self.assertEqual(store.list_run_artifacts(user_id), [])
+
 
 if __name__ == "__main__":
     unittest.main()

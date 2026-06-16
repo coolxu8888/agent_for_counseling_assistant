@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
+import base64
 from pathlib import Path
 from urllib.parse import quote
 from unittest.mock import patch
@@ -360,6 +361,200 @@ class WebWorkbenchTest(unittest.TestCase):
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 404)
         self.assertEqual(payload["message"], "Case not found.")
+
+    def test_handle_workspace_export_builds_backup_zip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            case_record = store.create_case(user["id"], "Workspace Export", client_code="WS-001", notes="backup")
+            store.store_upload(
+                user["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                case_id=case_record["id"],
+            )
+            store.audit(user["id"], case_record["id"], "workflow.run", {"workflow": "W2"})
+
+            run_root = root / "agent-runs"
+            run_dir = run_root / "2026-06-16-W2"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("case summary", encoding="utf-8")
+            store.register_run_artifact(
+                user["id"],
+                str(run_dir),
+                workflow="W2",
+                case_id=case_record["id"],
+                source_action="workflow.run",
+            )
+
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-06-16T10:00:00+00:00",
+                        "action": "workflow.run",
+                        "user_id": user["id"],
+                        "case_id": case_record["id"],
+                        "details": {"run_dir": str(run_dir), "status": "success"},
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        status, _headers, body = web_workbench.handle_workspace(user, {"action": "export"})
+            payload = json.loads(body.decode("utf-8"))
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["status"], "success")
+            backup_path = Path(payload["output_path"])
+            self.assertTrue(backup_path.exists())
+            with zipfile.ZipFile(backup_path) as archive:
+                names = set(archive.namelist())
+                self.assertIn("manifest.json", names)
+                self.assertIn("workspace.json", names)
+                self.assertIn("uploads/template.docx", names)
+                self.assertIn("runs/2026-06-16-W2/clean_output.md", names)
+                manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+                workspace = json.loads(archive.read("workspace.json").decode("utf-8"))
+            self.assertEqual(manifest["counts"]["cases"], 1)
+            self.assertEqual(workspace["cases"][0]["client_code"], "WS-001")
+            self.assertEqual(workspace["recent_activity"][0]["action"], "workflow.run")
+
+    def test_handle_workspace_restore_replaces_existing_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            stale_case = store.create_case(user["id"], "Stale Case", client_code="OLD-1", notes="old")
+            stale_upload = store.store_upload(user["id"], "old.txt", base64.b64encode(b"old").decode("ascii"), case_id=stale_case["id"])
+            stale_run_root = root / "agent-runs"
+            stale_run_dir = stale_run_root / "old-run"
+            stale_run_dir.mkdir(parents=True)
+            (stale_run_dir / "clean_output.md").write_text("old", encoding="utf-8")
+            store.register_run_artifact(user["id"], str(stale_run_dir), workflow="W1", case_id=stale_case["id"], source_action="workflow.run")
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-06-10T09:00:00+00:00",
+                        "action": "workflow.run",
+                        "user_id": user["id"],
+                        "case_id": stale_case["id"],
+                        "details": {"run_dir": str(stale_run_dir), "stored_path": stale_upload["stored_path"]},
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            backup_path = root / "workspace-backup.zip"
+            workspace_payload = {
+                "cases": [
+                    {
+                        "id": 41,
+                        "title": "Restored Case",
+                        "client_code": "RESTORE-41",
+                        "notes": "restored notes",
+                        "created_at": "2026-06-01T10:00:00+00:00",
+                        "updated_at": "2026-06-02T10:00:00+00:00",
+                    }
+                ],
+                "uploads": [
+                    {
+                        "id": 9,
+                        "case_id": 41,
+                        "original_name": "restored-template.docx",
+                        "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "size_bytes": 4,
+                        "created_at": "2026-06-03T10:00:00+00:00",
+                        "archive_path": "uploads/restored-template.docx",
+                        "stored_path": "C:/old/uploads/restored-template.docx",
+                    }
+                ],
+                "audit_logs": [
+                    {
+                        "case_id": 41,
+                        "action": "workflow.run",
+                        "details": {"run_dir": "C:/old-runs/run-restore"},
+                        "created_at": "2026-06-04T10:00:00+00:00",
+                    }
+                ],
+                "run_artifacts": [
+                    {
+                        "run_dir": "C:/old-runs/run-restore",
+                        "run_name": "run-restore",
+                        "case_id": 41,
+                        "workflow": "W2",
+                        "source_action": "workflow.run",
+                        "created_at": "2026-06-05T10:00:00+00:00",
+                        "files": ["clean_output.md"],
+                    }
+                ],
+                "recent_activity": [
+                    {
+                        "timestamp": "2026-06-06T10:00:00+00:00",
+                        "action": "workflow.run",
+                        "user_id": user["id"],
+                        "case_id": 41,
+                        "details": {
+                            "run_dir": "C:/old-runs/run-restore",
+                            "stored_path": "C:/old/uploads/restored-template.docx",
+                            "status": "success",
+                        },
+                    }
+                ],
+            }
+            with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr(
+                    "manifest.json",
+                    json.dumps({"version": 1, "counts": {"cases": 1, "uploads": 1, "runs": 1}}, ensure_ascii=False),
+                )
+                archive.writestr("workspace.json", json.dumps(workspace_payload, ensure_ascii=False))
+                archive.writestr("uploads/restored-template.docx", b"docx")
+                archive.writestr("runs/run-restore/clean_output.md", "restored output")
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", stale_run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        status, _headers, body = web_workbench.handle_workspace(
+                            user,
+                            {
+                                "action": "restore",
+                                "backup_base64": base64.b64encode(backup_path.read_bytes()).decode("ascii"),
+                            },
+                        )
+                        recent = web_workbench.list_recent_runs(user["id"], limit=10)
+
+            payload = json.loads(body.decode("utf-8"))
+            cases = store.list_cases(user["id"])
+            uploads = store.list_uploads(user["id"])
+            runs = store.list_run_artifacts(user["id"])
+            restored_upload_exists = Path(uploads[0]["stored_path"]).exists()
+            restored_run_output_exists = (Path(runs[0]["run_dir"]) / "clean_output.md").exists()
+            stale_upload_exists = Path(stale_upload["stored_path"]).exists()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(len(cases), 1)
+        self.assertEqual(cases[0]["title"], "Restored Case")
+        self.assertEqual(cases[0]["client_code"], "RESTORE-41")
+        self.assertEqual(len(uploads), 1)
+        self.assertTrue(restored_upload_exists)
+        self.assertNotIn("old-run", runs[0]["run_dir"])
+        self.assertTrue(restored_run_output_exists)
+        self.assertEqual(recent[0]["action"], "workflow.run")
+        self.assertEqual(recent[0]["details"]["status"], "success")
+        self.assertNotIn("old-run", recent[0]["details"]["run_dir"])
+        self.assertFalse(stale_upload_exists)
 
     def test_apply_output_style_adds_style_instruction(self):
         styled = web_workbench.apply_output_style("材料", style="warm_clinical")

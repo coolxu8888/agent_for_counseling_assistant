@@ -1,7 +1,10 @@
 import argparse
+import base64
 import json
 import mimetypes
+import shutil
 import sys
+import tempfile
 import zipfile
 from datetime import datetime, timezone
 from http.cookies import SimpleCookie
@@ -36,6 +39,7 @@ ICON_PATH = ROOT / "Gemini_Generated_Image_agent图标.png"
 RUN_LOG_PATH = ROOT / "workbench-run-log.jsonl"
 SESSION_COOKIE = "workbench_session"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
+WORKSPACE_BACKUP_VERSION = 1
 
 AGENT_STYLE_INSTRUCTIONS = {
     "default": "",
@@ -704,6 +708,261 @@ def build_case_export_bundle(user, case_record):
     }
 
 
+def workspace_backup_file_name():
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    return f"workspace-backup-{stamp}.zip"
+
+
+def build_workspace_backup_bundle(user):
+    cases = STORE.list_cases(user["id"])
+    uploads = STORE.list_uploads(user["id"])
+    audit_logs = [parse_audit_log_entry(item) for item in STORE.list_audit_logs(user["id"], limit=1000)]
+    recent_activity = list_recent_runs(user["id"], limit=500)
+    run_artifacts = STORE.list_run_artifacts(user["id"], limit=500)
+
+    export_dir = create_run_dir(run_root=RUN_ROOT, workflow_id="WORKSPACE-BACKUP")
+    bundle_path = export_dir / workspace_backup_file_name()
+    workspace_payload = {
+        "cases": cases,
+        "uploads": [],
+        "audit_logs": audit_logs,
+        "run_artifacts": [],
+        "recent_activity": recent_activity,
+    }
+
+    with zipfile.ZipFile(bundle_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for upload in uploads:
+            archive_path = f"uploads/{Path(upload['original_name']).name}"
+            if add_file_to_zip(archive, upload["stored_path"], archive_path):
+                workspace_payload["uploads"].append({**upload, "archive_path": archive_path})
+
+        artifact_names = [
+            "input.json",
+            "prompt_package.txt",
+            "metadata.json",
+            "raw_output.txt",
+            "clean_output.md",
+            "structured_output.json",
+            "structured_check.json",
+            "safety_check.json",
+            "output.docx",
+            "docx_check.json",
+            "filled_template.docx",
+            "template_draft.json",
+            "template_fill_report.json",
+        ]
+        for record in run_artifacts:
+            run_dir = Path(record["run_dir"])
+            if not run_dir.is_dir() or not is_relative_to(run_dir, RUN_ROOT):
+                continue
+            files = []
+            for artifact_name in artifact_names:
+                archive_path = f"runs/{run_dir.name}/{artifact_name}"
+                if add_file_to_zip(archive, run_dir / artifact_name, archive_path):
+                    files.append(artifact_name)
+            workspace_payload["run_artifacts"].append({**record, "run_name": run_dir.name, "files": files})
+
+        manifest = {
+            "version": WORKSPACE_BACKUP_VERSION,
+            "exported_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "counts": {
+                "cases": len(workspace_payload["cases"]),
+                "uploads": len(workspace_payload["uploads"]),
+                "audit_logs": len(workspace_payload["audit_logs"]),
+                "runs": len(workspace_payload["run_artifacts"]),
+                "recent_activity": len(workspace_payload["recent_activity"]),
+            },
+        }
+        archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
+        archive.writestr("workspace.json", json.dumps(workspace_payload, ensure_ascii=False, indent=2))
+
+    STORE.register_run_artifact(
+        user["id"],
+        str(export_dir),
+        workflow="WORKSPACE-BACKUP",
+        source_action="workspace.export",
+    )
+    STORE.import_audit_log(
+        user["id"],
+        None,
+        "workspace.export",
+        {"output_path": path_for_ui(bundle_path), "counts": manifest["counts"]},
+    )
+    append_run_log(
+        "workspace.export",
+        user_id=user["id"],
+        details={"run_dir": path_for_ui(export_dir), "output_path": path_for_ui(bundle_path), "status": "success"},
+    )
+    return {"run_dir": path_for_ui(export_dir), "output_path": path_for_ui(bundle_path), "manifest": manifest}
+
+
+def safe_rmtree(target, approved_root):
+    target = Path(target).resolve()
+    approved_root = Path(approved_root).resolve()
+    if not target.exists():
+        return
+    if not is_relative_to(target, approved_root):
+        raise PermissionError("Refusing to delete outside approved workspace roots.")
+    shutil.rmtree(target)
+
+
+def rewrite_path_values(value, path_map):
+    if isinstance(value, dict):
+        return {key: rewrite_path_values(item, path_map) for key, item in value.items()}
+    if isinstance(value, list):
+        return [rewrite_path_values(item, path_map) for item in value]
+    if isinstance(value, str):
+        return path_map.get(value, value)
+    return value
+
+
+def rewrite_run_log_for_user(user_id, replacement_entries=None):
+    replacement_entries = replacement_entries or []
+    entries = []
+    if RUN_LOG_PATH.exists():
+        for line in RUN_LOG_PATH.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("user_id") == user_id:
+                continue
+            entries.append(entry)
+    entries.extend(replacement_entries)
+    entries.sort(key=lambda item: item.get("timestamp", ""))
+    RUN_LOG_PATH.write_text(
+        "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in entries),
+        encoding="utf-8",
+    )
+
+
+def restore_workspace_backup_bundle(user, backup_path):
+    with zipfile.ZipFile(backup_path) as archive:
+        try:
+            manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+            workspace = json.loads(archive.read("workspace.json").decode("utf-8"))
+        except KeyError as exc:
+            raise ValueError(f"Backup bundle is missing {exc.args[0]}.")
+
+        if manifest.get("version") != WORKSPACE_BACKUP_VERSION:
+            raise ValueError("Unsupported workspace backup version.")
+
+        for record in STORE.list_run_artifacts(user["id"], limit=1000):
+            run_dir = Path(record["run_dir"])
+            if run_dir.exists():
+                safe_rmtree(run_dir, RUN_ROOT)
+        upload_root = user_upload_root(user["id"])
+        if upload_root.exists():
+            safe_rmtree(upload_root, active_upload_root())
+        STORE.clear_workspace(user["id"])
+        rewrite_run_log_for_user(user["id"])
+
+        case_id_map = {}
+        path_map = {}
+        for case_record in workspace.get("cases", []):
+            imported = STORE.import_case(
+                user["id"],
+                str(case_record.get("title") or "Untitled case"),
+                client_code=str(case_record.get("client_code") or ""),
+                notes=str(case_record.get("notes") or ""),
+                created_at=case_record.get("created_at"),
+                updated_at=case_record.get("updated_at"),
+            )
+            case_id_map[case_record.get("id")] = imported["id"]
+
+        for upload in workspace.get("uploads", []):
+            archive_path = upload.get("archive_path")
+            if not archive_path:
+                continue
+            original_name = Path(str(upload.get("original_name") or "upload.bin")).name
+            case_id = case_id_map.get(upload.get("case_id"))
+            case_part = f"case-{case_id}" if case_id else "unassigned"
+            target_dir = user_upload_root(user["id"]) / case_part
+            target_dir.mkdir(parents=True, exist_ok=True)
+            target_path = target_dir / original_name
+            target_path.write_bytes(archive.read(archive_path))
+            imported_upload = STORE.import_upload_record(
+                user["id"],
+                case_id,
+                original_name,
+                str(target_path),
+                content_type=str(upload.get("content_type") or ""),
+                size_bytes=upload.get("size_bytes") or target_path.stat().st_size,
+                created_at=upload.get("created_at"),
+            )
+            path_map[upload.get("stored_path")] = imported_upload["stored_path"]
+
+        for artifact in workspace.get("run_artifacts", []):
+            run_name = Path(str(artifact.get("run_name") or "restored-run")).name
+            run_dir = create_run_dir(run_root=RUN_ROOT, workflow_id=f"RESTORE-{run_name}")
+            for filename in artifact.get("files", []):
+                source_name = f"runs/{run_name}/{filename}"
+                target_path = run_dir / filename
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_bytes(archive.read(source_name))
+            STORE.register_run_artifact(
+                user["id"],
+                str(run_dir),
+                workflow=str(artifact.get("workflow") or ""),
+                case_id=case_id_map.get(artifact.get("case_id")),
+                source_action=str(artifact.get("source_action") or ""),
+                created_at=artifact.get("created_at"),
+            )
+            path_map[artifact.get("run_dir")] = str(run_dir.resolve())
+
+        for log in workspace.get("audit_logs", []):
+            STORE.import_audit_log(
+                user["id"],
+                case_id_map.get(log.get("case_id")),
+                str(log.get("action") or "workspace.restore"),
+                rewrite_path_values(log.get("details") or {}, path_map),
+                created_at=log.get("created_at"),
+            )
+
+        restored_activity = []
+        for entry in workspace.get("recent_activity", []):
+            restored_activity.append(
+                {
+                    "timestamp": entry.get("timestamp") or datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "action": str(entry.get("action") or "workspace.restore"),
+                    "user_id": user["id"],
+                    "case_id": case_id_map.get(entry.get("case_id")),
+                    "details": rewrite_path_values(entry.get("details") or {}, path_map),
+                }
+            )
+        rewrite_run_log_for_user(user["id"], replacement_entries=restored_activity)
+
+    STORE.import_audit_log(user["id"], None, "workspace.restore", {"counts": manifest.get("counts", {})})
+    append_run_log("workspace.restore", user_id=user["id"], details={"status": "success"})
+    return {"manifest": manifest, "counts": manifest.get("counts", {})}
+
+
+def handle_workspace(user, payload=None):
+    payload = payload or {}
+    action = payload.get("action") or "export"
+    if action == "export":
+        return json_response({"status": "success", **build_workspace_backup_bundle(user)})
+    if action == "restore":
+        backup_b64 = str(payload.get("backup_base64") or "").strip()
+        if not backup_b64:
+            return error_response(400, "backup_base64 is required.")
+        try:
+            backup_bytes = base64.b64decode(backup_b64)
+        except Exception:
+            return error_response(400, "backup_base64 is not valid base64.")
+        with tempfile.TemporaryDirectory() as tmp:
+            backup_path = Path(tmp) / "workspace-backup.zip"
+            backup_path.write_bytes(backup_bytes)
+            try:
+                result = restore_workspace_backup_bundle(user, backup_path)
+            except (ValueError, PermissionError, FileNotFoundError, zipfile.BadZipFile) as exc:
+                return error_response(400, str(exc))
+        return json_response({"status": "success", **result})
+    return error_response(400, "Unknown workspace action.")
+
+
 def handle_cases(user, payload=None):
     payload = payload or {}
     if payload.get("action") == "create":
@@ -945,6 +1204,8 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_upload(user, payload)
         elif path == "/api/audit":
             response = handle_audit_logs(user)
+        elif path == "/api/workspace":
+            response = handle_workspace(user, payload)
         else:
             response = error_response(404, "Endpoint not found.")
 
