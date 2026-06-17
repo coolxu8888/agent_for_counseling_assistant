@@ -266,6 +266,25 @@ class CozeApiServerTest(unittest.TestCase):
         self.assertEqual(fake.call_args.args[1]["action"], "export")
         self.assertEqual(fake.call_args.args[1]["user_id"], user["id"])
 
+    def test_handle_web_api_routes_signup_without_existing_session(self):
+        handler = FakeHandler()
+
+        with patch.object(
+            coze_api_server,
+            "handle_signup",
+            return_value=coze_api_server.json_response({"status": "success", "user": {"username": "pilot.user"}}),
+        ) as fake:
+            status, _headers, body = coze_api_server.handle_web_api(
+                "/api/signup",
+                {"username": "pilot.user", "password": "safe-pass-123", "password_confirm": "safe-pass-123"},
+                handler,
+            )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(fake.call_args.args[0]["username"], "pilot.user")
+
     def test_handle_web_api_routes_saved_runs_actions(self):
         handler = FakeHandler()
         user = {"id": 7, "username": "demo", "role": "counselor"}

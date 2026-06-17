@@ -29,6 +29,7 @@ from web_workbench import (
     handle_render_docx,
     handle_runs,
     handle_session,
+    handle_signup,
     handle_upload,
     handle_uploads,
     handle_workspace,
@@ -492,6 +493,8 @@ class CozeApiHandler(BaseHTTPRequestHandler):
 def handle_web_api(path, payload, handler):
     if path == "/api/login":
         return handle_login(payload, handler=handler)
+    if path == "/api/signup":
+        return handle_signup(payload, handler=handler)
     if path == "/api/logout":
         return handle_logout(handler)
 
