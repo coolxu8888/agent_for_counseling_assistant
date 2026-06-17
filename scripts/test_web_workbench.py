@@ -65,6 +65,7 @@ class WebWorkbenchTest(unittest.TestCase):
 
         self.assertIn("<title>Counselor Assistant</title>", html)
         self.assertNotIn("?/title>", html)
+        self.assertIn("&lt;&lt;</button>", html)
 
     def test_resolve_download_path_allows_agent_runs_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -227,9 +228,28 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("Input is required", json.loads(body.decode("utf-8"))["message"])
 
     def test_detect_workflow_routes_intake_session_and_case_summary(self):
-        self.assertEqual(web_workbench.detect_workflow("请生成初访信息收集表"), "W1")
-        self.assertEqual(web_workbench.detect_workflow("本次咨询记录和下次咨询重点"), "W3")
-        self.assertEqual(web_workbench.detect_workflow("请按BPS整理个案背景"), "W2")
+        self.assertEqual(web_workbench.detect_workflow("Create an intake information guide"), "W1")
+        self.assertEqual(web_workbench.detect_workflow("Write a session note with next-session focus"), "W3")
+        self.assertEqual(web_workbench.detect_workflow("Summarize this case using a BPS structure"), "W2")
+
+    def test_detect_workflow_routes_english_product_prompts(self):
+        self.assertEqual(web_workbench.detect_workflow("Create an intake guide for a first session"), "W1")
+        self.assertEqual(web_workbench.detect_workflow("Please draft a de-identified case summary for supervision"), "W2")
+        self.assertEqual(web_workbench.detect_workflow("Write a session note and risk update"), "W3")
+
+    def test_apply_output_style_uses_clean_english_instruction_label(self):
+        result = web_workbench.apply_output_style("Base prompt", style="professional_concise")
+
+        self.assertIn("Output style requirement:", result)
+        self.assertIn("Match the user's language", result)
+
+    def test_handle_demo_catalog_uses_english_validation_prompts(self):
+        status, _headers, body = web_workbench.handle_demo_catalog()
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertIn("Please organize this de-identified case summary.", payload["scenarios"][0]["input"])
+        self.assertIn("Create an intake information guide", payload["scenarios"][1]["input"])
 
     def test_handle_run_auto_detects_workflow(self):
         with tempfile.TemporaryDirectory() as tmp:

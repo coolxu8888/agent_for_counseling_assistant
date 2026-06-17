@@ -265,7 +265,7 @@ class WorkbenchStore:
                 INSERT INTO cases (user_id, title, client_code, notes, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (user_id, title.strip() or "未命名个案", client_code.strip(), notes.strip(), now, now),
+                (user_id, title.strip() or "Untitled case", client_code.strip(), notes.strip(), now, now),
             )
             case_id = cursor.lastrowid
         self.audit(user_id, case_id, "case.create", {"title": title})

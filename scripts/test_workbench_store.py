@@ -57,6 +57,15 @@ class WorkbenchStoreTest(unittest.TestCase):
         self.assertEqual(updated["notes"], "去识别笔记")
         self.assertEqual(cases[0]["client_code"], "A001")
 
+    def test_create_case_defaults_to_untitled_case_label(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+
+            case_record = store.create_case(auth["user"]["id"], "   ")
+
+        self.assertEqual(case_record["title"], "Untitled case")
+
     def test_store_upload_and_audit_log(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = self.make_store(tmp)

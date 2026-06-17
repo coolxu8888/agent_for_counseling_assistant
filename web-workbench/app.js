@@ -433,7 +433,11 @@ function applyDemoScenario(scenarioId) {
   $("inputText").value = scenario.input || "";
   $("outputStyleSelect").value = scenario.output_style || "default";
   $("outputCustomStyle").value = "";
-  $("markdownPane").textContent = `${scenario.title}\n\n${scenario.summary}\n\nThe sample input has been loaded into the composer. Review it and click 发送 to run a real model call.`;
+  $("markdownPane").textContent = `${scenario.title}
+
+${scenario.summary}
+
+The sample input has been loaded into the composer. Review it and click Run to start a real model call.`;
   setStatus(`Loaded ${workflowLabel(scenario.workflow)} demo`, "idle");
   $("auditStatus").textContent = `Loaded demo scenario: ${scenario.title}.`;
   setPane("markdown");
@@ -451,7 +455,7 @@ function renderDemoCatalog(payload) {
     const title = document.createElement("strong");
     title.textContent = scenario.title;
     const summary = document.createElement("span");
-    summary.textContent = `${workflowLabel(scenario.workflow)} · ${scenario.summary}`;
+    summary.textContent = `${workflowLabel(scenario.workflow)} | ${scenario.summary}`;
     const actions = document.createElement("div");
     actions.className = "button-row";
     actions.appendChild(createMiniGhostButton("Load sample", () => applyDemoScenario(scenario.id)));
@@ -703,7 +707,7 @@ function renderCaseActivity(entries) {
     const details = entry.details || {};
     detail.textContent =
       details.workflow
-        ? `${workflowLabel(details.workflow)} 路 ${details.status || "Completed"}`
+        ? `${workflowLabel(details.workflow)} | ${details.status || "Completed"}`
         : details.original_name
           ? `File: ${details.original_name}`
           : details.title || "Recent activity";
@@ -760,10 +764,10 @@ function renderSavedRuns(runs) {
     const item = document.createElement("div");
     item.className = "stack-item";
     const title = document.createElement("strong");
-    title.textContent = `${workflowLabel(run.workflow)} 璺?${run.run_name || "saved run"}`;
+    title.textContent = `${workflowLabel(run.workflow)} | ${run.run_name || "saved run"}`;
     const meta = document.createElement("span");
     const fileCount = Array.isArray(run.available_files) ? run.available_files.length : 0;
-    meta.textContent = `${formatTimestamp(run.created_at)} 璺?${fileCount} artifact(s)`;
+    meta.textContent = `${formatTimestamp(run.created_at)} | ${fileCount} artifact(s)`;
     item.append(title, meta);
     item.appendChild(createActionButton("Open result", () => openSavedRun(run.run_dir)));
     if (run.download_files && run.download_files.docx) {
@@ -782,8 +786,8 @@ function renderCaseDetail(payload) {
   title.textContent = caseRecord.title;
   const body = document.createElement("span");
   body.textContent = caseRecord.client_code
-    ? `Code ${caseRecord.client_code} 路 ${payload.uploads.length} files 路 ${payload.recent_runs.length} recent items`
-    : `${payload.uploads.length} files 路 ${payload.recent_runs.length} recent items`;
+    ? `Code ${caseRecord.client_code} | ${payload.uploads.length} files | ${payload.recent_runs.length} recent items`
+    : `${payload.uploads.length} files | ${payload.recent_runs.length} recent items`;
   $("caseSummary").append(title, body);
   renderCaseUploads(payload.uploads || []);
   renderSavedRuns(payload.run_artifacts || []);

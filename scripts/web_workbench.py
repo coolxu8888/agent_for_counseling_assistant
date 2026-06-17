@@ -36,7 +36,7 @@ DATA_ROOT = ROOT / "workbench-data"
 UPLOAD_ROOT = DATA_ROOT / "uploads"
 DOCS_ROOT = ROOT / "docs"
 DB_PATH = DATA_ROOT / "workbench.sqlite3"
-ICON_PATH = ROOT / "Gemini_Generated_Image_agent图标.png"
+ICON_PATH = ROOT / "Gemini_Generated_Image_agent\u56fe\u6807.png"
 RUN_LOG_PATH = ROOT / "workbench-run-log.jsonl"
 SESSION_COOKIE = "workbench_session"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
@@ -64,9 +64,12 @@ DEMO_SCENARIOS = [
         "workflow": "W2",
         "summary": "A de-identified BPS-style case summary request focused on family pressure and uncertainty. This is the strongest end-to-end sample for first-pass validation.",
         "input": (
-            "请整理个案信息。来访者 24 岁，刚入职，最近半年经常因父母催婚和工作绩效焦虑失眠，"
-            "上周和父亲争执后独自喝了很多酒，但否认自伤想法。已有两次校外咨询经历，"
-            "目前最困扰的是情绪波动、注意力下降和回避与家人沟通。请区分已知事实、推测和待补充信息。"
+            "Please organize this de-identified case summary. The client is a 24-year-old recent hire who has had"
+            " insomnia for about six months due to family pressure about marriage and anxiety about job performance."
+            " After an argument with her father last week, she drank heavily alone but denied self-harm thoughts."
+            " She has completed two outside counseling sessions. Current concerns include mood swings, lower"
+            " concentration, and avoiding communication with family. Separate known facts, working hypotheses,"
+            " and information that still needs verification."
         ),
         "output_style": "supervision_summary",
     },
@@ -76,9 +79,11 @@ DEMO_SCENARIOS = [
         "workflow": "W1",
         "summary": "A de-identified intake request with sleep issues, family stress, and a mild risk prompt.",
         "input": (
-            "请帮我生成初访信息收集表。来访者为大学女生，近两周因保研压力睡眠变差，"
-            "和室友关系紧张，偶尔说“想消失一下”，但没有计划，也愿意继续上课。"
-            "咨询师希望准备首访提问提纲，并单独标出需要进一步核实的风险与保护因素。"
+            "Create an intake information guide for a de-identified university student. Over the last two weeks,"
+            " graduate-school pressure has worsened her sleep, and conflict with a roommate has increased stress."
+            " She has occasionally said she wants to disappear for a while, but she reports no plan and is still"
+            " willing to attend classes. Prepare first-session questions and clearly flag the risk and protective"
+            " factors that need follow-up."
         ),
         "output_style": "professional_concise",
     },
@@ -88,8 +93,10 @@ DEMO_SCENARIOS = [
         "workflow": "W3",
         "summary": "A de-identified session note request with clear theme, intervention focus, and risk boundary.",
         "input": (
-            "来访者表示最近一周入睡困难，和母亲沟通后感到委屈，否认自伤自杀计划，"
-            "本次主要讨论情绪识别与下次沟通准备。请生成本次咨询记录，并保留需要后续补充的信息。"
+            "Draft a de-identified session note. The client reports difficulty falling asleep over the last week"
+            " and felt hurt after a conversation with her mother. She denies self-harm or suicide plans. This"
+            " session focused on emotion labeling and preparing for the next difficult conversation. Generate the"
+            " counseling record and preserve any details that still need follow-up."
         ),
         "output_style": "institutional_record",
     },
@@ -97,23 +104,93 @@ DEMO_SCENARIOS = [
 
 AGENT_STYLE_INSTRUCTIONS = {
     "default": "",
-    "professional_concise": "请使用专业、简洁、清晰的咨询记录语言输出。",
-    "warm_clinical": "请使用温和、支持性、但仍保持专业边界的临床语言输出。",
-    "institutional_record": "请使用正式、克制、适合机构留档的记录语言输出。",
-    "supervision_summary": "请使用适合督导讨论的语言输出，突出事实、假设、风险边界和后续工作重点。",
+    "professional_concise": (
+        "\u8bf7\u4f7f\u7528\u4e13\u4e1a\u3001\u7b80\u6d01\u3001\u6e05\u6670\u7684\u54a8\u8be2\u8bb0\u5f55\u8bed\u8a00\u8f93\u51fa\u3002"
+        " Use professional, concise, clear counseling documentation language."
+        " Match the user's language unless they ask for a different one."
+    ),
+    "warm_clinical": (
+        "\u8bf7\u4f7f\u7528\u6e29\u548c\u3001\u652f\u6301\u6027\u3001\u4f46\u4ecd\u4fdd\u6301\u4e13\u4e1a\u8fb9\u754c\u7684\u4e34\u5e8a\u8bed\u8a00\u8f93\u51fa\u3002"
+        " Use warm, supportive clinical language while maintaining professional boundaries."
+        " Match the user's language unless they ask for a different one."
+    ),
+    "institutional_record": (
+        "\u8bf7\u4f7f\u7528\u6b63\u5f0f\u3001\u514b\u5236\u3001\u9002\u5408\u673a\u6784\u7559\u6863\u7684\u8bb0\u5f55\u8bed\u8a00\u8f93\u51fa\u3002"
+        " Use formal, restrained language suitable for institutional documentation."
+        " Match the user's language unless they ask for a different one."
+    ),
+    "supervision_summary": (
+        "\u8bf7\u4f7f\u7528\u9002\u5408\u7763\u5bfc\u8ba8\u8bba\u7684\u8bed\u8a00\u8f93\u51fa\uff0c\u7a81\u51fa\u4e8b\u5b9e\u3001\u5047\u8bbe\u3001\u98ce\u9669\u8fb9\u754c\u548c\u540e\u7eed\u5de5\u4f5c\u91cd\u70b9\u3002"
+        " Write for supervision review, highlighting facts, hypotheses, risk boundaries, and next steps."
+        " Match the user's language unless they ask for a different one."
+    ),
     "custom": "",
+}
+
+WORKFLOW_KEYWORDS = {
+    "W1": [
+        "intake guide",
+        "intake form",
+        "intake checklist",
+        "initial interview",
+        "information gathering",
+        "intake",
+        "\u521d\u8bbf",
+        "\u521d\u59cb\u8bbf\u8c08",
+        "\u4fe1\u606f\u6536\u96c6",
+        "\u8bbf\u8c08\u8868",
+        "\u6536\u96c6\u8868",
+        "\u6765\u8bbf\u4fe1\u606f",
+    ],
+    "W2": [
+        "case summary",
+        "case formulation",
+        "case conceptualization",
+        "biopsychosocial",
+        "bps",
+        "supervision summary",
+        "supervision",
+        "de-identified case",
+        "\u4e2a\u6848\u6982\u5ff5\u5316",
+        "\u4e2a\u6848\u4fe1\u606f",
+        "\u4e2a\u6848\u80cc\u666f",
+        "\u7763\u5bfc",
+        "\u53bb\u8bc6\u522b",
+    ],
+    "W3": [
+        "soap",
+        "dap",
+        "birp",
+        "session note",
+        "progress note",
+        "counseling note",
+        "counselling note",
+        "risk update",
+        "follow-up session",
+        "session record",
+        "session",
+        "note",
+        "intervention",
+        "next session",
+        "\u672c\u6b21\u54a8\u8be2",
+        "\u4e0b\u6b21\u54a8\u8be2",
+        "\u54a8\u8be2\u8bb0\u5f55",
+        "\u98ce\u9669\u53d8\u5316",
+        "\u8bb0\u5f55",
+        "\u603b\u7ed3",
+        "\u5e72\u9884",
+        "\u6765\u8bbf\u8005\u53cd\u5e94",
+    ],
 }
 
 
 def detect_workflow(user_input):
     text = str(user_input or "").lower()
-    if any(keyword in text for keyword in ["soap", "dap", "birp", "session", "本次咨询", "下次咨询", "咨询记录", "风险变化"]):
-        return "W3"
-    if any(keyword in text for keyword in ["个案概念化", "个案信息", "个案背景", "bps", "biopsychosocial", "督导", "去识别"]):
-        return "W2"
-    if any(keyword in text for keyword in ["初访", "初始访谈", "信息收集", "访谈表", "收集表", "来访信息"]):
+    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W1"]):
         return "W1"
-    if any(keyword in text for keyword in ["记录", "总结", "干预", "来访者反应", "下次"]):
+    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W2"]):
+        return "W2"
+    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W3"]):
         return "W3"
     return "W2"
 
@@ -364,7 +441,10 @@ def apply_output_style(user_input, style="default", custom_style=""):
     instruction = custom_style.strip() if style == "custom" else AGENT_STYLE_INSTRUCTIONS[style]
     if not instruction:
         return user_input
-    return f"{user_input.strip()}\n\n输出风格要求：{instruction}"
+    return (
+        f"{user_input.strip()}\n\n"
+        f"\u8f93\u51fa\u98ce\u683c\u8981\u6c42 / Output style requirement: {instruction}"
+    )
 
 
 def resolve_download_path(path_value, allowed_roots=None):
@@ -1410,7 +1490,7 @@ def handle_cases(user, payload=None):
     if payload.get("action") == "create":
         case_record = STORE.create_case(
             user["id"],
-            str(payload.get("title") or "未命名个案"),
+            str(payload.get("title") or "Untitled case"),
             client_code=str(payload.get("client_code") or ""),
             notes=str(payload.get("notes") or ""),
         )
