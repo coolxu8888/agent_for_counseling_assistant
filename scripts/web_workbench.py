@@ -293,6 +293,98 @@ def workspace_policy():
     }
 
 
+def deployment_readiness():
+    auth = auth_config()
+    policy = workspace_policy()
+    username = str(os.environ.get("WORKBENCH_USER", "demo")).strip() or "demo"
+    password = str(os.environ.get("WORKBENCH_PASSWORD", "demo123") or "demo123")
+    has_deepseek_key = bool(str(os.environ.get("DEEPSEEK_API_KEY", "")).strip())
+    default_demo_credentials = username == "demo" and password == "demo123"
+    checks = []
+
+    checks.append(
+        {
+            "id": "deepseek_api",
+            "label": "DeepSeek model access",
+            "status": "pass" if has_deepseek_key else "fail",
+            "detail": (
+                "DEEPSEEK_API_KEY is configured for live workflow runs."
+                if has_deepseek_key
+                else "Missing DEEPSEEK_API_KEY. Live workflow runs will fail on this deployment."
+            ),
+        }
+    )
+
+    auth_status = "pass"
+    auth_detail = "Custom workspace credentials are configured for the operator account."
+    if not str(os.environ.get("WORKBENCH_USER", "")).strip() or not str(os.environ.get("WORKBENCH_PASSWORD", "")).strip():
+        auth_status = "fail"
+        auth_detail = "WORKBENCH_USER and WORKBENCH_PASSWORD should both be set for hosted pilot access."
+    if default_demo_credentials:
+        auth_status = "fail"
+        auth_detail = "Deployment is still using the default demo/demo123 login. Replace it before pilot use."
+    checks.append(
+        {
+            "id": "operator_auth",
+            "label": "Operator login",
+            "status": auth_status,
+            "detail": auth_detail,
+        }
+    )
+
+    signup_status = "warn"
+    signup_detail = "Signup is disabled. Operators can still use a shared workspace login."
+    if auth["signup_enabled"] and auth["invite_required"]:
+        signup_status = "pass"
+        signup_detail = "Signup is enabled and protected by an invite code for isolated counselor workspaces."
+    elif auth["signup_enabled"]:
+        signup_status = "fail"
+        signup_detail = "Signup is enabled without WORKBENCH_SIGNUP_INVITE_CODE. Add an invite code before public pilot access."
+    checks.append(
+        {
+            "id": "workspace_signup",
+            "label": "Workspace signup",
+            "status": signup_status,
+            "detail": signup_detail,
+        }
+    )
+
+    retention_days = policy.get("retention_days")
+    checks.append(
+        {
+            "id": "retention_window",
+            "label": "Retention policy",
+            "status": "pass" if retention_days else "warn",
+            "detail": (
+                f"Automatic pruning is enabled after {retention_days} day(s)."
+                if retention_days
+                else "No retention window is configured. Data pruning is manual only."
+            ),
+        }
+    )
+
+    checks.append(
+        {
+            "id": "storage_durability",
+            "label": "Storage durability",
+            "status": "warn",
+            "detail": "Workspace data is stored in local service files and SQLite. Export backups frequently because redeploys or instance loss can remove data.",
+        }
+    )
+
+    fail_count = sum(1 for item in checks if item["status"] == "fail")
+    warn_count = sum(1 for item in checks if item["status"] == "warn")
+    return {
+        "pilot_ready": fail_count == 0,
+        "summary": {
+            "fail_count": fail_count,
+            "warn_count": warn_count,
+            "storage_backend": "local_filesystem",
+        },
+        "checks": checks,
+    }
+
+
 def require_user(handler):
     user = current_user(handler)
     if not user:
@@ -823,6 +915,7 @@ def handle_login(payload, handler=None):
             "expires_at": auth["expires_at"],
             "auth_config": auth_config(),
             "workspace_policy": workspace_policy(),
+            "deployment_readiness": deployment_readiness(),
         },
         {"Set-Cookie": cookie_header(auth["token"], secure=request_is_https(handler))},
     )
@@ -862,6 +955,7 @@ def handle_signup(payload, handler=None):
             "expires_at": auth["expires_at"],
             "auth_config": config,
             "workspace_policy": workspace_policy(),
+            "deployment_readiness": deployment_readiness(),
         },
         {"Set-Cookie": cookie_header(auth["token"], secure=request_is_https(handler))},
     )
@@ -889,6 +983,7 @@ def handle_session(handler):
             "authenticated": bool(user),
             "auth_config": auth_config(),
             "workspace_policy": workspace_policy(),
+            "deployment_readiness": deployment_readiness(),
         }
     )
 

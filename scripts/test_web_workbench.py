@@ -313,6 +313,58 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertTrue(payload["auth_config"]["signup_enabled"])
         self.assertTrue(payload["auth_config"]["invite_required"])
         self.assertEqual(payload["workspace_policy"]["retention_days"], 14)
+        self.assertIn("deployment_readiness", payload)
+
+    def test_handle_session_reports_pilot_ready_deployment_diagnostics(self):
+        handler = FakeHandler()
+        with patch.dict(
+            "os.environ",
+            {
+                "DEEPSEEK_API_KEY": "sk-live",
+                "WORKBENCH_USER": "pilot",
+                "WORKBENCH_PASSWORD": "pilot-pass-123",
+                "WORKBENCH_ALLOW_SIGNUP": "true",
+                "WORKBENCH_SIGNUP_INVITE_CODE": "invite-123",
+                "WORKBENCH_RETENTION_DAYS": "14",
+            },
+            clear=True,
+        ):
+            status, _headers, body = web_workbench.handle_session(handler)
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        readiness = payload["deployment_readiness"]
+        self.assertTrue(readiness["pilot_ready"])
+        self.assertEqual(readiness["summary"]["fail_count"], 0)
+        self.assertEqual(readiness["summary"]["warn_count"], 1)
+        checks = {item["id"]: item for item in readiness["checks"]}
+        self.assertEqual(checks["deepseek_api"]["status"], "pass")
+        self.assertEqual(checks["operator_auth"]["status"], "pass")
+        self.assertEqual(checks["workspace_signup"]["status"], "pass")
+        self.assertEqual(checks["retention_window"]["status"], "pass")
+        self.assertEqual(checks["storage_durability"]["status"], "warn")
+
+    def test_handle_session_flags_missing_key_and_default_credentials(self):
+        handler = FakeHandler()
+        with patch.dict("os.environ", {}, clear=True):
+            status, _headers, body = web_workbench.handle_session(handler)
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        readiness = payload["deployment_readiness"]
+        self.assertFalse(readiness["pilot_ready"])
+        self.assertEqual(readiness["summary"]["fail_count"], 2)
+        checks = {item["id"]: item for item in readiness["checks"]}
+        self.assertEqual(checks["deepseek_api"]["status"], "fail")
+        self.assertEqual(checks["operator_auth"]["status"], "fail")
+        self.assertEqual(checks["workspace_signup"]["status"], "warn")
+
+    def test_static_index_includes_deployment_readiness_summary(self):
+        index_path = web_workbench.resolve_static_path("/")
+        html = index_path.read_text(encoding="utf-8")
+
+        self.assertIn('id="deploymentReadinessSummary"', html)
+        self.assertIn("Deployment readiness", html)
 
     def test_handle_signup_requires_enabled_policy(self):
         with tempfile.TemporaryDirectory() as tmp:

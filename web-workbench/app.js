@@ -12,6 +12,7 @@ const state = {
   selectedTemplateRef: "",
   selectedTemplateLabel: "",
   workspacePolicy: { max_upload_bytes: 10 * 1024 * 1024, retention_days: null, reset_enabled: true },
+  deploymentReadiness: null,
 };
 
 const FALLBACK_DEMO_CATALOG = {
@@ -633,6 +634,36 @@ function renderWorkspaceGovernance(data) {
   box.append(title, body);
 }
 
+function renderDeploymentReadiness(readiness) {
+  const box = $("deploymentReadinessSummary");
+  if (!box) {
+    return;
+  }
+  box.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = "Deployment readiness";
+  const body = document.createElement("span");
+  const activeReadiness = readiness || state.deploymentReadiness;
+  if (!activeReadiness) {
+    body.textContent = "Sign in to review model access, workspace auth, retention, and storage durability before pilot launch.";
+    box.append(title, body);
+    return;
+  }
+  state.deploymentReadiness = activeReadiness;
+  const summary = activeReadiness.summary || {};
+  const checks = activeReadiness.checks || [];
+  const statusPrefix = activeReadiness.pilot_ready
+    ? `Pilot-ready with ${summary.warn_count || 0} warning(s).`
+    : `${summary.fail_count || 0} blocking issue(s), ${summary.warn_count || 0} warning(s).`;
+  const notable = checks
+    .filter((item) => item.status !== "pass")
+    .slice(0, 2)
+    .map((item) => item.detail)
+    .join(" ");
+  body.textContent = notable ? `${statusPrefix} ${notable}` : statusPrefix;
+  box.append(title, body);
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -1021,6 +1052,8 @@ async function submitAuthForm(event) {
     state.user = data.user;
     applyAuthConfig(data.auth_config || state.authConfig);
     state.workspacePolicy = data.workspace_policy || state.workspacePolicy;
+    state.deploymentReadiness = data.deployment_readiness || state.deploymentReadiness;
+    renderDeploymentReadiness(state.deploymentReadiness);
     localStorage.setItem(LOGIN_USERNAME_KEY, data.user.username);
     hideLogin();
     await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
@@ -1042,10 +1075,12 @@ async function logout() {
   await postJson("/api/logout", {});
   state.user = null;
   state.caseId = "";
+  state.deploymentReadiness = null;
   $("caseSelect").innerHTML = '<option value="">No case selected</option>';
   clearCaseDetail();
   clearDemoCatalog();
   renderWorkspaceGovernance(null);
+  renderDeploymentReadiness(null);
   showLogin("Signed out.");
 }
 
@@ -1058,6 +1093,8 @@ async function checkSession() {
     const data = await getJson("/api/session");
     applyAuthConfig(data.auth_config || {});
     state.workspacePolicy = data.workspace_policy || state.workspacePolicy;
+    state.deploymentReadiness = data.deployment_readiness || null;
+    renderDeploymentReadiness(state.deploymentReadiness);
     if (data.authenticated) {
       state.user = data.user;
       hideLogin();
@@ -1071,6 +1108,7 @@ async function checkSession() {
   } catch (error) {
     clearDemoCatalog();
     renderWorkspaceGovernance(null);
+    renderDeploymentReadiness(null);
     showLogin(error.message);
   }
 }

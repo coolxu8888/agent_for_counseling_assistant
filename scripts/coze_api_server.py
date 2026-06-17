@@ -16,6 +16,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from web_workbench import (
     RUN_ROOT,
+    deployment_readiness,
     error_response,
     handle_api_run,
     handle_audit_logs,
@@ -268,6 +269,7 @@ def service_info(base_url="https://your-domain.example"):
         "description": "API wrapper for counselor assistant workflows and Word template drafting.",
         "openapi": f"{base_url.rstrip('/')}/openapi.json",
         "health": f"{base_url.rstrip('/')}/health",
+        "deployment_readiness": deployment_readiness(),
         "tools": [
             {
                 "name": "run_workflow",
