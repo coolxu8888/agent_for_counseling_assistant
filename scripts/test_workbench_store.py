@@ -2,11 +2,13 @@ import base64
 import sys
 import tempfile
 import unittest
+from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from workbench_store import WorkbenchStore
+from workbench_store import utc_now
 
 
 class WorkbenchStoreTest(unittest.TestCase):
@@ -23,6 +25,24 @@ class WorkbenchStoreTest(unittest.TestCase):
 
         self.assertEqual(auth["user"]["username"], "demo")
         self.assertEqual(user["username"], "demo")
+
+    def test_create_user_supports_isolated_account_authentication(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+
+            created = store.create_user("pilot.user", "safe-pass-123")
+            auth = store.authenticate("pilot.user", "safe-pass-123")
+
+        self.assertEqual(created["username"], "pilot.user")
+        self.assertEqual(auth["user"]["username"], "pilot.user")
+
+    def test_create_user_rejects_duplicate_username_case_insensitively(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+
+            store.create_user("Pilot.User", "safe-pass-123")
+            with self.assertRaisesRegex(ValueError, "already in use"):
+                store.create_user("pilot.user", "another-pass-123")
 
     def test_create_case_list_and_update_case(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -55,6 +75,86 @@ class WorkbenchStoreTest(unittest.TestCase):
             self.assertTrue(Path(upload["stored_path"]).exists())
             self.assertEqual(upload["size_bytes"], 4)
             self.assertTrue(any(item["action"] == "file.upload" for item in logs))
+
+    def test_workspace_summary_reports_counts_and_upload_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+            user_id = auth["user"]["id"]
+            case_record = store.create_case(user_id, "Summary Case")
+            store.store_upload(user_id, "template.docx", base64.b64encode(b"docx").decode("ascii"), case_id=case_record["id"])
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            store.register_run_artifact(user_id, str(run_dir), workflow="W2", case_id=case_record["id"], source_action="workflow.run")
+
+            summary = store.workspace_summary(user_id)
+
+        self.assertEqual(summary["counts"]["cases"], 1)
+        self.assertEqual(summary["counts"]["uploads"], 1)
+        self.assertEqual(summary["counts"]["run_artifacts"], 1)
+        self.assertGreaterEqual(summary["upload_bytes"], 4)
+
+    def test_prune_workspace_data_removes_old_uploads_runs_and_audit_logs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+            user_id = auth["user"]["id"]
+            case_record = store.create_case(user_id, "Prune Case")
+            old_upload = store.store_upload(user_id, "old.docx", base64.b64encode(b"old").decode("ascii"), case_id=case_record["id"])
+            fresh_upload = store.store_upload(user_id, "new.docx", base64.b64encode(b"newer").decode("ascii"), case_id=case_record["id"])
+            old_run = root / "agent-runs" / "old-run"
+            new_run = root / "agent-runs" / "new-run"
+            old_run.mkdir(parents=True)
+            new_run.mkdir(parents=True)
+            store.register_run_artifact(
+                user_id,
+                str(old_run),
+                workflow="W1",
+                case_id=case_record["id"],
+                source_action="workflow.run",
+                created_at=(utc_now() - timedelta(days=10)).isoformat(timespec="seconds"),
+            )
+            store.register_run_artifact(
+                user_id,
+                str(new_run),
+                workflow="W2",
+                case_id=case_record["id"],
+                source_action="workflow.run",
+                created_at=utc_now().isoformat(timespec="seconds"),
+            )
+            store.import_audit_log(
+                user_id,
+                case_record["id"],
+                "workflow.run",
+                {"workflow": "W1"},
+                created_at=(utc_now() - timedelta(days=10)).isoformat(timespec="seconds"),
+            )
+            store.import_audit_log(
+                user_id,
+                case_record["id"],
+                "workflow.run",
+                {"workflow": "W2"},
+                created_at=utc_now().isoformat(timespec="seconds"),
+            )
+            with store.connect() as conn:
+                old_created = (utc_now() - timedelta(days=10)).isoformat(timespec="seconds")
+                conn.execute("UPDATE uploads SET created_at = ? WHERE id = ?", (old_created, old_upload["id"]))
+                conn.execute("UPDATE uploads SET created_at = ? WHERE id = ?", (utc_now().isoformat(timespec="seconds"), fresh_upload["id"]))
+
+            pruned = store.prune_workspace_data(user_id, utc_now() - timedelta(days=5))
+            old_upload_exists = Path(old_upload["stored_path"]).exists()
+            fresh_upload_exists = Path(fresh_upload["stored_path"]).exists()
+            old_run_exists = old_run.exists()
+            new_run_exists = new_run.exists()
+
+        self.assertEqual(pruned["counts"]["uploads"], 1)
+        self.assertEqual(pruned["counts"]["run_artifacts"], 1)
+        self.assertEqual(pruned["counts"]["audit_logs"], 1)
+        self.assertFalse(old_upload_exists)
+        self.assertTrue(fresh_upload_exists)
+        self.assertFalse(old_run_exists)
+        self.assertTrue(new_run_exists)
 
     def test_register_run_artifact_tracks_owner_and_case(self):
         with tempfile.TemporaryDirectory() as tmp:

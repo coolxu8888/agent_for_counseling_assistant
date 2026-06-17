@@ -29,12 +29,22 @@ Set these in Render:
 
 - `DEEPSEEK_API_KEY`: DeepSeek API key.
 - `COZE_DEMO_API_KEY`: any strong random string used by Coze when calling tools.
+- `WORKBENCH_USER`: operator or fallback demo username for the hosted Web MVP.
+- `WORKBENCH_PASSWORD`: operator or fallback demo password for the hosted Web MVP.
 
 Optional defaults are already in `render.yaml`:
 
 - `DEEPSEEK_BASE_URL=https://api.deepseek.com`
 - `DEEPSEEK_MODEL=deepseek-v4-flash`
 - `DEEPSEEK_TIMEOUT_SECONDS=120`
+- `WORKBENCH_ALLOW_SIGNUP=false`
+
+Optional pilot auth controls:
+
+- `WORKBENCH_ALLOW_SIGNUP=true`: allow counselors to create their own isolated workspaces from the login screen.
+- `WORKBENCH_SIGNUP_INVITE_CODE=<strong random string>`: require the invite code during signup. Recommended whenever signup is enabled.
+- `WORKBENCH_MAX_UPLOAD_BYTES=10485760`: per-file upload limit for hosted templates and materials.
+- `WORKBENCH_RETENTION_DAYS=14`: enables one-click pruning of uploads, saved runs, and audit activity older than the retention window.
 
 ## Deploy Steps
 
@@ -43,8 +53,10 @@ Optional defaults are already in `render.yaml`:
 3. Create a Blueprint from the pushed repository.
 4. Render reads `render.yaml` and creates `counselor-agent-coze-api`.
 5. Fill `DEEPSEEK_API_KEY` and `COZE_DEMO_API_KEY`.
-6. Deploy.
-7. Confirm:
+6. For pilot access, either keep a single shared login with `WORKBENCH_USER` / `WORKBENCH_PASSWORD`, or enable isolated workspaces with `WORKBENCH_ALLOW_SIGNUP=true` and `WORKBENCH_SIGNUP_INVITE_CODE`.
+7. Set `WORKBENCH_MAX_UPLOAD_BYTES` and `WORKBENCH_RETENTION_DAYS` to the policy you want to validate in the hosted MVP.
+8. Deploy.
+9. Confirm:
 
 ```text
 https://<render-service>.onrender.com/health
@@ -103,4 +115,5 @@ Do not rely on Windows local paths such as `C:\Users\...\template.docx` after de
 
 - Render free instances may sleep, causing the first request to be slow.
 - Generated files live on ephemeral service storage. This is acceptable for a demo but not for production case storage.
-- Production needs account auth, durable object storage, upload size limits by user, audit logging, and stricter data retention controls.
+- Storage is still local to the service instance, so workspace data is not durable across rebuilds or instance loss.
+- Upload limits and retention pruning now exist for the hosted MVP, but production still needs durable object storage, encrypted secrets/storage, and a stronger server-side data lifecycle architecture.

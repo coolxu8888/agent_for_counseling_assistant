@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import os
+import re
 import secrets
 import shutil
 import sqlite3
@@ -10,6 +11,8 @@ from pathlib import Path
 
 
 SESSION_DAYS = 7
+USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$")
+MIN_PASSWORD_LENGTH = 8
 
 
 class ClosingConnection(sqlite3.Connection):
@@ -54,6 +57,24 @@ def verify_password(password, stored):
 
 def row_to_dict(row):
     return dict(row) if row is not None else None
+
+
+def normalize_username(username):
+    return str(username or "").strip()
+
+
+def validate_username(username):
+    value = normalize_username(username)
+    if not USERNAME_PATTERN.fullmatch(value):
+        raise ValueError("Username must be 3-32 characters and use letters, numbers, dot, underscore, or dash.")
+    return value
+
+
+def validate_password(password):
+    value = str(password or "")
+    if len(value) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
+    return value
 
 
 class WorkbenchStore:
@@ -165,6 +186,7 @@ class WorkbenchStore:
             )
 
     def authenticate(self, username, password):
+        username = normalize_username(username)
         with self.connect() as conn:
             row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
             if not row:
@@ -183,6 +205,35 @@ class WorkbenchStore:
                 (token, row["id"], expires_at, utc_iso()),
             )
             return {"token": token, "user": self.public_user(row), "expires_at": expires_at}
+
+    def create_user(self, username, password, role="counselor"):
+        normalized_username = validate_username(username)
+        validated_password = validate_password(password)
+        with self.connect() as conn:
+            existing = conn.execute(
+                "SELECT id FROM users WHERE lower(username) = lower(?)",
+                (normalized_username,),
+            ).fetchone()
+            if existing:
+                raise ValueError("Username is already in use.")
+            hashed = hash_password(validated_password)
+            cursor = conn.execute(
+                """
+                INSERT INTO users (
+                    username, password_salt, password_hash, password_iterations, role, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    normalized_username,
+                    hashed["salt"],
+                    hashed["hash"],
+                    hashed["iterations"],
+                    role,
+                    utc_iso(),
+                ),
+            )
+            user_id = cursor.lastrowid
+        return {"id": user_id, "username": normalized_username, "role": role}
 
     def public_user(self, row):
         return {"id": row["id"], "username": row["username"], "role": row["role"]}
@@ -319,6 +370,23 @@ class WorkbenchStore:
             upload_id = cursor.lastrowid
         self.audit(user_id, case_id, "file.upload", {"name": original_name, "size_bytes": len(binary)})
         return self.get_upload(user_id, upload_id)
+
+    def workspace_summary(self, user_id):
+        with self.connect() as conn:
+            counts = {
+                "cases": conn.execute("SELECT COUNT(*) FROM cases WHERE user_id = ?", (user_id,)).fetchone()[0],
+                "uploads": conn.execute("SELECT COUNT(*) FROM uploads WHERE user_id = ?", (user_id,)).fetchone()[0],
+                "audit_logs": conn.execute("SELECT COUNT(*) FROM audit_logs WHERE user_id = ?", (user_id,)).fetchone()[0],
+                "run_artifacts": conn.execute("SELECT COUNT(*) FROM run_artifacts WHERE user_id = ?", (user_id,)).fetchone()[0],
+            }
+            upload_bytes = conn.execute(
+                "SELECT COALESCE(SUM(size_bytes), 0) FROM uploads WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()[0]
+        return {
+            "counts": counts,
+            "upload_bytes": int(upload_bytes or 0),
+        }
 
     def get_upload(self, user_id, upload_id):
         with self.connect() as conn:
@@ -464,6 +532,69 @@ class WorkbenchStore:
             conn.execute("DELETE FROM audit_logs WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM run_artifacts WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM cases WHERE user_id = ?", (user_id,))
+
+    def prune_workspace_data(self, user_id, before):
+        cutoff = before.isoformat(timespec="seconds") if hasattr(before, "isoformat") else str(before)
+        uploads = []
+        run_artifacts = []
+        with self.connect() as conn:
+            uploads = [
+                row_to_dict(row)
+                for row in conn.execute(
+                    """
+                    SELECT id, case_id, original_name, stored_path, content_type, size_bytes, created_at
+                    FROM uploads
+                    WHERE user_id = ? AND created_at < ?
+                    ORDER BY created_at ASC, id ASC
+                    """,
+                    (user_id, cutoff),
+                ).fetchall()
+            ]
+            run_artifacts = [
+                row_to_dict(row)
+                for row in conn.execute(
+                    """
+                    SELECT run_dir, user_id, case_id, workflow, source_action, created_at
+                    FROM run_artifacts
+                    WHERE user_id = ? AND created_at < ?
+                    ORDER BY created_at ASC, run_dir ASC
+                    """,
+                    (user_id, cutoff),
+                ).fetchall()
+            ]
+            audit_count = conn.execute(
+                "SELECT COUNT(*) FROM audit_logs WHERE user_id = ? AND created_at < ?",
+                (user_id, cutoff),
+            ).fetchone()[0]
+
+        removed_upload_bytes = 0
+        for upload in uploads:
+            stored_path = Path(str(upload.get("stored_path") or ""))
+            removed_upload_bytes += int(upload.get("size_bytes") or 0)
+            if stored_path.is_file():
+                stored_path.unlink()
+
+        for record in run_artifacts:
+            run_dir = Path(str(record.get("run_dir") or ""))
+            if run_dir.is_dir():
+                shutil.rmtree(run_dir)
+
+        with self.connect() as conn:
+            conn.execute("DELETE FROM uploads WHERE user_id = ? AND created_at < ?", (user_id, cutoff))
+            conn.execute("DELETE FROM audit_logs WHERE user_id = ? AND created_at < ?", (user_id, cutoff))
+            conn.execute("DELETE FROM run_artifacts WHERE user_id = ? AND created_at < ?", (user_id, cutoff))
+
+        return {
+            "cutoff": cutoff,
+            "counts": {
+                "uploads": len(uploads),
+                "run_artifacts": len(run_artifacts),
+                "audit_logs": int(audit_count or 0),
+            },
+            "bytes_removed": {
+                "uploads": removed_upload_bytes,
+            },
+        }
 
     def get_run_artifact(self, user_id, run_dir):
         resolved_run_dir = str(Path(run_dir).resolve())

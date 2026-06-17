@@ -2,11 +2,12 @@ import argparse
 import base64
 import json
 import mimetypes
+import os
 import shutil
 import sys
 import tempfile
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -25,7 +26,7 @@ from fill_docx_template import (
     is_placeholder_text,
 )
 from render_docx import render_docx
-from workbench_store import WorkbenchStore
+from workbench_store import WorkbenchStore, parse_iso, utc_now
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -176,6 +177,43 @@ def cookie_token(handler):
 
 def current_user(handler):
     return STORE.session_user(cookie_token(handler))
+
+
+def env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_int(name, default=None, minimum=None):
+    value = os.environ.get(name)
+    if value is None or str(value).strip() == "":
+        return default
+    try:
+        parsed = int(str(value).strip())
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer.") from exc
+    if minimum is not None and parsed < minimum:
+        raise ValueError(f"{name} must be at least {minimum}.")
+    return parsed
+
+
+def auth_config():
+    invite_code = str(os.environ.get("WORKBENCH_SIGNUP_INVITE_CODE", "")).strip()
+    signup_enabled = env_flag("WORKBENCH_ALLOW_SIGNUP", False) or bool(invite_code)
+    return {
+        "signup_enabled": signup_enabled,
+        "invite_required": bool(invite_code),
+    }
+
+
+def workspace_policy():
+    return {
+        "max_upload_bytes": env_int("WORKBENCH_MAX_UPLOAD_BYTES", default=10 * 1024 * 1024, minimum=1),
+        "retention_days": env_int("WORKBENCH_RETENTION_DAYS", default=None, minimum=1),
+        "reset_enabled": True,
+    }
 
 
 def require_user(handler):
@@ -337,6 +375,19 @@ def resolve_download_path(path_value, allowed_roots=None):
     if not any(is_relative_to(candidate, root) for root in allowed_roots):
         raise ValueError("Download path is outside approved output directories.")
     return candidate
+
+
+def directory_size(path):
+    total = 0
+    root = Path(path)
+    if not root.exists():
+        return 0
+    if root.is_file():
+        return root.stat().st_size
+    for item in root.rglob("*"):
+        if item.is_file():
+            total += item.stat().st_size
+    return total
 
 
 def safe_content_disposition(filename):
@@ -686,7 +737,52 @@ def handle_login(payload, handler=None):
     STORE.audit(auth["user"]["id"], None, "auth.login", {"username": username})
     append_run_log("auth.login", user_id=auth["user"]["id"], details={"username": username})
     return json_response_with_headers(
-        {"status": "success", "user": auth["user"], "expires_at": auth["expires_at"]},
+        {
+            "status": "success",
+            "user": auth["user"],
+            "expires_at": auth["expires_at"],
+            "auth_config": auth_config(),
+            "workspace_policy": workspace_policy(),
+        },
+        {"Set-Cookie": cookie_header(auth["token"], secure=request_is_https(handler))},
+    )
+
+
+def handle_signup(payload, handler=None):
+    config = auth_config()
+    if not config["signup_enabled"]:
+        return error_response(403, "Account creation is disabled for this deployment.")
+
+    invite_code = str(os.environ.get("WORKBENCH_SIGNUP_INVITE_CODE", "")).strip()
+    provided_invite = str(payload.get("invite_code") or "").strip()
+    if invite_code and provided_invite != invite_code:
+        return error_response(403, "Invite code is invalid.")
+
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    password_confirm = str(payload.get("password_confirm") or "")
+    if password != password_confirm:
+        return error_response(400, "Password confirmation does not match.")
+
+    try:
+        created_user = STORE.create_user(username, password)
+    except ValueError as exc:
+        return error_response(400, str(exc))
+
+    auth = STORE.authenticate(created_user["username"], password)
+    if not auth:
+        return error_response(500, "Account created, but sign-in failed.")
+
+    STORE.audit(auth["user"]["id"], None, "auth.signup", {"username": created_user["username"]})
+    append_run_log("auth.signup", user_id=auth["user"]["id"], details={"username": created_user["username"]})
+    return json_response_with_headers(
+        {
+            "status": "success",
+            "user": auth["user"],
+            "expires_at": auth["expires_at"],
+            "auth_config": config,
+            "workspace_policy": workspace_policy(),
+        },
         {"Set-Cookie": cookie_header(auth["token"], secure=request_is_https(handler))},
     )
 
@@ -706,7 +802,15 @@ def handle_logout(handler):
 
 def handle_session(handler):
     user = current_user(handler)
-    return json_response({"status": "success", "user": user, "authenticated": bool(user)})
+    return json_response(
+        {
+            "status": "success",
+            "user": user,
+            "authenticated": bool(user),
+            "auth_config": auth_config(),
+            "workspace_policy": workspace_policy(),
+        }
+    )
 
 
 def list_recent_runs(user_id, case_id=None, limit=12):
@@ -999,6 +1103,131 @@ def prune_run_log_for_case(user_id, case_id, replacement_entries=None):
     )
 
 
+def prune_run_log_before(user_id, before, replacement_entries=None):
+    replacement_entries = replacement_entries or []
+    cutoff = before if isinstance(before, datetime) else parse_iso(str(before))
+    entries = []
+    if RUN_LOG_PATH.exists():
+        for line in RUN_LOG_PATH.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("user_id") == user_id:
+                timestamp = entry.get("timestamp")
+                if timestamp:
+                    try:
+                        if parse_iso(timestamp) < cutoff:
+                            continue
+                    except ValueError:
+                        pass
+            entries.append(entry)
+    entries.extend(replacement_entries)
+    entries.sort(key=lambda item: item.get("timestamp", ""))
+    RUN_LOG_PATH.write_text(
+        "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in entries),
+        encoding="utf-8",
+    )
+
+
+def summarize_workspace_status(user):
+    summary = STORE.workspace_summary(user["id"])
+    recent_activity_count = len(list_recent_runs(user["id"], limit=500))
+    upload_bytes = summary.pop("upload_bytes", 0)
+    run_bytes = 0
+    for record in STORE.list_run_artifacts(user["id"], limit=1000):
+        run_dir = Path(record["run_dir"])
+        if run_dir.is_dir() and is_relative_to(run_dir, RUN_ROOT):
+            run_bytes += directory_size(run_dir)
+    summary["counts"]["recent_activity"] = recent_activity_count
+    summary["storage"] = {
+        "uploads_bytes": upload_bytes,
+        "run_artifacts_bytes": run_bytes,
+        "total_bytes": upload_bytes + run_bytes,
+    }
+    return summary
+
+
+def reset_workspace_data(user):
+    cases = STORE.list_cases(user["id"])
+    uploads = STORE.list_uploads(user["id"])
+    run_artifacts = STORE.list_run_artifacts(user["id"], limit=1000)
+    audit_logs = STORE.list_audit_logs(user["id"], limit=1000)
+    recent_activity_count = len(list_recent_runs(user["id"], limit=500))
+
+    for record in run_artifacts:
+        run_dir = Path(record["run_dir"])
+        if run_dir.exists():
+            safe_rmtree(run_dir, RUN_ROOT)
+    upload_root = user_upload_root(user["id"])
+    if upload_root.exists():
+        safe_rmtree(upload_root, active_upload_root())
+    STORE.clear_workspace(user["id"])
+    rewrite_run_log_for_user(user["id"])
+    STORE.import_audit_log(
+        user["id"],
+        None,
+        "workspace.reset",
+        {
+            "counts": {
+                "cases": len(cases),
+                "uploads": len(uploads),
+                "run_artifacts": len(run_artifacts),
+                "audit_logs": len(audit_logs),
+                "recent_activity": recent_activity_count,
+            }
+        },
+    )
+    append_run_log("workspace.reset", user_id=user["id"], details={"status": "success"})
+    return {
+        "counts": {
+            "cases": len(cases),
+            "uploads": len(uploads),
+            "run_artifacts": len(run_artifacts),
+            "audit_logs": len(audit_logs),
+            "recent_activity": recent_activity_count,
+        }
+    }
+
+
+def prune_workspace_retention(user):
+    policy = workspace_policy()
+    retention_days = policy.get("retention_days")
+    if not retention_days:
+        raise ValueError("WORKBENCH_RETENTION_DAYS is not configured for this deployment.")
+    cutoff = utc_now() - timedelta(days=retention_days)
+    pruned = STORE.prune_workspace_data(user["id"], cutoff)
+    prune_run_log_before(user["id"], cutoff)
+    STORE.import_audit_log(
+        user["id"],
+        None,
+        "workspace.prune",
+        {
+            "cutoff": pruned["cutoff"],
+            "retention_days": retention_days,
+            "counts": pruned["counts"],
+            "bytes_removed": pruned["bytes_removed"],
+        },
+    )
+    append_run_log(
+        "workspace.prune",
+        user_id=user["id"],
+        details={
+            "status": "success",
+            "cutoff": pruned["cutoff"],
+            "retention_days": retention_days,
+            "counts": pruned["counts"],
+        },
+    )
+    return {
+        "policy": policy,
+        "summary": summarize_workspace_status(user),
+        "pruned": pruned,
+    }
+
+
 def restore_workspace_backup_bundle(user, backup_path):
     with zipfile.ZipFile(backup_path) as archive:
         try:
@@ -1102,7 +1331,15 @@ def restore_workspace_backup_bundle(user, backup_path):
 
 def handle_workspace(user, payload=None):
     payload = payload or {}
-    action = payload.get("action") or "export"
+    action = payload.get("action") or "status"
+    if action == "status":
+        return json_response(
+            {
+                "status": "success",
+                "policy": workspace_policy(),
+                "summary": summarize_workspace_status(user),
+            }
+        )
     if action == "export":
         return json_response({"status": "success", **build_workspace_backup_bundle(user)})
     if action == "restore":
@@ -1121,6 +1358,23 @@ def handle_workspace(user, payload=None):
             except (ValueError, PermissionError, FileNotFoundError, zipfile.BadZipFile) as exc:
                 return error_response(400, str(exc))
         return json_response({"status": "success", **result})
+    if action == "prune":
+        try:
+            result = prune_workspace_retention(user)
+        except ValueError as exc:
+            return error_response(400, str(exc))
+        return json_response({"status": "success", **result})
+    if action == "reset":
+        confirm_text = str(payload.get("confirm_text") or "").strip()
+        if confirm_text != "DELETE WORKSPACE":
+            return error_response(400, 'confirm_text must be "DELETE WORKSPACE".')
+        return json_response(
+            {
+                "status": "success",
+                "summary": reset_workspace_data(user),
+                "policy": workspace_policy(),
+            }
+        )
     return error_response(400, "Unknown workspace action.")
 
 
@@ -1253,6 +1507,14 @@ def handle_upload(user, payload):
     content_b64 = str(payload.get("content_base64") or "")
     if not filename or not content_b64:
         return error_response(400, "filename and content_base64 are required.")
+    policy = workspace_policy()
+    max_upload_bytes = policy["max_upload_bytes"]
+    try:
+        upload_bytes = len(base64.b64decode(content_b64))
+    except Exception:
+        return error_response(400, "content_base64 is not valid base64.")
+    if upload_bytes > max_upload_bytes:
+        return error_response(400, f"Upload exceeds the deployment limit of {max_upload_bytes} bytes.")
     case_id = payload.get("case_id")
     upload = STORE.store_upload(
         user["id"],
@@ -1272,7 +1534,7 @@ def handle_upload(user, payload):
             "content_type": upload["content_type"],
         },
     )
-    return json_response({"status": "success", "upload": serialize_upload(upload)})
+    return json_response({"status": "success", "upload": serialize_upload(upload), "policy": policy})
 
 
 def handle_uploads(user, payload=None):
@@ -1420,6 +1682,10 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/login":
             response = handle_login(payload, handler=self)
+            send_response_tuple(self, response)
+            return
+        if path == "/api/signup":
+            response = handle_signup(payload, handler=self)
             send_response_tuple(self, response)
             return
         if path == "/api/logout":

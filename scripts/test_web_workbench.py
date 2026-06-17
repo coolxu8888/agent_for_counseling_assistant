@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import zipfile
 import base64
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import quote
 from unittest.mock import patch
@@ -12,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import web_workbench
 from workbench_store import WorkbenchStore
+from workbench_store import utc_now
 
 
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -268,6 +270,78 @@ class WebWorkbenchTest(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("Secure", headers["Set-Cookie"])
+
+    def test_handle_session_reports_signup_policy(self):
+        handler = FakeHandler()
+        with patch.dict(
+            "os.environ",
+            {"WORKBENCH_SIGNUP_INVITE_CODE": "invite-123", "WORKBENCH_RETENTION_DAYS": "14"},
+            clear=False,
+        ):
+            status, _headers, body = web_workbench.handle_session(handler)
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertFalse(payload["authenticated"])
+        self.assertTrue(payload["auth_config"]["signup_enabled"])
+        self.assertTrue(payload["auth_config"]["invite_required"])
+        self.assertEqual(payload["workspace_policy"]["retention_days"], 14)
+
+    def test_handle_signup_requires_enabled_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            with patch.object(web_workbench, "STORE", store):
+                with patch.dict("os.environ", {}, clear=True):
+                    status, _headers, body = web_workbench.handle_signup(
+                        {"username": "pilot.user", "password": "safe-pass-123", "password_confirm": "safe-pass-123"}
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 403)
+        self.assertIn("disabled", payload["message"])
+
+    def test_handle_signup_requires_matching_invite_code(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            with patch.object(web_workbench, "STORE", store):
+                with patch.dict("os.environ", {"WORKBENCH_SIGNUP_INVITE_CODE": "invite-123"}, clear=False):
+                    status, _headers, body = web_workbench.handle_signup(
+                        {
+                            "username": "pilot.user",
+                            "password": "safe-pass-123",
+                            "password_confirm": "safe-pass-123",
+                            "invite_code": "wrong-code",
+                        }
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 403)
+        self.assertIn("Invite code is invalid", payload["message"])
+
+    def test_handle_signup_creates_user_and_session_cookie(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_LOG_PATH", Path(tmp) / "run-log.jsonl"):
+                    with patch.dict(
+                        "os.environ",
+                        {"WORKBENCH_ALLOW_SIGNUP": "true", "WORKBENCH_SIGNUP_INVITE_CODE": "invite-123"},
+                        clear=False,
+                    ):
+                        status, headers, body = web_workbench.handle_signup(
+                            {
+                                "username": "pilot.user",
+                                "password": "safe-pass-123",
+                                "password_confirm": "safe-pass-123",
+                                "invite_code": "invite-123",
+                            }
+                        )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["user"]["username"], "pilot.user")
+        self.assertIn("Set-Cookie", headers)
 
     def test_handle_cases_detail_returns_case_uploads_audit_and_runs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -717,6 +791,211 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(recent[0]["details"]["status"], "success")
         self.assertNotIn("old-run", recent[0]["details"]["run_dir"])
         self.assertFalse(stale_upload_exists)
+
+    def test_handle_workspace_status_reports_counts_storage_and_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            case_record = store.create_case(user["id"], "Status Case")
+            store.store_upload(user["id"], "template.docx", base64.b64encode(b"docx").decode("ascii"), case_id=case_record["id"])
+            run_root = root / "agent-runs"
+            run_dir = run_root / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("artifact", encoding="utf-8")
+            store.register_run_artifact(user["id"], str(run_dir), workflow="W2", case_id=case_record["id"], source_action="workflow.run")
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.dict("os.environ", {"WORKBENCH_MAX_UPLOAD_BYTES": "2048", "WORKBENCH_RETENTION_DAYS": "30"}, clear=False):
+                        status, _headers, body = web_workbench.handle_workspace(user, {"action": "status"})
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["policy"]["max_upload_bytes"], 2048)
+        self.assertEqual(payload["policy"]["retention_days"], 30)
+        self.assertEqual(payload["summary"]["counts"]["cases"], 1)
+        self.assertEqual(payload["summary"]["counts"]["uploads"], 1)
+        self.assertEqual(payload["summary"]["counts"]["run_artifacts"], 1)
+        self.assertGreater(payload["summary"]["storage"]["total_bytes"], 0)
+
+    def test_handle_workspace_prune_removes_expired_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            case_record = store.create_case(user["id"], "Prune Case")
+            stale_upload = store.store_upload(user["id"], "old.docx", base64.b64encode(b"old").decode("ascii"), case_id=case_record["id"])
+            kept_upload = store.store_upload(user["id"], "new.docx", base64.b64encode(b"new").decode("ascii"), case_id=case_record["id"])
+            run_root = root / "agent-runs"
+            stale_run = run_root / "old-run"
+            kept_run = run_root / "new-run"
+            stale_run.mkdir(parents=True)
+            kept_run.mkdir(parents=True)
+            store.register_run_artifact(
+                user["id"],
+                str(stale_run),
+                workflow="W1",
+                case_id=case_record["id"],
+                source_action="workflow.run",
+                created_at=(utc_now() - timedelta(days=10)).isoformat(timespec="seconds"),
+            )
+            store.register_run_artifact(
+                user["id"],
+                str(kept_run),
+                workflow="W2",
+                case_id=case_record["id"],
+                source_action="workflow.run",
+                created_at=utc_now().isoformat(timespec="seconds"),
+            )
+            store.import_audit_log(
+                user["id"],
+                case_record["id"],
+                "workflow.run",
+                {"workflow": "W1"},
+                created_at=(utc_now() - timedelta(days=10)).isoformat(timespec="seconds"),
+            )
+            with store.connect() as conn:
+                old_created = (utc_now() - timedelta(days=10)).isoformat(timespec="seconds")
+                conn.execute("UPDATE uploads SET created_at = ? WHERE id = ?", (old_created, stale_upload["id"]))
+                conn.execute("UPDATE uploads SET created_at = ? WHERE id = ?", (utc_now().isoformat(timespec="seconds"), kept_upload["id"]))
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "timestamp": (utc_now() - timedelta(days=10)).isoformat(timespec="seconds"),
+                                "action": "workflow.run",
+                                "user_id": user["id"],
+                                "case_id": case_record["id"],
+                                "details": {"run_dir": str(stale_run)},
+                            },
+                            ensure_ascii=False,
+                        ),
+                        json.dumps(
+                            {
+                                "timestamp": utc_now().isoformat(timespec="seconds"),
+                                "action": "workflow.run",
+                                "user_id": user["id"],
+                                "case_id": case_record["id"],
+                                "details": {"run_dir": str(kept_run)},
+                            },
+                            ensure_ascii=False,
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        with patch.dict("os.environ", {"WORKBENCH_RETENTION_DAYS": "5"}, clear=False):
+                            status, _headers, body = web_workbench.handle_workspace(user, {"action": "prune"})
+
+            remaining_entries = [json.loads(line) for line in run_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+            stale_upload_exists = Path(stale_upload["stored_path"]).exists()
+            kept_upload_exists = Path(kept_upload["stored_path"]).exists()
+            stale_run_exists = stale_run.exists()
+            kept_run_exists = kept_run.exists()
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["pruned"]["counts"]["uploads"], 1)
+        self.assertEqual(payload["pruned"]["counts"]["run_artifacts"], 1)
+        self.assertFalse(stale_upload_exists)
+        self.assertTrue(kept_upload_exists)
+        self.assertFalse(stale_run_exists)
+        self.assertTrue(kept_run_exists)
+        self.assertEqual(len(remaining_entries), 2)
+        self.assertTrue(any(entry["action"] == "workspace.prune" for entry in remaining_entries))
+        self.assertTrue(any(entry["details"].get("run_dir") == str(kept_run) for entry in remaining_entries if entry["action"] == "workflow.run"))
+
+    def test_handle_workspace_reset_requires_confirmation_phrase(self):
+        user = {"id": 7, "username": "demo", "role": "counselor"}
+
+        status, _headers, body = web_workbench.handle_workspace(user, {"action": "reset", "confirm_text": "DELETE"})
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertIn("DELETE WORKSPACE", payload["message"])
+
+    def test_handle_workspace_reset_clears_account_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            case_record = store.create_case(user["id"], "Reset Case")
+            upload = store.store_upload(user["id"], "template.docx", base64.b64encode(b"docx").decode("ascii"), case_id=case_record["id"])
+            run_root = root / "agent-runs"
+            run_dir = run_root / "run-1"
+            run_dir.mkdir(parents=True)
+            store.register_run_artifact(user["id"], str(run_dir), workflow="W2", case_id=case_record["id"], source_action="workflow.run")
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text(
+                json.dumps(
+                    {
+                        "timestamp": utc_now().isoformat(timespec="seconds"),
+                        "action": "workflow.run",
+                        "user_id": user["id"],
+                        "case_id": case_record["id"],
+                        "details": {"run_dir": str(run_dir), "stored_path": upload["stored_path"]},
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        status, _headers, body = web_workbench.handle_workspace(
+                            user,
+                            {"action": "reset", "confirm_text": "DELETE WORKSPACE"},
+                        )
+
+            remaining_entries = [json.loads(line) for line in run_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+            cases = store.list_cases(user["id"])
+            uploads = store.list_uploads(user["id"])
+            runs = store.list_run_artifacts(user["id"])
+            upload_exists = Path(upload["stored_path"]).exists()
+            run_exists = run_dir.exists()
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["summary"]["counts"]["cases"], 1)
+        self.assertEqual(cases, [])
+        self.assertEqual(uploads, [])
+        self.assertEqual(runs, [])
+        self.assertFalse(upload_exists)
+        self.assertFalse(run_exists)
+        self.assertEqual(len(remaining_entries), 1)
+        self.assertEqual(remaining_entries[0]["action"], "workspace.reset")
+
+    def test_handle_upload_rejects_file_over_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            payload = {
+                "filename": "big.docx",
+                "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "content_base64": base64.b64encode(b"0123456789").decode("ascii"),
+            }
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.dict("os.environ", {"WORKBENCH_MAX_UPLOAD_BYTES": "4"}, clear=False):
+                    status, _headers, body = web_workbench.handle_upload(user, payload)
+
+        response = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertIn("deployment limit", response["message"])
 
     def test_apply_output_style_adds_style_instruction(self):
         styled = web_workbench.apply_output_style("材料", style="warm_clinical")

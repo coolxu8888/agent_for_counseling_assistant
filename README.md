@@ -110,10 +110,22 @@ For the web service, set these Render environment variables:
 - `DEEPSEEK_TIMEOUT_SECONDS`: `120`
 - `WORKBENCH_USER`: public demo login username.
 - `WORKBENCH_PASSWORD`: public demo login password.
+- `WORKBENCH_ALLOW_SIGNUP`: optional. Set to `true` to allow counselors to create isolated workspaces in the deployed Web MVP.
+- `WORKBENCH_SIGNUP_INVITE_CODE`: optional but recommended when signup is enabled. New workspaces must provide this invite code.
+- `WORKBENCH_MAX_UPLOAD_BYTES`: optional. Per-file upload limit for hosted workspaces. Defaults to `10485760` (10 MB).
+- `WORKBENCH_RETENTION_DAYS`: optional. Enables one-click pruning of uploads, saved runs, and audit activity older than the retention window.
 
 The web service health check is `/health`. Runtime data is stored in the service filesystem (`workbench-data/`, `agent-runs/`, `workbench-run-log.jsonl`). On Render free instances this storage is ephemeral; for a paid pilot, add persistent storage or move user/case data to a managed database and object storage.
 
 Do not use real identifiable client information in the public MVP. Use de-identified demo cases for market validation.
+
+For pilot deployments, prefer separate counselor workspaces over a shared demo login. A minimal setup is:
+
+- keep `WORKBENCH_USER` / `WORKBENCH_PASSWORD` for an internal operator account
+- set `WORKBENCH_ALLOW_SIGNUP=true`
+- set a strong `WORKBENCH_SIGNUP_INVITE_CODE`
+- set `WORKBENCH_MAX_UPLOAD_BYTES` to the largest `.docx` size you will actually allow
+- set `WORKBENCH_RETENTION_DAYS` and use the in-product `Refresh data status` / `Prune expired data` controls during pilot operations
 
 The Coze API server also serves the Web MVP at `/` while keeping Coze endpoints under `/coze/*`. This allows the existing Render service URL to act as a product landing URL after redeploy. Plugin metadata remains available at `/service-info`, and the OpenAPI spec remains at `/openapi.json`.
 

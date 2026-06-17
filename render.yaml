@@ -19,6 +19,14 @@ services:
         sync: false
       - key: WORKBENCH_PASSWORD
         sync: false
+      - key: WORKBENCH_ALLOW_SIGNUP
+        value: "false"
+      - key: WORKBENCH_SIGNUP_INVITE_CODE
+        sync: false
+      - key: WORKBENCH_MAX_UPLOAD_BYTES
+        value: "10485760"
+      - key: WORKBENCH_RETENTION_DAYS
+        value: "14"
 
   - type: web
     name: counselor-agent-coze-api

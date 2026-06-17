@@ -5,10 +5,13 @@ const state = {
   templateSlots: [],
   demoCatalog: null,
   user: null,
+  authConfig: { signup_enabled: false, invite_required: false },
+  authMode: "login",
   caseId: "",
   caseDetail: null,
   selectedTemplateRef: "",
   selectedTemplateLabel: "",
+  workspacePolicy: { max_upload_bytes: 10 * 1024 * 1024, retention_days: null, reset_enabled: true },
 };
 
 const FALLBACK_DEMO_CATALOG = {
@@ -178,9 +181,44 @@ async function getJson(url) {
   return data;
 }
 
+function applyAuthConfig(config = {}) {
+  state.authConfig = {
+    signup_enabled: Boolean(config.signup_enabled),
+    invite_required: Boolean(config.invite_required),
+  };
+  $("authModeSignup").hidden = !state.authConfig.signup_enabled;
+  if (!state.authConfig.signup_enabled && state.authMode === "signup") {
+    state.authMode = "login";
+  }
+  updateAuthModeUi();
+}
+
+function updateAuthModeUi() {
+  const signupMode = state.authMode === "signup";
+  $("signupConfirmWrap").hidden = !signupMode;
+  $("signupInviteWrap").hidden = !signupMode || !state.authConfig.invite_required;
+  $("loginSubmitButton").textContent = signupMode ? "Create workspace" : "Sign in";
+  $("authModeLogin").disabled = !signupMode;
+  $("authModeSignup").disabled = signupMode;
+  $("authModeHint").textContent = signupMode
+    ? state.authConfig.invite_required
+      ? "Create an isolated counselor workspace with the deployment invite code."
+      : "Create an isolated counselor workspace on this deployment."
+    : state.authConfig.signup_enabled
+      ? "Sign in, or create a separate counselor workspace for pilot use."
+      : "Sign in with your assigned workspace credentials.";
+}
+
+function setAuthMode(mode) {
+  state.authMode = mode === "signup" ? "signup" : "login";
+  updateAuthModeUi();
+  $("loginMessage").textContent = "";
+}
+
 function showLogin(message = "") {
   $("loginOverlay").classList.remove("hidden");
   $("loginMessage").textContent = message;
+  updateAuthModeUi();
 }
 
 function hideLogin() {
@@ -278,6 +316,20 @@ function formatTimestamp(value) {
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
+}
+
+function formatBytes(value) {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function addStackPlaceholder(id, text) {
@@ -547,6 +599,34 @@ function renderWorkspaceBackupSummary(data) {
   const counts = (data.manifest && data.manifest.counts) || {};
   body.textContent = `Includes ${counts.cases || 0} cases, ${counts.uploads || 0} uploads, and ${counts.runs || 0} run folders.`;
   box.append(title, body, createDownloadLink(data.output_path, "Download backup"));
+}
+
+function renderWorkspaceGovernance(data) {
+  const box = $("workspaceGovernanceSummary");
+  if (!box) {
+    return;
+  }
+  const policy = (data && data.policy) || state.workspacePolicy || {};
+  if (data && data.policy) {
+    state.workspacePolicy = data.policy;
+  }
+  const summary = (data && data.summary) || null;
+  box.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = "Data controls";
+  const body = document.createElement("span");
+  if (!summary) {
+    body.textContent = "Review storage, upload limits, and retention before using hosted pilot data.";
+    box.append(title, body);
+    return;
+  }
+  const counts = summary.counts || {};
+  const storage = summary.storage || {};
+  const retentionLabel = policy.retention_days ? `${policy.retention_days} days` : "Manual only";
+  body.textContent =
+    `${counts.cases || 0} cases, ${counts.uploads || 0} uploads, ${counts.run_artifacts || 0} saved runs, ` +
+    `${formatBytes(storage.total_bytes || 0)} total. Upload cap ${formatBytes(policy.max_upload_bytes || 0)}, retention ${retentionLabel}.`;
+  box.append(title, body);
 }
 
 function updateRunResult(data) {
@@ -923,18 +1003,23 @@ async function openSavedRun(runDir) {
   }
 }
 
-async function login(event) {
+async function submitAuthForm(event) {
   event.preventDefault();
-  $("loginMessage").textContent = "Signing in...";
+  const signupMode = state.authMode === "signup";
+  $("loginMessage").textContent = signupMode ? "Creating workspace..." : "Signing in...";
   try {
-    const data = await postJson("/api/login", {
+    const data = await postJson(signupMode ? "/api/signup" : "/api/login", {
       username: $("loginUsername").value.trim(),
       password: $("loginPassword").value,
+      password_confirm: $("signupPasswordConfirm").value,
+      invite_code: $("signupInviteCode").value.trim(),
     });
     state.user = data.user;
+    applyAuthConfig(data.auth_config || state.authConfig);
+    state.workspacePolicy = data.workspace_policy || state.workspacePolicy;
     localStorage.setItem(LOGIN_USERNAME_KEY, data.user.username);
     hideLogin();
-    await Promise.all([loadCases(), loadDemoCatalog()]);
+    await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
     $("auditStatus").textContent = `Signed in as ${data.user.username}`;
   } catch (error) {
     $("loginMessage").textContent = error.message;
@@ -944,6 +1029,9 @@ async function login(event) {
 function primeLoginForm() {
   $("loginUsername").value = localStorage.getItem(LOGIN_USERNAME_KEY) || "";
   $("loginPassword").value = "";
+  $("signupPasswordConfirm").value = "";
+  $("signupInviteCode").value = "";
+  setAuthMode("login");
 }
 
 async function logout() {
@@ -953,6 +1041,7 @@ async function logout() {
   $("caseSelect").innerHTML = '<option value="">No case selected</option>';
   clearCaseDetail();
   clearDemoCatalog();
+  renderWorkspaceGovernance(null);
   showLogin("Signed out.");
 }
 
@@ -963,17 +1052,21 @@ async function checkSession() {
       return;
     }
     const data = await getJson("/api/session");
+    applyAuthConfig(data.auth_config || {});
+    state.workspacePolicy = data.workspace_policy || state.workspacePolicy;
     if (data.authenticated) {
       state.user = data.user;
       hideLogin();
-      await Promise.all([loadCases(), loadDemoCatalog()]);
+      await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
       $("auditStatus").textContent = `Signed in as ${data.user.username}`;
     } else {
       clearDemoCatalog();
+      renderWorkspaceGovernance(null);
       showLogin();
     }
   } catch (error) {
     clearDemoCatalog();
+    renderWorkspaceGovernance(null);
     showLogin(error.message);
   }
 }
@@ -1139,6 +1232,71 @@ async function exportWorkspaceBackup() {
   }
 }
 
+async function refreshWorkspaceGovernance() {
+  try {
+    const payload = await postJson("/api/workspace", { action: "status" });
+    renderWorkspaceGovernance(payload);
+  } catch (error) {
+    $("auditStatus").textContent = error.message;
+  }
+}
+
+async function pruneWorkspaceRetention() {
+  const retentionDays = state.workspacePolicy && state.workspacePolicy.retention_days;
+  if (!retentionDays) {
+    $("auditStatus").textContent = "This deployment has no retention window configured.";
+    return;
+  }
+  if (!window.confirm(`Prune uploads, saved runs, and audit activity older than ${retentionDays} days?`)) {
+    return;
+  }
+  $("pruneWorkspaceButton").disabled = true;
+  $("checksPane").textContent = "Pruning expired workspace data...";
+  setPane("checks");
+  try {
+    const payload = await postJson("/api/workspace", { action: "prune" });
+    renderWorkspaceGovernance(payload);
+    $("checksPane").textContent = pretty(payload.pruned || payload);
+    await loadCases();
+    $("auditStatus").textContent = "Expired workspace data pruned.";
+  } catch (error) {
+    $("checksPane").textContent = error.message;
+    $("auditStatus").textContent = error.message;
+  } finally {
+    $("pruneWorkspaceButton").disabled = false;
+  }
+}
+
+async function resetWorkspace() {
+  if (!window.confirm("Delete all cases, uploads, saved runs, and workspace activity for this account?")) {
+    return;
+  }
+  const confirmText = window.prompt('Type "DELETE WORKSPACE" to continue.');
+  if (confirmText !== "DELETE WORKSPACE") {
+    $("auditStatus").textContent = "Workspace reset canceled.";
+    return;
+  }
+  $("resetWorkspaceButton").disabled = true;
+  $("checksPane").textContent = "Deleting all workspace data...";
+  setPane("checks");
+  try {
+    const payload = await postJson("/api/workspace", {
+      action: "reset",
+      confirm_text: confirmText,
+    });
+    renderWorkspaceBackupSummary(null);
+    renderWorkspaceGovernance({ policy: payload.policy, summary: { counts: {}, storage: { total_bytes: 0 } } });
+    await loadCases();
+    $("checksPane").textContent = pretty(payload.summary || payload);
+    $("auditStatus").textContent = "Workspace cleared.";
+  } catch (error) {
+    $("checksPane").textContent = error.message;
+    $("auditStatus").textContent = error.message;
+  } finally {
+    $("resetWorkspaceButton").disabled = false;
+  }
+}
+
 async function restoreWorkspaceBackup() {
   const file = $("workspaceBackupUpload").files[0];
   if (!file) {
@@ -1203,10 +1361,12 @@ async function uploadTemplate() {
       data.upload.original_name || file.name,
       "Template uploaded. You can scan slots or start intelligent drafting now.",
     );
+    state.workspacePolicy = data.policy || state.workspacePolicy;
     setPathDisplay("uploadedTemplatePath", data.upload.stored_path, false);
     if (selectedCaseId()) {
       await loadCaseDetail(selectedCaseId());
     }
+    await refreshWorkspaceGovernance();
   } catch (error) {
     $("templatePane").textContent = error.message;
   }
@@ -1220,6 +1380,18 @@ function initializeWorkspaceBackupUi() {
   }
   if (restoreButton) {
     restoreButton.textContent = "Restore backup";
+  }
+  const refreshButton = $("refreshWorkspaceGovernanceButton");
+  if (refreshButton) {
+    refreshButton.textContent = "Refresh data status";
+  }
+  const pruneButton = $("pruneWorkspaceButton");
+  if (pruneButton) {
+    pruneButton.textContent = "Prune expired data";
+  }
+  const resetButton = $("resetWorkspaceButton");
+  if (resetButton) {
+    resetButton.textContent = "Clear workspace";
   }
   const uploadInput = $("workspaceBackupUpload");
   if (uploadInput) {
@@ -1267,7 +1439,9 @@ $("replayIntroButton").addEventListener("click", (event) => {
   event.preventDefault();
   showIntro();
 });
-$("loginForm").addEventListener("submit", login);
+$("authModeLogin").addEventListener("click", () => setAuthMode("login"));
+$("authModeSignup").addEventListener("click", () => setAuthMode("signup"));
+$("loginForm").addEventListener("submit", submitAuthForm);
 $("logoutButton").addEventListener("click", logout);
 $("createCaseButton").addEventListener("click", createCase);
 $("saveCaseButton").addEventListener("click", saveCaseNotes);
@@ -1275,6 +1449,9 @@ $("exportCaseButton").addEventListener("click", exportCasePackage);
 ensureDeleteCaseButton().addEventListener("click", deleteCase);
 $("exportWorkspaceButton").addEventListener("click", exportWorkspaceBackup);
 $("restoreWorkspaceButton").addEventListener("click", restoreWorkspaceBackup);
+$("refreshWorkspaceGovernanceButton").addEventListener("click", refreshWorkspaceGovernance);
+$("pruneWorkspaceButton").addEventListener("click", pruneWorkspaceRetention);
+$("resetWorkspaceButton").addEventListener("click", resetWorkspace);
 $("caseSelect").addEventListener("change", () => {
   state.caseId = selectedCaseId();
   updateCaseActions();
@@ -1293,4 +1470,5 @@ applySavedSidePanelState();
 updateTemplateAvailability();
 clearCaseDetail();
 clearDemoCatalog();
+renderWorkspaceGovernance(null);
 checkSession();
