@@ -294,6 +294,29 @@
             <strong>Workspace backup</strong>
             <span>Export a full snapshot of this account's cases, uploads, saved runs, and activity for restore on a fresh deployment.</span>
           </div>
+          <div id="accountSummary" class="summary-box">
+            <strong>Workspace access</strong>
+            <span>Sign in to review the active workspace account and rotate its password when needed.</span>
+          </div>
+          <section class="soft-section">
+            <div class="section-title">
+              <strong>Workspace access</strong>
+              <span>Rotate this workspace password after pilot handoff or whenever credentials need to change.</span>
+            </div>
+            <label class="field">
+              <span>Current password</span>
+              <input id="accountCurrentPassword" type="password" autocomplete="current-password" placeholder="Enter current password" />
+            </label>
+            <label class="field">
+              <span>New password</span>
+              <input id="accountNewPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+            </label>
+            <label class="field">
+              <span>Confirm new password</span>
+              <input id="accountNewPasswordConfirm" type="password" autocomplete="new-password" placeholder="Confirm new password" />
+            </label>
+            <button id="changePasswordButton" class="ghost-button wide" type="button">Change password</button>
+          </section>
           <div id="workspaceGovernanceSummary" class="summary-box">
             <strong>Workspace governance</strong>
             <span>Review upload limits, retention rules, and current storage use before validating hosted pilot workflows.</span>

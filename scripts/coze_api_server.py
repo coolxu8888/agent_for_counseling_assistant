@@ -20,6 +20,7 @@ from web_workbench import (
     error_response,
     handle_api_run,
     handle_audit_logs,
+    handle_account,
     handle_cases,
     handle_draft_template,
     handle_fill_template,
@@ -526,6 +527,8 @@ def handle_web_api(path, payload, handler):
         return handle_upload(user, payload)
     if path == "/api/audit":
         return handle_audit_logs(user)
+    if path == "/api/account":
+        return handle_account(user, payload)
     if path == "/api/workspace":
         return handle_workspace(user, payload)
     return error_response(404, "Endpoint not found.")

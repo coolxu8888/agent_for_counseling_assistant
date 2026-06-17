@@ -606,6 +606,24 @@ function renderWorkspaceBackupSummary(data) {
   box.append(title, body, createDownloadLink(data.output_path, "Download backup"));
 }
 
+function renderAccountSummary(user = state.user) {
+  const box = $("accountSummary");
+  if (!box) {
+    return;
+  }
+  box.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = "Workspace access";
+  const body = document.createElement("span");
+  if (!user) {
+    body.textContent = "Sign in to review the active workspace account and rotate its password when needed.";
+    box.append(title, body);
+    return;
+  }
+  body.textContent = `Signed in as ${user.username}. Rotate this workspace password after counselor handoff or any credential change.`;
+  box.append(title, body);
+}
+
 function renderWorkspaceGovernance(data) {
   const box = $("workspaceGovernanceSummary");
   if (!box) {
@@ -1054,6 +1072,7 @@ async function submitAuthForm(event) {
     state.workspacePolicy = data.workspace_policy || state.workspacePolicy;
     state.deploymentReadiness = data.deployment_readiness || state.deploymentReadiness;
     renderDeploymentReadiness(state.deploymentReadiness);
+    renderAccountSummary(state.user);
     localStorage.setItem(LOGIN_USERNAME_KEY, data.user.username);
     hideLogin();
     await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
@@ -1079,6 +1098,7 @@ async function logout() {
   $("caseSelect").innerHTML = '<option value="">No case selected</option>';
   clearCaseDetail();
   clearDemoCatalog();
+  renderAccountSummary(null);
   renderWorkspaceGovernance(null);
   renderDeploymentReadiness(null);
   showLogin("Signed out.");
@@ -1097,15 +1117,18 @@ async function checkSession() {
     renderDeploymentReadiness(state.deploymentReadiness);
     if (data.authenticated) {
       state.user = data.user;
+      renderAccountSummary(state.user);
       hideLogin();
       await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
       $("auditStatus").textContent = `Signed in as ${data.user.username}`;
     } else {
+      renderAccountSummary(null);
       clearDemoCatalog();
       renderWorkspaceGovernance(null);
       showLogin();
     }
   } catch (error) {
+    renderAccountSummary(null);
     clearDemoCatalog();
     renderWorkspaceGovernance(null);
     renderDeploymentReadiness(null);
@@ -1414,6 +1437,40 @@ async function uploadTemplate() {
   }
 }
 
+async function changeWorkspacePassword() {
+  if (!state.user) {
+    $("auditStatus").textContent = "Sign in before changing the workspace password.";
+    return;
+  }
+  const currentPassword = $("accountCurrentPassword").value;
+  const newPassword = $("accountNewPassword").value;
+  const newPasswordConfirm = $("accountNewPasswordConfirm").value;
+  if (!currentPassword || !newPassword || !newPasswordConfirm) {
+    $("auditStatus").textContent = "Enter the current password and confirm the new password first.";
+    return;
+  }
+  const button = $("changePasswordButton");
+  button.disabled = true;
+  try {
+    const data = await postJson("/api/account", {
+      action: "change_password",
+      current_password: currentPassword,
+      new_password: newPassword,
+      new_password_confirm: newPasswordConfirm,
+    });
+    state.user = data.user || state.user;
+    renderAccountSummary(state.user);
+    $("accountCurrentPassword").value = "";
+    $("accountNewPassword").value = "";
+    $("accountNewPasswordConfirm").value = "";
+    $("auditStatus").textContent = data.message || "Password updated.";
+  } catch (error) {
+    $("auditStatus").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function initializeWorkspaceBackupUi() {
   const exportButton = $("exportWorkspaceButton");
   const restoreButton = $("restoreWorkspaceButton");
@@ -1494,6 +1551,7 @@ $("restoreWorkspaceButton").addEventListener("click", restoreWorkspaceBackup);
 $("refreshWorkspaceGovernanceButton").addEventListener("click", refreshWorkspaceGovernance);
 $("pruneWorkspaceButton").addEventListener("click", pruneWorkspaceRetention);
 $("resetWorkspaceButton").addEventListener("click", resetWorkspace);
+$("changePasswordButton").addEventListener("click", changeWorkspacePassword);
 $("caseSelect").addEventListener("change", () => {
   state.caseId = selectedCaseId();
   updateCaseActions();
@@ -1512,5 +1570,6 @@ applySavedSidePanelState();
 updateTemplateAvailability();
 clearCaseDetail();
 clearDemoCatalog();
+renderAccountSummary(null);
 renderWorkspaceGovernance(null);
 checkSession();

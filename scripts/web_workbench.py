@@ -988,6 +988,33 @@ def handle_session(handler):
     )
 
 
+def handle_account(user, payload):
+    action = str(payload.get("action") or "").strip().lower()
+    if action != "change_password":
+        return error_response(400, "Unsupported account action.")
+
+    current_password = str(payload.get("current_password") or "")
+    new_password = str(payload.get("new_password") or "")
+    new_password_confirm = str(payload.get("new_password_confirm") or "")
+    if new_password != new_password_confirm:
+        return error_response(400, "New password confirmation does not match.")
+
+    try:
+        updated_user = STORE.update_user_password(user["id"], current_password, new_password)
+    except ValueError as exc:
+        return error_response(400, str(exc))
+
+    STORE.audit(user["id"], None, "auth.password_change", {"username": user["username"]})
+    append_run_log("auth.password_change", user_id=user["id"], details={"username": user["username"]})
+    return json_response(
+        {
+            "status": "success",
+            "message": "Password updated. Use the new password for future sign-ins.",
+            "user": updated_user,
+        }
+    )
+
+
 def list_recent_runs(user_id, case_id=None, limit=12):
     if not RUN_LOG_PATH.exists():
         return []
@@ -1943,6 +1970,8 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             response = handle_audit_logs(user)
         elif path in {"/api/demo-catalog", "/api/demo_catalog"}:
             response = handle_demo_catalog()
+        elif path == "/api/account":
+            response = handle_account(user, payload)
         elif path == "/api/workspace":
             response = handle_workspace(user, payload)
         else:

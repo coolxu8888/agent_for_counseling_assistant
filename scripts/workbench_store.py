@@ -235,6 +235,31 @@ class WorkbenchStore:
             user_id = cursor.lastrowid
         return {"id": user_id, "username": normalized_username, "role": role}
 
+    def update_user_password(self, user_id, current_password, new_password):
+        validated_password = validate_password(new_password)
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not row:
+                raise ValueError("User not found.")
+            stored = {
+                "salt": row["password_salt"],
+                "hash": row["password_hash"],
+                "iterations": row["password_iterations"],
+            }
+            if not verify_password(str(current_password or ""), stored):
+                raise ValueError("Current password is incorrect.")
+            hashed = hash_password(validated_password)
+            conn.execute(
+                """
+                UPDATE users
+                SET password_salt = ?, password_hash = ?, password_iterations = ?
+                WHERE id = ?
+                """,
+                (hashed["salt"], hashed["hash"], hashed["iterations"], user_id),
+            )
+            updated = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return self.public_user(updated)
+
     def public_user(self, row):
         return {"id": row["id"], "username": row["username"], "role": row["role"]}
 

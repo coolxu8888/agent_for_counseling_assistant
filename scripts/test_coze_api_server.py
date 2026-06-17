@@ -291,6 +291,34 @@ class CozeApiServerTest(unittest.TestCase):
         self.assertEqual(payload["status"], "success")
         self.assertEqual(fake.call_args.args[0]["username"], "pilot.user")
 
+    def test_handle_web_api_routes_account_actions(self):
+        handler = FakeHandler()
+        user = {"id": 7, "username": "pilot.user", "role": "counselor"}
+
+        with patch.object(coze_api_server, "require_user", return_value=(user, None)):
+            with patch.object(
+                coze_api_server,
+                "handle_account",
+                return_value=coze_api_server.json_response({"status": "success", "message": "Password updated."}),
+            ) as fake:
+                status, _headers, body = coze_api_server.handle_web_api(
+                    "/api/account",
+                    {
+                        "action": "change_password",
+                        "current_password": "safe-pass-123",
+                        "new_password": "safer-pass-456",
+                        "new_password_confirm": "safer-pass-456",
+                    },
+                    handler,
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(fake.call_args.args[0], user)
+        self.assertEqual(fake.call_args.args[1]["action"], "change_password")
+        self.assertEqual(fake.call_args.args[1]["user_id"], user["id"])
+
     def test_handle_web_api_routes_saved_runs_actions(self):
         handler = FakeHandler()
         user = {"id": 7, "username": "demo", "role": "counselor"}

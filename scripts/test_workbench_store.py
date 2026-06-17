@@ -36,6 +36,19 @@ class WorkbenchStoreTest(unittest.TestCase):
         self.assertEqual(created["username"], "pilot.user")
         self.assertEqual(auth["user"]["username"], "pilot.user")
 
+    def test_update_user_password_rotates_credentials(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = self.make_store(tmp)
+            created = store.create_user("pilot.user", "safe-pass-123")
+
+            updated = store.update_user_password(created["id"], "safe-pass-123", "safer-pass-456")
+            old_auth = store.authenticate("pilot.user", "safe-pass-123")
+            new_auth = store.authenticate("pilot.user", "safer-pass-456")
+
+        self.assertEqual(updated["username"], "pilot.user")
+        self.assertIsNone(old_auth)
+        self.assertEqual(new_auth["user"]["username"], "pilot.user")
+
     def test_create_user_rejects_duplicate_username_case_insensitively(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = self.make_store(tmp)

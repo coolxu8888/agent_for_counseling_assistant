@@ -364,6 +364,8 @@ class WebWorkbenchTest(unittest.TestCase):
         html = index_path.read_text(encoding="utf-8")
 
         self.assertIn('id="deploymentReadinessSummary"', html)
+        self.assertIn('id="accountSummary"', html)
+        self.assertIn('id="changePasswordButton"', html)
         self.assertIn("Deployment readiness", html)
 
     def test_handle_signup_requires_enabled_policy(self):
@@ -421,6 +423,58 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["status"], "success")
         self.assertEqual(payload["user"]["username"], "pilot.user")
         self.assertIn("Set-Cookie", headers)
+
+    def test_handle_account_change_password_updates_credentials(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            created = store.create_user("pilot.user", "safe-pass-123")
+            user = {"id": created["id"], "username": created["username"], "role": "counselor"}
+            run_log = Path(tmp) / "run-log.jsonl"
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                    status, _headers, body = web_workbench.handle_account(
+                        user,
+                        {
+                            "action": "change_password",
+                            "current_password": "safe-pass-123",
+                            "new_password": "safer-pass-456",
+                            "new_password_confirm": "safer-pass-456",
+                        },
+                    )
+
+            old_auth = store.authenticate("pilot.user", "safe-pass-123")
+            new_auth = store.authenticate("pilot.user", "safer-pass-456")
+            audit_logs = store.list_audit_logs(user["id"])
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertIn("Password updated", payload["message"])
+        self.assertIsNone(old_auth)
+        self.assertEqual(new_auth["user"]["username"], "pilot.user")
+        self.assertTrue(any(item["action"] == "auth.password_change" for item in audit_logs))
+
+    def test_handle_account_change_password_requires_matching_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            created = store.create_user("pilot.user", "safe-pass-123")
+            user = {"id": created["id"], "username": created["username"], "role": "counselor"}
+
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_account(
+                    user,
+                    {
+                        "action": "change_password",
+                        "current_password": "safe-pass-123",
+                        "new_password": "safer-pass-456",
+                        "new_password_confirm": "different-pass-789",
+                    },
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertIn("confirmation", payload["message"])
 
     def test_handle_cases_detail_returns_case_uploads_audit_and_runs(self):
         with tempfile.TemporaryDirectory() as tmp:
