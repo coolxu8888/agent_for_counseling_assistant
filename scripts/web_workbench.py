@@ -1139,6 +1139,52 @@ def rewrite_path_values(value, path_map):
     return value
 
 
+def validated_backup_file_name(name, kind):
+    raw_name = str(name or "").strip()
+    candidate = Path(raw_name).name
+    if not raw_name or candidate != raw_name or candidate in {".", ".."}:
+        raise ValueError(f"Unsafe {kind} file name in workspace backup: {raw_name or '<empty>'}.")
+    return candidate
+
+
+def validate_workspace_backup_archive(archive, manifest, workspace):
+    if manifest.get("version") != WORKSPACE_BACKUP_VERSION:
+        raise ValueError("Unsupported workspace backup version.")
+
+    archive_names = set(archive.namelist())
+    expected_names = {"manifest.json", "workspace.json"}
+    seen_upload_targets = set()
+    seen_run_names = set()
+
+    for upload in workspace.get("uploads", []):
+        archive_path = str(upload.get("archive_path") or "").strip()
+        if not archive_path:
+            raise ValueError("Workspace backup upload is missing archive_path.")
+        original_name = validated_backup_file_name(upload.get("original_name"), "upload")
+        expected_path = f"uploads/{original_name}"
+        if archive_path != expected_path:
+            raise ValueError(
+                f"Workspace backup upload archive_path mismatch for {original_name}: expected {expected_path}."
+            )
+        if archive_path in seen_upload_targets:
+            raise ValueError(f"Duplicate upload archive_path in workspace backup: {archive_path}.")
+        seen_upload_targets.add(archive_path)
+        expected_names.add(archive_path)
+
+    for artifact in workspace.get("run_artifacts", []):
+        run_name = validated_backup_file_name(artifact.get("run_name"), "run")
+        if run_name in seen_run_names:
+            raise ValueError(f"Duplicate run_name in workspace backup: {run_name}.")
+        seen_run_names.add(run_name)
+        for filename in artifact.get("files", []):
+            safe_filename = validated_backup_file_name(filename, "run artifact")
+            expected_names.add(f"runs/{run_name}/{safe_filename}")
+
+    missing_names = sorted(name for name in expected_names if name not in archive_names)
+    if missing_names:
+        raise ValueError(f"Workspace backup is missing archive entries: {', '.join(missing_names)}")
+
+
 def rewrite_run_log_for_user(user_id, replacement_entries=None):
     replacement_entries = replacement_entries or []
     entries = []
@@ -1315,9 +1361,7 @@ def restore_workspace_backup_bundle(user, backup_path):
             workspace = json.loads(archive.read("workspace.json").decode("utf-8"))
         except KeyError as exc:
             raise ValueError(f"Backup bundle is missing {exc.args[0]}.")
-
-        if manifest.get("version") != WORKSPACE_BACKUP_VERSION:
-            raise ValueError("Unsupported workspace backup version.")
+        validate_workspace_backup_archive(archive, manifest, workspace)
 
         for record in STORE.list_run_artifacts(user["id"], limit=1000):
             run_dir = Path(record["run_dir"])
@@ -1346,7 +1390,7 @@ def restore_workspace_backup_bundle(user, backup_path):
             archive_path = upload.get("archive_path")
             if not archive_path:
                 continue
-            original_name = Path(str(upload.get("original_name") or "upload.bin")).name
+            original_name = validated_backup_file_name(upload.get("original_name"), "upload")
             case_id = case_id_map.get(upload.get("case_id"))
             case_part = f"case-{case_id}" if case_id else "unassigned"
             target_dir = user_upload_root(user["id"]) / case_part
@@ -1365,11 +1409,12 @@ def restore_workspace_backup_bundle(user, backup_path):
             path_map[upload.get("stored_path")] = imported_upload["stored_path"]
 
         for artifact in workspace.get("run_artifacts", []):
-            run_name = Path(str(artifact.get("run_name") or "restored-run")).name
+            run_name = validated_backup_file_name(artifact.get("run_name"), "run")
             run_dir = create_run_dir(run_root=RUN_ROOT, workflow_id=f"RESTORE-{run_name}")
             for filename in artifact.get("files", []):
-                source_name = f"runs/{run_name}/{filename}"
-                target_path = run_dir / filename
+                safe_filename = validated_backup_file_name(filename, "run artifact")
+                source_name = f"runs/{run_name}/{safe_filename}"
+                target_path = run_dir / safe_filename
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_bytes(archive.read(source_name))
             STORE.register_run_artifact(

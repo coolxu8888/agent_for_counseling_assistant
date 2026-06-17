@@ -819,6 +819,161 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertNotIn("old-run", recent[0]["details"]["run_dir"])
         self.assertFalse(stale_upload_exists)
 
+    def test_handle_workspace_restore_missing_artifact_keeps_existing_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            existing_case = store.create_case(user["id"], "Keep Me", client_code="KEEP-1", notes="existing")
+            existing_upload = store.store_upload(
+                user["id"],
+                "keep.docx",
+                base64.b64encode(b"keep").decode("ascii"),
+                case_id=existing_case["id"],
+            )
+            run_root = root / "agent-runs"
+            existing_run_dir = run_root / "keep-run"
+            existing_run_dir.mkdir(parents=True)
+            (existing_run_dir / "clean_output.md").write_text("keep", encoding="utf-8")
+            store.register_run_artifact(
+                user["id"],
+                str(existing_run_dir),
+                workflow="W2",
+                case_id=existing_case["id"],
+                source_action="workflow.run",
+            )
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-06-10T09:00:00+00:00",
+                        "action": "workflow.run",
+                        "user_id": user["id"],
+                        "case_id": existing_case["id"],
+                        "details": {"run_dir": str(existing_run_dir), "stored_path": existing_upload["stored_path"]},
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            backup_path = root / "workspace-backup.zip"
+            workspace_payload = {
+                "cases": [{"id": 41, "title": "Broken Restore", "client_code": "BROKEN-41", "notes": ""}],
+                "uploads": [],
+                "audit_logs": [],
+                "run_artifacts": [
+                    {
+                        "run_dir": "C:/old-runs/run-restore",
+                        "run_name": "run-restore",
+                        "case_id": 41,
+                        "workflow": "W2",
+                        "source_action": "workflow.run",
+                        "created_at": "2026-06-05T10:00:00+00:00",
+                        "files": ["clean_output.md"],
+                    }
+                ],
+                "recent_activity": [],
+            }
+            with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr(
+                    "manifest.json",
+                    json.dumps({"version": 1, "counts": {"cases": 1, "uploads": 0, "runs": 1}}, ensure_ascii=False),
+                )
+                archive.writestr("workspace.json", json.dumps(workspace_payload, ensure_ascii=False))
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        status, _headers, body = web_workbench.handle_workspace(
+                            user,
+                            {
+                                "action": "restore",
+                                "backup_base64": base64.b64encode(backup_path.read_bytes()).decode("ascii"),
+                            },
+                        )
+                        payload = json.loads(body.decode("utf-8"))
+                        self.assertEqual(status, 400)
+                        self.assertIn("runs/run-restore/clean_output.md", payload["message"])
+                        self.assertEqual(store.list_cases(user["id"])[0]["title"], "Keep Me")
+                        self.assertTrue(Path(existing_upload["stored_path"]).exists())
+                        self.assertTrue((existing_run_dir / "clean_output.md").exists())
+                        self.assertEqual(len(store.list_run_artifacts(user["id"])), 1)
+
+    def test_handle_workspace_restore_invalid_upload_name_keeps_existing_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            existing_case = store.create_case(user["id"], "Keep Me", client_code="KEEP-2", notes="existing")
+            existing_upload = store.store_upload(
+                user["id"],
+                "keep.docx",
+                base64.b64encode(b"keep").decode("ascii"),
+                case_id=existing_case["id"],
+            )
+            run_root = root / "agent-runs"
+            existing_run_dir = run_root / "keep-run"
+            existing_run_dir.mkdir(parents=True)
+            (existing_run_dir / "clean_output.md").write_text("keep", encoding="utf-8")
+            store.register_run_artifact(
+                user["id"],
+                str(existing_run_dir),
+                workflow="W2",
+                case_id=existing_case["id"],
+                source_action="workflow.run",
+            )
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text("", encoding="utf-8")
+
+            backup_path = root / "workspace-backup.zip"
+            workspace_payload = {
+                "cases": [{"id": 51, "title": "Broken Upload", "client_code": "BROKEN-51", "notes": ""}],
+                "uploads": [
+                    {
+                        "id": 11,
+                        "case_id": 51,
+                        "original_name": "../escape.docx",
+                        "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "size_bytes": 4,
+                        "created_at": "2026-06-03T10:00:00+00:00",
+                        "archive_path": "uploads/escape.docx",
+                        "stored_path": "C:/old/uploads/escape.docx",
+                    }
+                ],
+                "audit_logs": [],
+                "run_artifacts": [],
+                "recent_activity": [],
+            }
+            with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr(
+                    "manifest.json",
+                    json.dumps({"version": 1, "counts": {"cases": 1, "uploads": 1, "runs": 0}}, ensure_ascii=False),
+                )
+                archive.writestr("workspace.json", json.dumps(workspace_payload, ensure_ascii=False))
+                archive.writestr("uploads/escape.docx", b"docx")
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        status, _headers, body = web_workbench.handle_workspace(
+                            user,
+                            {
+                                "action": "restore",
+                                "backup_base64": base64.b64encode(backup_path.read_bytes()).decode("ascii"),
+                            },
+                        )
+                        payload = json.loads(body.decode("utf-8"))
+                        self.assertEqual(status, 400)
+                        self.assertIn("Unsafe upload file name", payload["message"])
+                        self.assertEqual(store.list_cases(user["id"])[0]["title"], "Keep Me")
+                        self.assertTrue(Path(existing_upload["stored_path"]).exists())
+                        self.assertTrue((existing_run_dir / "clean_output.md").exists())
+                        self.assertEqual(len(store.list_run_artifacts(user["id"])), 1)
+
     def test_handle_workspace_status_reports_counts_storage_and_policy(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
