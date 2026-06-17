@@ -1,60 +1,67 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>鍜ㄨ甯堝姪鐞?/title>
+    <title>Counselor Assistant</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div id="rippleField" class="ripple-field" aria-hidden="true"></div>
 
-    <section id="introOverlay" class="intro-overlay" aria-label="鍔熻兘寮曞">
+    <section id="introOverlay" class="intro-overlay" aria-label="Product introduction">
       <div class="intro-water">
         <div class="intro-orb">
           <img src="/agent-icon.png" alt="" />
         </div>
         <div class="intro-copy">
-          <span>鍜ㄨ甯堝姪鐞?/span>
-          <h1>鎶婃潗鏂欐斁杩涙潵锛屽墿涓嬬殑浜ょ粰绯荤粺鍒ゆ柇銆?/h1>
-          <p>鎴戜細鑷姩璇嗗埆浣犳槸鍦ㄥ噯澶囧垵璁裤€佹暣鐞嗕釜妗堛€佺敓鎴愬挩璇㈣褰曪紝杩樻槸瑕佹妸鍙ｈ堪鏉愭枡濉繘 Word 妯℃澘銆?/p>
+          <span>Counselor Assistant</span>
+          <h1>Paste counselor material once. Let the workspace route the rest.</h1>
+          <p>
+            The product can prepare intake guides, organize case summaries, draft
+            session records, and fill Word templates while keeping privacy and
+            review boundaries visible.
+          </p>
         </div>
         <div class="demo-sphere" aria-hidden="true">
           <div class="demo-roll">
-            <span>绮樿创鍒濊闇€姹?/span>
-            <span>鑷姩鐢熸垚淇℃伅鏀堕泦琛?/span>
-            <span>鏁寸悊涓鑳屾櫙涓?BPS 绾跨储</span>
-            <span>鍗曠嫭鏍囨敞椋庨櫓鍙樺寲</span>
-            <span>鐢熸垚 session 璁板綍</span>
-            <span>涓婁紶 Word 妯℃澘</span>
-            <span>鎸夋爮鐩～鍏呮枃妗?/span>
-            <span>淇濈暀瀹¤鏃ュ織涓庨殣绉佽竟鐣?/span>
+            <span>Intake prompts</span>
+            <span>Case summary structure</span>
+            <span>Session note drafting</span>
+            <span>Risk boundary reminders</span>
+            <span>Word template upload</span>
+            <span>Template slot scan</span>
+            <span>Run history and exports</span>
+            <span>Workspace governance</span>
           </div>
         </div>
         <div class="intro-actions">
-          <button id="startLoginButton" class="liquid-button primary-button" type="button">寮€濮嬩娇鐢?/button>
-          <button id="skipIntroButton" class="ghost-button" type="button">璺宠繃婕旂ず</button>
+          <button id="startLoginButton" class="liquid-button primary-button" type="button">Open workspace</button>
+          <button id="skipIntroButton" class="ghost-button" type="button">Skip intro</button>
         </div>
       </div>
     </section>
 
-    <section id="loginOverlay" class="login-overlay" aria-label="鐧诲綍">
+    <section id="loginOverlay" class="login-overlay" aria-label="Sign in">
       <form id="loginForm" class="login-drop">
         <div class="drop-mark">
           <img src="/agent-icon.png" alt="" />
         </div>
-        <h1>鍜ㄨ甯堝姪鐞?/h1>
-        <p>鎶婃潗鏂欎氦缁欐垜锛屾垜浼氳嚜鍔ㄥ垽鏂槸鍒濊銆佷釜妗堟暣鐞嗐€佸挩璇㈣褰曪紝鎴栨槸妯℃澘濉厖銆?/p>
+        <h1>Counselor Assistant</h1>
+        <p>
+          Sign in to an isolated counselor workspace. Use de-identified cases only
+          for public MVP validation.
+        </p>
         <div id="authModeSwitch" class="button-row">
           <button id="authModeLogin" class="ghost-button" type="button">Sign in</button>
           <button id="authModeSignup" class="ghost-button" type="button" hidden>Create workspace</button>
         </div>
         <label>
-          <span>璐﹀彿</span>
+          <span>Username</span>
           <input id="loginUsername" type="text" autocomplete="username" placeholder="Enter username" />
         </label>
         <label>
-          <span>瀵嗙爜</span>
+          <span>Password</span>
           <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" />
         </label>
         <label id="signupConfirmWrap" hidden>
@@ -67,7 +74,7 @@
         </label>
         <button id="loginSubmitButton" class="liquid-button primary-button" type="submit">Sign in</button>
         <span id="authModeHint" class="login-message"></span>
-        <button id="replayIntroButton" class="ghost-button" type="button">閲嶇湅婕旂ず</button>
+        <button id="replayIntroButton" class="ghost-button" type="button">Replay intro</button>
         <span id="loginMessage" class="login-message"></span>
       </form>
     </section>
@@ -77,72 +84,76 @@
         <div class="brand">
           <img src="/agent-icon.png" alt="" />
           <div>
-            <h1>鍜ㄨ甯堝姪鐞?/h1>
-            <p id="ambientCaption">鑷姩璇嗗埆鎰忓浘锛岀敓鎴愯褰曘€佽〃鍗曞拰妯℃澘鏂囨。銆?/p>
+            <h1>Counselor Assistant</h1>
+            <p id="ambientCaption">Route counselor tasks into structured drafts, notes, exports, and template outputs.</p>
           </div>
         </div>
         <div class="top-actions">
-          <span id="runStatus" class="status idle">闈欏€欒緭鍏?/span>
-          <button id="logoutButton" class="ghost-button" type="button">閫€鍑?/button>
+          <span id="runStatus" class="status idle">Waiting for input</span>
+          <button id="logoutButton" class="ghost-button" type="button">Sign out</button>
         </div>
       </header>
 
       <section class="workspace">
-        <aside class="glass-panel side-panel" aria-label="涓涓庢枃妗?>
-          <button id="sideCollapseButton" class="panel-collapse" type="button" aria-label="鏀惰捣涓涓庢枃妗?>脳</button>
-          <button id="sideExpandButton" class="side-dock-tab" type="button" aria-label="灞曞紑涓涓庢枃妗?>
-            <span>涓</span>
-            <span>鏂囨。</span>
+        <aside class="glass-panel side-panel" aria-label="Cases and documents">
+          <button id="sideCollapseButton" class="panel-collapse" type="button" aria-label="Collapse cases and documents">◂</button>
+          <button id="sideExpandButton" class="side-dock-tab" type="button" aria-label="Expand cases and documents">
+            <span>Cases</span>
+            <span>Docs</span>
           </button>
           <section class="soft-section accordion-section active" data-accordion="case">
             <button class="accordion-trigger" type="button" aria-expanded="true">
               <span>
-                <strong>涓</strong>
-                <em>寤鸿浣跨敤鍘昏瘑鍒紪鍙?/em>
+                <strong>Cases</strong>
+                <em>Prefer de-identified case codes for pilot use</em>
               </span>
               <b>+</b>
             </button>
             <div class="accordion-body">
               <label class="field">
-                <span>褰撳墠涓</span>
+                <span>Current case</span>
                 <select id="caseSelect">
-                  <option value="">鏈€夋嫨涓</option>
+                  <option value="">No case selected</option>
                 </select>
               </label>
               <label class="field">
-                <span>鏂板缓鏍囬</span>
-                <input id="caseTitleInput" type="text" placeholder="鍒濊-A001" />
+                <span>New case title</span>
+                <input id="caseTitleInput" type="text" placeholder="Initial intake - A001" />
               </label>
               <label class="field">
-                <span>鏉ヨ缂栧彿</span>
+                <span>Client code</span>
                 <input id="clientCodeInput" type="text" placeholder="A001" />
               </label>
               <div class="button-row">
-                <button id="createCaseButton" class="liquid-button secondary-button" type="button">鏂板缓涓</button>
-                <button id="saveCaseButton" class="ghost-button" type="button">淇濆瓨澶囨敞</button>
+                <button id="createCaseButton" class="liquid-button secondary-button" type="button">Create case</button>
+                <button id="saveCaseButton" class="ghost-button" type="button">Save notes</button>
               </div>
-              <button id="exportCaseButton" class="ghost-button wide" type="button">瀵煎嚭涓鍖?/button>
+              <button id="exportCaseButton" class="ghost-button wide" type="button">Export case bundle</button>
               <label class="field">
-                <span>涓澶囨敞</span>
-                <textarea id="caseNotesInput" class="field-textarea" placeholder="璁板綍鏈涓鐨勫幓璇嗗埆澶囨敞銆佽窡杩涙彁閱掓垨妯℃澘璇存槑"></textarea>
+                <span>Case notes</span>
+                <textarea
+                  id="caseNotesInput"
+                  class="field-textarea"
+                  placeholder="Store de-identified notes, supervision context, and follow-up reminders for this workspace."
+                ></textarea>
               </label>
               <div id="caseUploadsSummary" class="summary-box compact-box">
-                <strong>宸插叧鑱旀枃浠?/strong>
-                <span>閫夋嫨涓鍚庢樉绀哄凡涓婁紶妯℃澘涓庢潗鏂欍€?/span>
+                <strong>Linked files</strong>
+                <span>Select a case to view uploaded templates and source materials.</span>
               </div>
               <div class="button-row">
-                <button id="exportWorkspaceButton" class="ghost-button" type="button">婢跺洣鍞ゅ銉ょ稊閸?/button>
-                <button id="restoreWorkspaceButton" class="ghost-button" type="button">閹垹顦叉径鍥﹀敜</button>
+                <button id="exportWorkspaceButton" class="ghost-button" type="button">Backup workspace</button>
+                <button id="restoreWorkspaceButton" class="ghost-button" type="button">Restore backup</button>
               </div>
               <label class="field">
-                <span>瀹搞儰缍旈崣鏉款槵娴?zip</span>
+                <span>Workspace backup (.zip)</span>
                 <input id="workspaceBackupUpload" type="file" accept=".zip,application/zip" />
               </label>
               <div class="button-row">
-                <button id="refreshWorkspaceGovernanceButton" class="ghost-button" type="button">鏉╂柨娲栨稉顏勫娇</button>
-                <button id="pruneWorkspaceButton" class="ghost-button" type="button">閹惧府鏆熸禒锟?</button>
+                <button id="refreshWorkspaceGovernanceButton" class="ghost-button" type="button">Refresh data status</button>
+                <button id="pruneWorkspaceButton" class="ghost-button" type="button">Prune expired data</button>
               </div>
-              <button id="resetWorkspaceButton" class="ghost-button wide" type="button">閸掓稑缂撴稉顏咁攳</button>
+              <button id="resetWorkspaceButton" class="ghost-button wide" type="button">Clear workspace</button>
               <div id="caseUploadsList" class="stack-list muted-list"></div>
             </div>
           </section>
@@ -150,88 +161,91 @@
           <section class="soft-section accordion-section" data-accordion="template">
             <button class="accordion-trigger" type="button" aria-expanded="false">
               <span>
-                <strong>鏂囨。妯℃澘</strong>
-                <em>涓婁紶鍚庡彲鐩存帴濉厖</em>
+                <strong>Templates</strong>
+                <em>Upload once, then reuse across runs</em>
               </span>
               <b>+</b>
             </button>
             <div class="accordion-body">
               <label class="field">
-                <span>涓婁紶 Word</span>
+                <span>Upload Word template</span>
                 <input id="templateUpload" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
               </label>
               <label class="field">
-                <span>妯℃澘璺緞</span>
-                <input id="templatePath" type="text" placeholder="浼樺厛浣跨敤宸蹭笂浼犳ā鏉匡紝鎴栧～鍐欐湇鍔″櫒鍐呯殑绀轰緥妯℃澘璺緞" />
+                <span>Template path</span>
+                <input id="templatePath" type="text" placeholder="Prefer an uploaded template or a bundled demo template" />
               </label>
               <label class="field">
-                <span>璇█椋庢牸</span>
+                <span>Writing style</span>
                 <select id="styleSelect">
-                  <option value="professional_concise">涓撲笟绠€娲?/option>
-                  <option value="warm_clinical">娓╁拰涓村簥</option>
-                  <option value="institutional_record">鏈烘瀯璁板綍</option>
-                  <option value="supervision_summary">鐫ｅ鎽樿</option>
-                  <option value="custom">鑷畾涔?/option>
+                  <option value="professional_concise">Professional concise</option>
+                  <option value="warm_clinical">Warm clinical</option>
+                  <option value="institutional_record">Institutional record</option>
+                  <option value="supervision_summary">Supervision summary</option>
+                  <option value="custom">Custom</option>
                 </select>
               </label>
-              <input id="customStyle" class="subtle-input" type="text" placeholder="鑷畾涔夐鏍? />
+              <input id="customStyle" class="subtle-input" type="text" placeholder="Optional custom drafting instruction" />
               <label class="field">
-                <span>宸叉湁鍐呭</span>
+                <span>Existing content policy</span>
                 <select id="existingPolicy">
-                  <option value="merge">淇濈暀骞剁画鍐?娑﹁壊</option>
-                  <option value="ask">涓嶈鐩栵紝鍒楀嚭闇€纭椤?/option>
-                  <option value="replace">鍏佽閲嶅啓瀵瑰簲鏍忕洰</option>
-                  <option value="blank_only">鍙～绌虹櫧</option>
+                  <option value="merge">Preserve and continue</option>
+                  <option value="ask">Flag for review</option>
+                  <option value="replace">Replace existing content</option>
+                  <option value="blank_only">Fill blank fields only</option>
                 </select>
               </label>
               <div class="button-row">
-                <button id="inspectTemplateButton" class="ghost-button" type="button">鎵弿</button>
-                <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">濉厖妯℃澘</button>
+                <button id="inspectTemplateButton" class="ghost-button" type="button">Scan template</button>
+                <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">Draft into template</button>
               </div>
-              <button id="fillTemplateButton" class="ghost-button wide" type="button" disabled>鐢ㄧ粨鏋勫寲缁撴灉濉厖</button>
+              <button id="fillTemplateButton" class="ghost-button wide" type="button" disabled>Fill from structured output</button>
             </div>
           </section>
         </aside>
-        <div id="sideResizeHandle" class="side-resize-handle" role="separator" aria-label="璋冩暣渚ф爮瀹藉害"></div>
+        <div id="sideResizeHandle" class="side-resize-handle" role="separator" aria-label="Resize side panel"></div>
 
-        <section class="glass-panel conversation" aria-label="瀵硅瘽涓庤緭鍑?>
-          <div class="result-tabs" role="tablist" aria-label="缁撴灉瑙嗗浘">
-            <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="markdown">杈撳嚭</button>
+        <section class="glass-panel conversation" aria-label="Run results">
+          <div class="result-tabs" role="tablist" aria-label="Result tabs">
+            <button class="tab active" type="button" role="tab" aria-selected="true" data-tab="markdown">Output</button>
             <button class="tab" type="button" role="tab" aria-selected="false" data-tab="json">JSON</button>
-            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="checks">鏍￠獙</button>
-            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="template">妯℃澘</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="checks">Checks</button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-tab="template">Template</button>
           </div>
 
           <div class="panes">
-            <pre id="markdownPane" class="pane active" role="tabpanel">鎶婂挩璇㈠笀鏉愭枡鏀惧埌搴曢儴杈撳叆妗嗭紝鎴戜細鑷姩鍒ゆ柇浠诲姟绫诲瀷骞剁敓鎴愮粨鏋溿€?/pre>
-            <pre id="jsonPane" class="pane" role="tabpanel">缁撴瀯鍖?JSON 浼氭樉绀哄湪杩欓噷銆?/pre>
-            <pre id="checksPane" class="pane" role="tabpanel">鏍￠獙缁撴灉銆侀闄╄竟鐣屽拰杩愯鍏冩暟鎹細鏄剧ず鍦ㄨ繖閲屻€?/pre>
-            <pre id="templatePane" class="pane" role="tabpanel">妯℃澘鎵弿鍜屽～鍏呮姤鍛婁細鏄剧ず鍦ㄨ繖閲屻€?/pre>
+            <pre id="markdownPane" class="pane active" role="tabpanel">Generated markdown, final answer text, or saved run output will appear here.</pre>
+            <pre id="jsonPane" class="pane" role="tabpanel">Structured JSON output will appear here when available.</pre>
+            <pre id="checksPane" class="pane" role="tabpanel">Validation checks, run metadata, and safety summaries will appear here.</pre>
+            <pre id="templatePane" class="pane" role="tabpanel">Template scan results, draft reports, and fill reports will appear here.</pre>
           </div>
 
           <div class="composer">
-            <textarea id="inputText" placeholder="绮樿创鍒濊闇€姹傘€佷釜妗堢瑪璁般€乻ession 璁板綍锛屾垨鍛婅瘔鎴戞兂鎸夋ā鏉挎暣鐞嗘潗鏂?></textarea>
+            <textarea
+              id="inputText"
+              placeholder="Paste counselor notes, intake requirements, session material, or template drafting source text."
+            ></textarea>
             <div class="composer-footer">
               <div class="quiet-controls">
-                <select id="outputStyleSelect" aria-label="杈撳嚭椋庢牸">
-                  <option value="default">榛樿椋庢牸</option>
-                  <option value="professional_concise">涓撲笟绠€娲?/option>
-                  <option value="warm_clinical">娓╁拰涓村簥</option>
-                  <option value="institutional_record">鏈烘瀯璁板綍</option>
-                  <option value="supervision_summary">鐫ｅ鎽樿</option>
-                  <option value="custom">鑷畾涔?/option>
+                <select id="outputStyleSelect" aria-label="Output style">
+                  <option value="default">Default style</option>
+                  <option value="professional_concise">Professional concise</option>
+                  <option value="warm_clinical">Warm clinical</option>
+                  <option value="institutional_record">Institutional record</option>
+                  <option value="supervision_summary">Supervision summary</option>
+                  <option value="custom">Custom</option>
                 </select>
-                <input id="outputCustomStyle" class="subtle-input" type="text" placeholder="鑷畾涔? />
-                <label><input id="structuredToggle" type="checkbox" checked /> 缁撴瀯鍖?/label>
+                <input id="outputCustomStyle" class="subtle-input" type="text" placeholder="Optional custom output style" />
+                <label><input id="structuredToggle" type="checkbox" checked /> Structured</label>
                 <label><input id="docxToggle" type="checkbox" /> Word</label>
-                <label><input id="dryRunToggle" type="checkbox" /> Dry</label>
+                <label><input id="dryRunToggle" type="checkbox" /> Dry run</label>
               </div>
-              <button id="runButton" class="send-button" type="button">鍙戦€?/button>
+              <button id="runButton" class="send-button" type="button">Run</button>
             </div>
           </div>
         </section>
 
-        <aside class="glass-panel trace-panel" aria-label="鎻愮ず涓庢ā鏉?>
+        <aside class="glass-panel trace-panel" aria-label="Operational summaries">
           <section class="soft-section">
             <div class="section-title">
               <strong>Quick start</strong>
@@ -246,52 +260,56 @@
           </section>
 
           <section class="soft-section privacy-copy">
-            <strong>闅愮杈圭晫</strong>
-            <span>璇蜂紭鍏堜娇鐢ㄧ紪鍙凤紝涓嶅湪娴嬭瘯鏉愭枡涓緭鍏ュ鍚嶃€佺數璇濄€佽韩浠借瘉绛夊彲璇嗗埆淇℃伅銆備笂浼犮€佽繍琛屽拰妯℃澘鎿嶄綔浼氫繚瀛樺湪鏈満骞跺啓鍏ュ璁℃棩蹇楋紱閮ㄧ讲鐗堝簲浼樺厛閫氳繃涓婁紶妯℃澘鑰屼笉鏄～鍐欐湰鍦拌矾寰勩€?/span>
+            <strong>Privacy boundary</strong>
+            <span>
+              Use coded or de-identified material only. Avoid real names, phone numbers,
+              IDs, or directly identifying details in public MVP validation. Uploaded
+              files, runs, and template actions are stored in the workspace and audit log.
+            </span>
           </section>
 
           <div id="caseSummary" class="summary-box">
-            <strong>褰撳墠涓</strong>
-            <span>灏氭湭閫夋嫨涓銆?/span>
+            <strong>Current case</strong>
+            <span>No case selected yet.</span>
           </div>
 
           <div class="soft-section">
             <div class="section-title">
-              <strong>鏈€杩戞椿鍔?/strong>
-              <span>鎸変釜妗堟眹鎬昏繍琛屻€佹ā鏉垮拰涓婁紶鎿嶄綔銆?/span>
+              <strong>Recent activity</strong>
+              <span>Review workflow runs, template actions, and uploads in reverse chronological order.</span>
             </div>
             <div id="caseActivityList" class="stack-list muted-list"></div>
           </div>
 
           <div id="templateSummary" class="summary-box">
-            <strong>妯℃澘璇嗗埆</strong>
-            <span>灏氭湭鎵弿妯℃澘銆?/span>
+            <strong>Template scan</strong>
+            <span>No template has been scanned yet.</span>
           </div>
 
           <div id="caseExportSummary" class="summary-box">
-            <strong>涓瀵煎嚭</strong>
-            <span>閫夋嫨涓鍚庯紝鍙皢璇ヤ釜妗堢殑澶囨敞銆佹枃浠躲€佽繎鏈熻繍琛屼笌杈撳嚭鎵撳寘涓轰竴涓彲涓嬭浇 bundle銆?/span>
+            <strong>Case export</strong>
+            <span>Select a case to bundle its notes, uploads, recent runs, and generated outputs.</span>
           </div>
           <div id="workspaceBackupSummary" class="summary-box">
-            <strong>瀹搞儰缍旈崣鏉款槵娴?</strong>
-            <span>閸欘垯绗呮潪钘夌秼閸撳秷澶勯崣椋庢畱娑擃亝顢嶉妴浣规瀮娴犺翰鈧浇绻嶇悰灞奸獓閻椻晛鎷板ú璇插З鐠佹澘缍嶉敍灞借嫙閸︺劍鏌婄€圭偘绶ユ稉濠冧划婢跺秲鈧?/span>
+            <strong>Workspace backup</strong>
+            <span>Export a full snapshot of this account's cases, uploads, saved runs, and activity for restore on a fresh deployment.</span>
           </div>
           <div id="workspaceGovernanceSummary" class="summary-box">
-            <strong>娑擃厼鎳撻柅姘崇箖</strong>
-            <span>鏉╂柨娲栭崚婵婎問娑擃厼鎳撻悗鐟版瀮閹峰洦鍤紞鎾虫煙鐟曚礁鎮庢稉顏勫娇</span>
+            <strong>Workspace governance</strong>
+            <span>Review upload limits, retention rules, and current storage use before validating hosted pilot workflows.</span>
           </div>
         </aside>
       </section>
     </main>
     <div class="app-telemetry" hidden>
-      <span id="auditStatus">鐧诲綍鍚庤褰曟搷浣?/span>
-      <span id="intentDisplay">鑷姩鍒ゆ柇</span>
-      <span id="runDir">鏃?/span>
-      <span id="docxPath">鏃?/span>
-      <span id="uploadedTemplatePath">鏃?/span>
-      <span id="filledTemplatePath">鏃?/span>
-      <span id="templateDraftPath">鏃?/span>
-      <span id="templateReportPath">鏃?/span>
+      <span id="auditStatus">Activity is recorded after sign-in.</span>
+      <span id="intentDisplay">Automatic routing</span>
+      <span id="runDir">None</span>
+      <span id="docxPath">None</span>
+      <span id="uploadedTemplatePath">None</span>
+      <span id="filledTemplatePath">None</span>
+      <span id="templateDraftPath">None</span>
+      <span id="templateReportPath">None</span>
     </div>
     <script src="/app.js"></script>
   </body>

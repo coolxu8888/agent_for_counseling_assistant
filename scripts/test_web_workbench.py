@@ -59,6 +59,13 @@ class WebWorkbenchTest(unittest.TestCase):
 
         self.assertEqual(resolved.name, "index.html")
 
+    def test_static_index_has_valid_title_markup(self):
+        index_path = web_workbench.resolve_static_path("/")
+        html = index_path.read_text(encoding="utf-8")
+
+        self.assertIn("<title>Counselor Assistant</title>", html)
+        self.assertNotIn("?/title>", html)
+
     def test_resolve_download_path_allows_agent_runs_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
