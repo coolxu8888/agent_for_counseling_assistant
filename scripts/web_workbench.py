@@ -235,6 +235,29 @@ def user_upload_root(user_id):
     return active_upload_root() / f"user-{int(user_id)}"
 
 
+def template_ref(kind, value):
+    return f"{kind}:{value}"
+
+
+def upload_template_ref(upload):
+    return template_ref("upload", upload["id"])
+
+
+def serialize_upload(upload):
+    payload = dict(upload)
+    payload["template_ref"] = upload_template_ref(upload)
+    return payload
+
+
+def demo_template_record(path):
+    return {
+        "id": path.stem,
+        "title": path.stem,
+        "template_ref": template_ref("demo", path.stem),
+        "summary": "Bundled sample Word template stored in the repository docs directory.",
+    }
+
+
 def require_run_dir_access(user_id, run_dir):
     if not user_id:
         return
@@ -247,8 +270,31 @@ def require_run_dir_access(user_id, run_dir):
     raise PermissionError("Run directory is not available for this account.")
 
 
-def resolve_template_path(path_value, user_id=None, allow_run_root=False):
-    candidate = Path(str(path_value)).resolve()
+def resolve_demo_template_path(template_id):
+    for path in sorted(DOCS_ROOT.glob("*.docx")):
+        if path.stem == template_id:
+            return path.resolve()
+    raise FileNotFoundError("Template file not found.")
+
+
+def resolve_template_path(path_value=None, user_id=None, allow_run_root=False, template_ref=None):
+    if template_ref:
+        kind, _, value = str(template_ref).partition(":")
+        if not kind or not value:
+            raise ValueError("template_ref must use the format kind:value.")
+        if kind == "upload":
+            if not user_id:
+                raise PermissionError("Uploaded templates require an authenticated account.")
+            upload = STORE.get_upload(int(user_id), int(value))
+            if not upload:
+                raise PermissionError("Template is not available for this account.")
+            candidate = Path(upload["stored_path"]).resolve()
+        elif kind == "demo":
+            candidate = resolve_demo_template_path(value)
+        else:
+            raise ValueError("Unknown template_ref kind.")
+    else:
+        candidate = Path(str(path_value)).resolve()
     if not candidate.is_file():
         raise FileNotFoundError("Template file not found.")
     if not user_id and not allow_run_root:
@@ -485,7 +531,11 @@ def handle_fill_template(payload):
     try:
         run_dir, structured_path = require_run_file(payload.get("run_dir"), "structured_output.json")
         require_run_dir_access(payload.get("user_id"), run_dir)
-        template_path = resolve_template_path(payload.get("template_path"), user_id=payload.get("user_id"))
+        template_path = resolve_template_path(
+            payload.get("template_path"),
+            user_id=payload.get("user_id"),
+            template_ref=payload.get("template_ref"),
+        )
 
         output_path = run_dir / "filled_template.docx"
         report_path = run_dir / "template_fill_report.json"
@@ -533,7 +583,11 @@ def summarize_template_slots(slots):
 
 def handle_inspect_template(payload):
     try:
-        template_path = resolve_template_path(payload.get("template_path"), user_id=payload.get("user_id"))
+        template_path = resolve_template_path(
+            payload.get("template_path"),
+            user_id=payload.get("user_id"),
+            template_ref=payload.get("template_ref"),
+        )
         slots = extract_template_slots(template_path, include_prefilled=True)
         return json_response(
             {
@@ -559,6 +613,7 @@ def handle_draft_template(payload):
         template_path = resolve_template_path(
             payload.get("template_path"),
             user_id=user_id,
+            template_ref=payload.get("template_ref"),
         )
 
         run_dir = optional_run_dir(payload.get("run_dir"), workflow_id="TEMPLATE", user_id=user_id)
@@ -1140,7 +1195,7 @@ def handle_cases(user, payload=None):
             {
                 "status": "success",
                 "case": case_record,
-                "uploads": STORE.list_uploads(user["id"], case_id=case_id),
+                "uploads": [serialize_upload(item) for item in STORE.list_uploads(user["id"], case_id=case_id)],
                 "audit_logs": STORE.list_audit_logs(user["id"], case_id=case_id),
                 "recent_runs": list_recent_runs(user["id"], case_id=case_id),
                 "run_artifacts": [summarize_run_artifact(record) for record in run_artifacts],
@@ -1217,7 +1272,7 @@ def handle_upload(user, payload):
             "content_type": upload["content_type"],
         },
     )
-    return json_response({"status": "success", "upload": upload})
+    return json_response({"status": "success", "upload": serialize_upload(upload)})
 
 
 def handle_uploads(user, payload=None):
@@ -1226,7 +1281,7 @@ def handle_uploads(user, payload=None):
     return json_response(
         {
             "status": "success",
-            "uploads": STORE.list_uploads(user["id"], case_id=int(case_id) if case_id else None),
+            "uploads": [serialize_upload(item) for item in STORE.list_uploads(user["id"], case_id=int(case_id) if case_id else None)],
         }
     )
 
@@ -1236,17 +1291,7 @@ def handle_audit_logs(user):
 
 
 def list_demo_templates():
-    templates = []
-    for path in sorted(DOCS_ROOT.glob("*.docx")):
-        templates.append(
-            {
-                "id": path.stem,
-                "title": path.stem,
-                "path": path_for_ui(path),
-                "summary": "Bundled sample Word template stored in the repository docs directory.",
-            }
-        )
-    return templates
+    return [demo_template_record(path) for path in sorted(DOCS_ROOT.glob("*.docx"))]
 
 
 def handle_demo_catalog():

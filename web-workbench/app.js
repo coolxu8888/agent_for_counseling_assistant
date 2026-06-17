@@ -7,6 +7,8 @@ const state = {
   user: null,
   caseId: "",
   caseDetail: null,
+  selectedTemplateRef: "",
+  selectedTemplateLabel: "",
 };
 
 const FALLBACK_DEMO_CATALOG = {
@@ -47,6 +49,7 @@ const $ = (id) => document.getElementById(id);
 const INTRO_KEY = "counselor_agent_intro_seen";
 const SIDE_COLLAPSED_KEY = "counselor_agent_side_collapsed";
 const SIDE_WIDTH_KEY = "counselor_agent_side_width";
+const LOGIN_USERNAME_KEY = "counselor_agent_login_username";
 
 function pretty(value) {
   if (value === null || value === undefined || value === "") {
@@ -94,6 +97,31 @@ function setStatus(text, kind = "idle") {
   const status = $("runStatus");
   status.textContent = text;
   status.className = `status ${kind}`;
+}
+
+function setSelectedTemplate(ref, label, message = "") {
+  state.selectedTemplateRef = ref || "";
+  state.selectedTemplateLabel = label || "";
+  if (label) {
+    $("templatePath").value = label;
+  }
+  if (message) {
+    $("templatePane").textContent = message;
+  }
+}
+
+function clearSelectedTemplate() {
+  state.selectedTemplateRef = "";
+  state.selectedTemplateLabel = "";
+}
+
+function syncTemplateSelectionFromInput() {
+  if (!state.selectedTemplateRef) {
+    return;
+  }
+  if ($("templatePath").value.trim() !== state.selectedTemplateLabel) {
+    clearSelectedTemplate();
+  }
 }
 
 function setPane(tabName) {
@@ -335,9 +363,12 @@ function clearDemoCatalog(message = "Sign in to load one-click demos and built-i
   addStackPlaceholder("demoTemplateList", "Bundled Word templates will appear here.");
 }
 
-function applyDemoTemplate(path, title = "template") {
-  $("templatePath").value = path;
-  $("templatePane").textContent = `Built-in template set to ${title}. You can scan slots or start drafting now.`;
+function applyDemoTemplate(templateRef, title = "template") {
+  setSelectedTemplate(
+    templateRef,
+    title,
+    `Built-in template set to ${title}. You can scan slots or start drafting now.`,
+  );
   $("auditStatus").textContent = `Loaded built-in template: ${title}.`;
   setPane("template");
 }
@@ -387,10 +418,10 @@ function renderDemoCatalog(payload) {
     const title = document.createElement("strong");
     title.textContent = template.title;
     const summary = document.createElement("span");
-    summary.textContent = template.summary || template.path;
+    summary.textContent = template.summary || template.title;
     const actions = document.createElement("div");
     actions.className = "button-row";
-    actions.appendChild(createMiniGhostButton("Use template", () => applyDemoTemplate(template.path, template.title)));
+    actions.appendChild(createMiniGhostButton("Use template", () => applyDemoTemplate(template.template_ref, template.title)));
     card.append(title, summary, actions);
     templateList.appendChild(card);
   });
@@ -560,9 +591,12 @@ function renderCaseUploads(uploads) {
     item.appendChild(createDownloadLink(upload.stored_path, "Download"));
     item.appendChild(
       createActionButton("Use as template", () => {
-        $("templatePath").value = upload.stored_path;
+        setSelectedTemplate(
+          upload.template_ref || "",
+          upload.original_name,
+          `Current template set to ${upload.original_name}.`,
+        );
         setPathDisplay("uploadedTemplatePath", upload.stored_path, false);
-        $("templatePane").textContent = `Current template set to ${upload.original_name}.`;
         setPane("template");
       }),
     );
@@ -710,8 +744,10 @@ function updateTemplateResult(data) {
 }
 
 function templatePayloadBase() {
+  syncTemplateSelectionFromInput();
   return {
     template_path: $("templatePath").value.trim(),
+    template_ref: state.selectedTemplateRef || undefined,
   };
 }
 
@@ -896,12 +932,18 @@ async function login(event) {
       password: $("loginPassword").value,
     });
     state.user = data.user;
+    localStorage.setItem(LOGIN_USERNAME_KEY, data.user.username);
     hideLogin();
     await Promise.all([loadCases(), loadDemoCatalog()]);
     $("auditStatus").textContent = `Signed in as ${data.user.username}`;
   } catch (error) {
     $("loginMessage").textContent = error.message;
   }
+}
+
+function primeLoginForm() {
+  $("loginUsername").value = localStorage.getItem(LOGIN_USERNAME_KEY) || "";
+  $("loginPassword").value = "";
 }
 
 async function logout() {
@@ -1156,12 +1198,15 @@ async function uploadTemplate() {
       content_base64: contentBase64,
       case_id: selectedCaseId(),
     });
-    $("templatePath").value = data.upload.stored_path;
+    setSelectedTemplate(
+      data.upload.template_ref || "",
+      data.upload.original_name || file.name,
+      "Template uploaded. You can scan slots or start intelligent drafting now.",
+    );
     setPathDisplay("uploadedTemplatePath", data.upload.stored_path, false);
     if (selectedCaseId()) {
       await loadCaseDetail(selectedCaseId());
     }
-    $("templatePane").textContent = "Template uploaded. You can scan slots or start intelligent drafting now.";
   } catch (error) {
     $("templatePane").textContent = error.message;
   }
@@ -1235,11 +1280,13 @@ $("caseSelect").addEventListener("change", () => {
   updateCaseActions();
   loadCaseDetail(state.caseId);
 });
+$("templatePath").addEventListener("input", syncTemplateSelectionFromInput);
 $("templateUpload").addEventListener("change", uploadTemplate);
 $("inspectTemplateButton").addEventListener("click", inspectTemplate);
 $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 
+primeLoginForm();
 initializeWorkspaceBackupUi();
 updateCaseActions();
 applySavedSidePanelState();

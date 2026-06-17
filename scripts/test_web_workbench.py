@@ -97,6 +97,61 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertNotIn("\n", fallback)
         header.encode("ascii")
 
+    def test_resolve_template_path_accepts_demo_template_ref(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            docs_root = Path(tmp) / "docs"
+            docs_root.mkdir()
+            template = docs_root / "demo-template.docx"
+            template.write_bytes(b"docx")
+
+            with patch.object(web_workbench, "DOCS_ROOT", docs_root):
+                resolved = web_workbench.resolve_template_path(
+                    None,
+                    template_ref="demo:demo-template",
+                    user_id=7,
+                )
+
+        self.assertEqual(resolved, template.resolve())
+
+    def test_resolve_template_path_accepts_owner_upload_template_ref(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            upload = store.store_upload(
+                auth["user"]["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                resolved = web_workbench.resolve_template_path(
+                    None,
+                    template_ref=f"upload:{upload['id']}",
+                    user_id=auth["user"]["id"],
+                )
+
+        self.assertEqual(resolved, Path(upload["stored_path"]).resolve())
+
+    def test_resolve_template_path_rejects_other_users_upload_template_ref(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            owner = store.authenticate("demo", "demo123")
+            upload = store.store_upload(
+                owner["user"]["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                with self.assertRaises(PermissionError):
+                    web_workbench.resolve_template_path(
+                        None,
+                        template_ref=f"upload:{upload['id']}",
+                        user_id=owner["user"]["id"] + 1,
+                    )
+
     def test_handle_file_download_uses_filename_star_for_unicode_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -805,7 +860,7 @@ class WebWorkbenchTest(unittest.TestCase):
                         status, _headers, body = web_workbench.handle_fill_template(
                             {
                                 "run_dir": str(run_dir),
-                                "template_path": upload["stored_path"],
+                                "template_ref": f"upload:{upload['id']}",
                                 "user_id": auth["user"]["id"],
                             }
                         )
@@ -830,7 +885,7 @@ class WebWorkbenchTest(unittest.TestCase):
             with patch.object(web_workbench, "STORE", store):
                 status, _headers, body = web_workbench.handle_draft_template(
                     {
-                        "template_path": upload["stored_path"],
+                        "template_ref": f"upload:{upload['id']}",
                         "raw_input": "   ",
                         "user_id": auth["user"]["id"],
                     }
@@ -964,7 +1019,7 @@ class WebWorkbenchTest(unittest.TestCase):
                     with patch.object(web_workbench, "fill_docx_template_from_raw", side_effect=fake_fill):
                         status, _headers, body = web_workbench.handle_draft_template(
                             {
-                                "template_path": upload["stored_path"],
+                                "template_ref": f"upload:{upload['id']}",
                                 "raw_input": "鏉愭枡",
                                 "user_id": auth["user"]["id"],
                             }
@@ -1027,7 +1082,8 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["status"], "success")
         self.assertGreaterEqual(len(payload["scenarios"]), 3)
         self.assertEqual(payload["scenarios"][0]["workflow"], "W2")
-        self.assertEqual(payload["templates"][0]["path"], str(template_path.resolve()))
+        self.assertEqual(payload["templates"][0]["template_ref"], "demo:demo-template")
+        self.assertNotIn("path", payload["templates"][0])
         self.assertIn("de-identified", payload["privacy_notice"])
 
     def test_handle_runs_detail_returns_saved_payload_for_owner(self):
