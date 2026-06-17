@@ -161,6 +161,55 @@ class WorkbenchStoreTest(unittest.TestCase):
             self.assertEqual(store.list_audit_logs(user_id), [])
             self.assertEqual(store.list_run_artifacts(user_id), [])
 
+    def test_delete_case_removes_case_scoped_records_and_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = self.make_store(tmp)
+            auth = store.authenticate("demo", "demo123")
+            user_id = auth["user"]["id"]
+            case_record = store.create_case(user_id, "Delete Me", client_code="DEL-001", notes="remove")
+            other_case = store.create_case(user_id, "Keep Me", client_code="KEEP-001", notes="stay")
+
+            upload = store.store_upload(
+                user_id,
+                "template.docx",
+                base64.b64encode(b"docx").decode("ascii"),
+                case_id=case_record["id"],
+            )
+            other_upload = store.store_upload(
+                user_id,
+                "keep.docx",
+                base64.b64encode(b"keep").decode("ascii"),
+                case_id=other_case["id"],
+            )
+            store.audit(user_id, case_record["id"], "workflow.run", {"workflow": "W2"})
+            store.audit(user_id, other_case["id"], "workflow.run", {"workflow": "W1"})
+
+            run_root = root / "agent-runs"
+            delete_run = run_root / "delete-run"
+            keep_run = run_root / "keep-run"
+            delete_run.mkdir(parents=True)
+            keep_run.mkdir(parents=True)
+            (delete_run / "clean_output.md").write_text("delete", encoding="utf-8")
+            (keep_run / "clean_output.md").write_text("keep", encoding="utf-8")
+            store.register_run_artifact(user_id, str(delete_run), workflow="W2", case_id=case_record["id"], source_action="workflow.run")
+            store.register_run_artifact(user_id, str(keep_run), workflow="W1", case_id=other_case["id"], source_action="workflow.run")
+
+            deleted = store.delete_case(user_id, case_record["id"])
+
+            self.assertEqual(deleted["case"]["title"], "Delete Me")
+            self.assertEqual(deleted["counts"]["uploads"], 1)
+            self.assertEqual(deleted["counts"]["run_artifacts"], 1)
+            self.assertEqual(deleted["counts"]["audit_logs"], 3)
+            self.assertFalse(Path(upload["stored_path"]).exists())
+            self.assertTrue(Path(other_upload["stored_path"]).exists())
+            self.assertFalse(store.get_case(user_id, case_record["id"]))
+            self.assertIsNotNone(store.get_case(user_id, other_case["id"]))
+            self.assertEqual(store.list_uploads(user_id, case_id=case_record["id"]), [])
+            self.assertEqual(len(store.list_run_artifacts(user_id, case_id=case_record["id"])), 0)
+            self.assertEqual(len(store.list_audit_logs(user_id, case_id=case_record["id"])), 0)
+            self.assertEqual(len(store.list_run_artifacts(user_id, case_id=other_case["id"])), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

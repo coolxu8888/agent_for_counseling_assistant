@@ -375,6 +375,100 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(payload["message"], "Case not found.")
 
+    def test_handle_cases_delete_removes_case_files_runs_and_recent_activity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = WorkbenchStore(root / "workbench.sqlite3", root / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            user = auth["user"]
+            case_record = store.create_case(user["id"], "Delete Case", client_code="DEL-101", notes="remove")
+            keep_case = store.create_case(user["id"], "Keep Case", client_code="KEEP-101", notes="stay")
+
+            deleted_upload = store.store_upload(
+                user["id"],
+                "delete.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                case_id=case_record["id"],
+            )
+            kept_upload = store.store_upload(
+                user["id"],
+                "keep.docx",
+                "a2VlcA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                case_id=keep_case["id"],
+            )
+            store.audit(user["id"], case_record["id"], "workflow.run", {"workflow": "W2"})
+            store.audit(user["id"], keep_case["id"], "workflow.run", {"workflow": "W1"})
+
+            run_root = root / "agent-runs"
+            delete_run = run_root / "delete-run"
+            keep_run = run_root / "keep-run"
+            delete_run.mkdir(parents=True)
+            keep_run.mkdir(parents=True)
+            (delete_run / "clean_output.md").write_text("delete", encoding="utf-8")
+            (keep_run / "clean_output.md").write_text("keep", encoding="utf-8")
+            store.register_run_artifact(user["id"], str(delete_run), workflow="W2", case_id=case_record["id"], source_action="workflow.run")
+            store.register_run_artifact(user["id"], str(keep_run), workflow="W1", case_id=keep_case["id"], source_action="workflow.run")
+
+            run_log = root / "workbench-run-log.jsonl"
+            run_log.write_text(
+                "\n".join(
+                    [
+                        json.dumps(
+                            {
+                                "timestamp": "2026-06-16T10:00:00+00:00",
+                                "action": "workflow.run",
+                                "user_id": user["id"],
+                                "case_id": case_record["id"],
+                                "details": {"run_dir": str(delete_run), "status": "success"},
+                            },
+                            ensure_ascii=False,
+                        ),
+                        json.dumps(
+                            {
+                                "timestamp": "2026-06-16T10:05:00+00:00",
+                                "action": "workflow.run",
+                                "user_id": user["id"],
+                                "case_id": keep_case["id"],
+                                "details": {"run_dir": str(keep_run), "status": "success"},
+                            },
+                            ensure_ascii=False,
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_ROOT", run_root):
+                    with patch.object(web_workbench, "RUN_LOG_PATH", run_log):
+                        status, _headers, body = web_workbench.handle_cases(
+                            user,
+                            {"action": "delete", "case_id": case_record["id"]},
+                        )
+
+            payload = json.loads(body.decode("utf-8"))
+            self.assertEqual(status, 200)
+            self.assertEqual(payload["status"], "success")
+            self.assertEqual(payload["deleted_case"]["title"], "Delete Case")
+            self.assertEqual(payload["summary"]["counts"]["uploads"], 1)
+            self.assertEqual(payload["summary"]["counts"]["audit_logs"], 3)
+            self.assertFalse(Path(deleted_upload["stored_path"]).exists())
+            self.assertTrue(Path(kept_upload["stored_path"]).exists())
+            self.assertFalse(delete_run.exists())
+            self.assertTrue(keep_run.exists())
+            self.assertEqual(store.list_cases(user["id"])[0]["title"], "Keep Case")
+            remaining_entries = [
+                json.loads(line)
+                for line in run_log.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            self.assertTrue(any(entry["action"] == "case.delete" for entry in remaining_entries))
+            self.assertFalse(any(entry.get("case_id") == case_record["id"] and entry["action"] == "workflow.run" for entry in remaining_entries))
+            self.assertTrue(any(entry.get("case_id") == keep_case["id"] for entry in remaining_entries))
+
     def test_handle_workspace_export_builds_backup_zip(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

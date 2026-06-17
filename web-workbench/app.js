@@ -300,6 +300,34 @@ function workflowLabel(workflow) {
   }[workflow] || workflow;
 }
 
+function ensureDeleteCaseButton() {
+  let button = $("deleteCaseButton");
+  if (button) {
+    return button;
+  }
+  const exportButton = $("exportCaseButton");
+  if (!exportButton) {
+    return null;
+  }
+  button = document.createElement("button");
+  button.id = "deleteCaseButton";
+  button.type = "button";
+  button.className = "ghost-button wide danger-button";
+  button.textContent = "Delete case";
+  exportButton.insertAdjacentElement("afterend", button);
+  return button;
+}
+
+function updateCaseActions() {
+  const hasCase = Boolean(selectedCaseId());
+  $("saveCaseButton").disabled = !hasCase;
+  $("exportCaseButton").disabled = !hasCase;
+  const deleteButton = ensureDeleteCaseButton();
+  if (deleteButton) {
+    deleteButton.disabled = !hasCase;
+  }
+}
+
 function clearDemoCatalog(message = "Sign in to load one-click demos and built-in templates.") {
   state.demoCatalog = null;
   $("demoCatalogStatus").innerHTML = `<strong>Demo library</strong><span>${message}</span>`;
@@ -646,6 +674,7 @@ function renderCaseDetail(payload) {
   renderCaseUploads(payload.uploads || []);
   renderSavedRuns(payload.run_artifacts || []);
   renderCaseActivity(payload.recent_runs || []);
+  updateCaseActions();
 }
 
 function clearCaseDetail() {
@@ -659,6 +688,7 @@ function clearCaseDetail() {
   ensureSavedRunsSection();
   addStackPlaceholder("runArtifactList", "Saved workflow and template runs will appear here for reopening.");
   addStackPlaceholder("caseActivityList", "Runs, template actions, and uploads will appear here in reverse chronological order.");
+  updateCaseActions();
 }
 
 function showRunError(message) {
@@ -920,6 +950,7 @@ function renderCases(cases) {
     select.value = current;
   }
   state.caseId = select.value;
+  updateCaseActions();
 }
 
 async function loadCases() {
@@ -1007,6 +1038,45 @@ async function exportCasePackage() {
     setPane("checks");
   } finally {
     $("exportCaseButton").disabled = false;
+  }
+}
+
+async function deleteCase() {
+  const caseId = selectedCaseId();
+  if (!caseId) {
+    $("auditStatus").textContent = "Select a case before deleting it.";
+    return;
+  }
+  const caseName = selectedCaseTitle() || "this case";
+  if (
+    !window.confirm(
+      `Delete ${caseName}? This removes its notes, uploads, saved runs, and case-specific activity from this account.`,
+    )
+  ) {
+    return;
+  }
+  const deleteButton = ensureDeleteCaseButton();
+  if (deleteButton) {
+    deleteButton.disabled = true;
+  }
+  $("checksPane").textContent = "Deleting case and linked data...";
+  setPane("checks");
+  try {
+    const payload = await postJson("/api/cases", {
+      action: "delete",
+      case_id: caseId,
+    });
+    renderCases(payload.cases || []);
+    $("caseSelect").value = "";
+    state.caseId = "";
+    clearCaseDetail();
+    $("checksPane").textContent = pretty(payload.summary || payload);
+    $("auditStatus").textContent = `Deleted case ${payload.deleted_case.title}.`;
+  } catch (error) {
+    $("checksPane").textContent = error.message;
+    $("auditStatus").textContent = error.message;
+  } finally {
+    updateCaseActions();
   }
 }
 
@@ -1157,10 +1227,12 @@ $("logoutButton").addEventListener("click", logout);
 $("createCaseButton").addEventListener("click", createCase);
 $("saveCaseButton").addEventListener("click", saveCaseNotes);
 $("exportCaseButton").addEventListener("click", exportCasePackage);
+ensureDeleteCaseButton().addEventListener("click", deleteCase);
 $("exportWorkspaceButton").addEventListener("click", exportWorkspaceBackup);
 $("restoreWorkspaceButton").addEventListener("click", restoreWorkspaceBackup);
 $("caseSelect").addEventListener("change", () => {
   state.caseId = selectedCaseId();
+  updateCaseActions();
   loadCaseDetail(state.caseId);
 });
 $("templateUpload").addEventListener("change", uploadTemplate);
@@ -1169,6 +1241,7 @@ $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 
 initializeWorkspaceBackupUi();
+updateCaseActions();
 applySavedSidePanelState();
 updateTemplateAvailability();
 clearCaseDetail();

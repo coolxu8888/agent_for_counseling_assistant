@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import os
 import secrets
+import shutil
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -262,6 +263,40 @@ class WorkbenchStore:
             )
         self.audit(user_id, case_id, "case.update", {"title": next_title})
         return self.get_case(user_id, case_id)
+
+    def delete_case(self, user_id, case_id):
+        case_record = self.get_case(user_id, case_id)
+        if not case_record:
+            return None
+
+        uploads = self.list_uploads(user_id, case_id=case_id)
+        run_artifacts = self.list_run_artifacts(user_id, case_id=case_id, limit=1000)
+        audit_logs = self.list_audit_logs(user_id, case_id=case_id, limit=1000)
+
+        for upload in uploads:
+            stored_path = Path(str(upload.get("stored_path") or ""))
+            if stored_path.is_file():
+                stored_path.unlink()
+
+        for record in run_artifacts:
+            run_dir = Path(str(record.get("run_dir") or ""))
+            if run_dir.is_dir():
+                shutil.rmtree(run_dir)
+
+        with self.connect() as conn:
+            conn.execute("DELETE FROM uploads WHERE user_id = ? AND case_id = ?", (user_id, case_id))
+            conn.execute("DELETE FROM audit_logs WHERE user_id = ? AND case_id = ?", (user_id, case_id))
+            conn.execute("DELETE FROM run_artifacts WHERE user_id = ? AND case_id = ?", (user_id, case_id))
+            conn.execute("DELETE FROM cases WHERE user_id = ? AND id = ?", (user_id, case_id))
+
+        return {
+            "case": case_record,
+            "counts": {
+                "uploads": len(uploads),
+                "run_artifacts": len(run_artifacts),
+                "audit_logs": len(audit_logs),
+            },
+        }
 
     def store_upload(self, user_id, original_name, content_b64, content_type="", case_id=None):
         binary = base64.b64decode(content_b64)

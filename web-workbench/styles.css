@@ -761,6 +761,10 @@ button {
   font-size: 12px;
 }
 
+.danger-button {
+  color: var(--danger);
+}
+
 .muted-list:empty::before {
   content: "暂无数据。";
   color: var(--muted);

@@ -922,6 +922,28 @@ def rewrite_run_log_for_user(user_id, replacement_entries=None):
     )
 
 
+def prune_run_log_for_case(user_id, case_id, replacement_entries=None):
+    replacement_entries = replacement_entries or []
+    entries = []
+    if RUN_LOG_PATH.exists():
+        for line in RUN_LOG_PATH.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("user_id") == user_id and entry.get("case_id") == case_id:
+                continue
+            entries.append(entry)
+    entries.extend(replacement_entries)
+    entries.sort(key=lambda item: item.get("timestamp", ""))
+    RUN_LOG_PATH.write_text(
+        "".join(json.dumps(item, ensure_ascii=False) + "\n" for item in entries),
+        encoding="utf-8",
+    )
+
+
 def restore_workspace_backup_bundle(user, backup_path):
     with zipfile.ZipFile(backup_path) as archive:
         try:
@@ -1131,6 +1153,43 @@ def handle_cases(user, payload=None):
             return error_response(404, "Case not found.")
         export_payload = build_case_export_bundle(user, case_record)
         return json_response({"status": "success", **export_payload})
+    if payload.get("action") == "delete":
+        case_id = int(payload.get("case_id") or 0)
+        deleted = STORE.delete_case(user["id"], case_id)
+        if not deleted:
+            return error_response(404, "Case not found.")
+        deletion_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "action": "case.delete",
+            "user_id": user["id"],
+            "case_id": None,
+            "details": {
+                "deleted_case_id": case_id,
+                "title": deleted["case"]["title"],
+                "client_code": deleted["case"]["client_code"],
+                "counts": deleted["counts"],
+            },
+        }
+        prune_run_log_for_case(user["id"], case_id, replacement_entries=[deletion_entry])
+        STORE.import_audit_log(
+            user["id"],
+            None,
+            "case.delete",
+            {
+                "deleted_case_id": case_id,
+                "title": deleted["case"]["title"],
+                "client_code": deleted["case"]["client_code"],
+                "counts": deleted["counts"],
+            },
+        )
+        return json_response(
+            {
+                "status": "success",
+                "deleted_case": deleted["case"],
+                "summary": deleted,
+                "cases": STORE.list_cases(user["id"]),
+            }
+        )
     return json_response({"status": "success", "cases": STORE.list_cases(user["id"])})
 
 
