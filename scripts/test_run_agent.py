@@ -226,7 +226,27 @@ class RunAgentTest(unittest.TestCase):
             self.assertIn(label, prompt)
         self.assertIn("默认任务是帮助咨询师在初访前梳理需要了解的信息和可提问的问题", prompt)
         self.assertIn("不是把用户上传的某个 Word 模板固定成 W1 输出标准", prompt)
+        self.assertIn("必须直接使用这些已知信息预填相关栏目", prompt)
+        self.assertIn("不要退回成纯空白模板", prompt)
         self.assertNotIn('"title": "心理咨询初始访谈表"', prompt)
+
+    def test_build_prompt_package_w1_uses_partial_case_clues_without_forcing_reask(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W1"),
+            "请生成初访前信息收集表。来访者近两周睡眠变差，偶尔说想消失一下，但没有计划。",
+            [
+                {
+                    "chunk_id": "forms-fields-pipl-minimum-necessary-fields-001",
+                    "path": "rag/forms-fields/pipl-minimum-necessary-fields.md",
+                    "content": "# 表单字段规则\n遵循最小必要原则。",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("必须直接使用这些已知信息预填相关栏目", prompt)
+        self.assertIn("补充其余待核实问题", prompt)
+        self.assertIn("不要仅仅要求用户重新提供材料", prompt)
 
     def test_build_prompt_package_w1_includes_separate_initial_session_summary_mode(self):
         prompt = build_prompt_package(
