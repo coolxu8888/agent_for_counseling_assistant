@@ -115,6 +115,21 @@ DEMO_SCENARIOS = [
         ),
         "output_style": "supervision_summary",
     },
+    {
+        "id": "next-session-criticism-cycle",
+        "title": "W5 Demo: Next-session plan",
+        "workflow": "W5",
+        "summary": "A de-identified single-session planning request that stays framework-aware without turning into a full treatment roadmap.",
+        "input": (
+            "Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher"
+            " who becomes intensely anxious before performance reviews, replays criticism for days, and avoids"
+            " replying to colleagues after conflicts. Last session clarified a likely criticism-anxiety-avoidance"
+            " cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only,"
+            " including the session goal, focus areas, suggested questions, risk check points, and any optional"
+            " between-session task that would still need counselor judgment."
+        ),
+        "output_style": "supervision_summary",
+    },
 ]
 
 AGENT_STYLE_INSTRUCTIONS = {
@@ -187,6 +202,20 @@ WORKFLOW_KEYWORDS = {
         "\u6574\u5408\u53d6\u5411",
         "\u6d41\u6d3e",
     ],
+    "W5": [
+        "next-session plan",
+        "next session plan",
+        "plan the next session",
+        "session agenda",
+        "upcoming session plan",
+        "focus for the next session",
+        "risk check points",
+        "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212",
+        "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212",
+        "\u4e0b\u4e00\u6b21\u54a8\u8be2",
+        "\u4f1a\u8c08\u8bae\u7a0b",
+        "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9",
+    ],
     "W3": [
         "soap",
         "dap",
@@ -218,6 +247,8 @@ def detect_workflow(user_input):
     text = str(user_input or "").lower()
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W1"]):
         return "W1"
+    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W5"]):
+        return "W5"
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W4"]):
         return "W4"
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W2"]):

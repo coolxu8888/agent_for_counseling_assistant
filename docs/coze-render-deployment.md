@@ -69,6 +69,30 @@ Expected health response:
 {"status":"ok"}
 ```
 
+For an operator-focused hosted product check after deploy, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-hosted-smoke.ps1 `
+  -BaseUrl https://<render-service>.onrender.com `
+  -Username <operator-user> `
+  -Password <operator-password> `
+  -ExpectPilotReady `
+  -RealRun
+```
+
+If signup is enabled for isolated counselor workspaces, prefer validating with a fresh signup account:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-hosted-smoke.ps1 `
+  -BaseUrl https://<render-service>.onrender.com `
+  -Username pilot-user-001 `
+  -Password <new-password> `
+  -InviteCode <invite-code> `
+  -RequireSignup `
+  -ExpectPilotReady `
+  -RealRun
+```
+
 ## Coze Tool Setup
 
 After deployment:

@@ -394,5 +394,88 @@ CBT个案概念化
         self.assertEqual(rubric_result["dimensions"]["Privacy minimized"]["status"], "PASS")
 
 
+    def test_w5_001_bilingual_rubric_accepts_bounded_next_session_plan(self):
+        answer = """
+Next-session plan
+Selected framework: CBT
+Session goal: Help the counselor explore the criticism-anxiety-avoidance cycle in one upcoming session.
+Focus areas
+- Review the trigger-thought-emotion sequence before performance reviews.
+Planned interventions
+- Use a brief in-session thought record and collaborative review.
+Suggested questions
+- What happens in the first minute after receiving criticism?
+Risk monitoring
+- Re-check suicide ideation, self-harm, and sleep deterioration at the start of session.
+Between-session tasks
+- Invite the client to jot down one criticism episode if clinically appropriate.
+Do not do
+- Do not turn this into a multi-session roadmap or assign unsafe exposure work.
+Boundary notes
+- This is a bounded next-session plan, not a diagnosis or full treatment plan.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-001", clean_answer)
+        rubric_result = run_dimension_rubric("W5-001", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
+
+    def test_w5_001_rubric_flags_multi_session_roadmap_scope(self):
+        answer = """
+Next-session plan
+Selected framework: CBT
+Session goal: Build a 12-session treatment roadmap.
+Focus areas
+- Map triggers this week.
+Planned interventions
+- Start a 12-session program.
+Suggested questions
+- What should happen across the next three months?
+Risk monitoring
+- Re-check suicide ideation.
+Between-session tasks
+- Complete week one of the 12-session homework program.
+Do not do
+- None.
+Boundary notes
+- This is a treatment plan roadmap.
+"""
+        rubric_result = run_dimension_rubric("W5-001", clean_ui_text(answer))
+
+        self.assertEqual(rubric_result["status"], "FAIL")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "FAIL")
+
+    def test_w5_001_bilingual_rubric_accepts_chinese_next_session_plan_output(self):
+        answer = """
+下一节咨询计划（CBT导向）
+1. 核心目标
+帮助来访者进一步识别并挑战“批评-焦虑-回避”循环中的自动思维。
+2. 聚焦领域
+- 自动思维
+- 情绪与行为关联
+3. 核心干预
+- 苏格拉底式提问
+4. 建议询问的问题
+- 当那种“被批评”的感觉出现时，你脑海里闪过的第一句话是什么？
+5. 风险监测点
+- 以询问的方式开始，复核这周是否再次出现“不想醒来”的想法，并观察是否有新的风险指征。
+6. 可选的家庭作业（需咨询师判断）
+- 如果咨询师判断来访者状态合适，可尝试记录两次“被批评”后的自动思维。
+7. 不做什么
+- 不进行诊断，不制定多节咨询路线图。
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-001", clean_answer)
+        rubric_result = run_dimension_rubric("W5-001", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
+
 if __name__ == "__main__":
     unittest.main()

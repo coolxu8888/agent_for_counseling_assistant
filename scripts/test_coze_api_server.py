@@ -32,6 +32,8 @@ class CozeApiServerTest(unittest.TestCase):
             spec["paths"]["/draft_template"]["post"]["operationId"],
             "draft_template",
         )
+        workflows = spec["paths"]["/run_workflow"]["post"]["requestBody"]["content"]["application/json"]["schema"]["properties"]["workflow"]["enum"]
+        self.assertIn("W5", workflows)
 
     def test_openapi_tool_responses_define_json_object_schema(self):
         spec = coze_api_server.openapi_spec("https://example.test")

@@ -21,7 +21,8 @@ $allowedSections = @(
     "session-notes",
     "intake-assessment",
     "forms-fields",
-    "theory-frameworks"
+    "theory-frameworks",
+    "next-session-planning"
 )
 
 function Convert-Scalar {
@@ -148,6 +149,21 @@ function Get-WorkflowScore {
 function Select-Workflow {
     param([string]$Text)
 
+    if (Test-AnyPattern $Text @(
+            "next-session\s*plan",
+            "next session\s*plan",
+            "session agenda",
+            "upcoming session",
+            "risk check points",
+            (U "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212"),
+            (U "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212"),
+            (U "\u4e0b\u4e00\u6b21\u54a8\u8be2"),
+            (U "\u4f1a\u8c08\u8bae\u7a0b"),
+            (U "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9")
+        )) {
+        return "workflow_5_next_session_plan"
+    }
+
     $workflowPatterns = @{
         workflow_1_intake_form = @(
             (U "\u521d\u8bbf"),
@@ -206,6 +222,19 @@ function Select-Workflow {
             (U "\u7cbe\u795e\u52a8\u529b"),
             (U "\u6574\u5408\u53d6\u5411"),
             (U "\u6d41\u6d3e")
+        )
+        workflow_5_next_session_plan = @(
+            "next-session\s*plan",
+            "next session\s*plan",
+            "session agenda",
+            "upcoming session",
+            "risk check points",
+            "between-session task",
+            (U "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212"),
+            (U "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212"),
+            (U "\u4e0b\u4e00\u6b21\u54a8\u8be2"),
+            (U "\u4f1a\u8c08\u8bae\u7a0b"),
+            (U "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9")
         )
     }
 
@@ -294,6 +323,19 @@ function Select-Intent {
             return "Humanistic conceptualization"
         }
         return "Integrative conceptualization"
+    }
+
+    if ($WorkflowName -eq "workflow_5_next_session_plan") {
+        if (Test-AnyPattern $Text @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"))) {
+            return "CBT next-session plan"
+        }
+        if (Test-AnyPattern $Text @("psychodynamic", (U "\u7cbe\u795e\u52a8\u529b"))) {
+            return "Psychodynamic next-session plan"
+        }
+        if (Test-AnyPattern $Text @("humanistic", (U "\u4eba\u672c"))) {
+            return "Humanistic next-session plan"
+        }
+        return "Generic next-session plan"
     }
 
     return ""
@@ -417,7 +459,7 @@ $chunksById = Read-ChunkIndex
 $selectedWorkflow = if (-not [string]::IsNullOrWhiteSpace($Workflow)) { $Workflow } else { Select-Workflow $Query }
 $boundaryNotes = [System.Collections.Generic.List[string]]::new()
 
-if ($selectedWorkflow -ne "workflow_4_case_conceptualization" -and (Test-AnyPattern $Query @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"), (U "\u4eba\u672c"), (U "\u7cbe\u795e\u52a8\u529b"), (U "\u5bb6\u5ead\u7cfb\u7edf"), (U "\u6d41\u6d3e")))) {
+if ($selectedWorkflow -notin @("workflow_4_case_conceptualization", "workflow_5_next_session_plan") -and (Test-AnyPattern $Query @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"), (U "\u4eba\u672c"), (U "\u7cbe\u795e\u52a8\u529b"), (U "\u5bb6\u5ead\u7cfb\u7edf"), (U "\u6d41\u6d3e")))) {
     $boundaryNotes.Add("The query mentions a modality preference; v0.1 does not use modality-specific chunks to alter the basic information capture structure.") | Out-Null
 }
 

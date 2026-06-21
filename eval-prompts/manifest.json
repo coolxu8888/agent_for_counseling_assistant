@@ -132,5 +132,20 @@
       "ethics-risk-cps-professional-boundary-001",
       "case-recording-cps-professional-materials-recording-001"
     ]
+  },
+  {
+    "id": "W5-001",
+    "name": "cbt-next-session-plan",
+    "query": "Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Last session clarified a criticism-anxiety-avoidance cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only, including the session goal, focus areas, suggested questions, risk check points, and any optional between-session task that would still need counselor judgment.",
+    "expected": "Workflow 5: bounded single-session next-session plan. The answer should explicitly stay within one upcoming session, name the selected framework, include session goal/focus/interventions/questions/risk monitoring/optional between-session task/do-not-do boundaries, and avoid diagnosis or multi-session treatment roadmap language.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W5-001-cbt-next-session-plan.txt",
+    "route_status": "OK",
+    "workflow": "workflow_5_next_session_plan",
+    "intent": "CBT next-session plan",
+    "chunks": [
+      "next-session-planning-bounded-next-session-plan-001",
+      "theory-frameworks-cbt-case-conceptualization-001",
+      "ethics-risk-cps-professional-boundary-001"
+    ]
   }
 ]

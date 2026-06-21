@@ -159,6 +159,22 @@ def render_case_conceptualization(data):
     return parts
 
 
+def render_next_session_plan(data):
+    parts = [paragraph(data.get("title") or "Next session plan", "Heading1")]
+    parts.append(paragraph("Selected framework", "Heading2"))
+    parts.append(paragraph(data.get("selected_framework", "")))
+    parts.append(paragraph("Session goal", "Heading2"))
+    parts.append(paragraph(data.get("session_goal", "")))
+    append_list(parts, "Focus areas", data.get("focus_areas", []))
+    append_list(parts, "Planned interventions", data.get("planned_interventions", []))
+    append_list(parts, "Suggested questions", data.get("suggested_questions", []))
+    append_list(parts, "Risk monitoring", data.get("risk_monitoring", []))
+    append_list(parts, "Between-session tasks", data.get("between_session_tasks", []))
+    append_list(parts, "Do not do", data.get("do_not_do", []))
+    append_list(parts, "Boundary notes", data.get("boundary_notes", []))
+    return parts
+
+
 def render_body(data):
     document_type = data.get("document_type")
     if document_type == "intake_form":
@@ -169,6 +185,8 @@ def render_body(data):
         return render_session_note(data)
     if document_type == "case_conceptualization":
         return render_case_conceptualization(data)
+    if document_type == "next_session_plan":
+        return render_next_session_plan(data)
     return [paragraph(data.get("title") or "咨询师助理文档", "Heading1")]
 
 

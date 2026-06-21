@@ -78,6 +78,13 @@ WORKFLOWS = {
         eval_id="W4-001",
         completion_marker="AGENT_DONE_W4",
     ),
+    "W5": WorkflowSpec(
+        workflow_id="W5",
+        workflow_key="workflow_5_next_session_plan",
+        name="Next-session plan",
+        eval_id="W5-001",
+        completion_marker="AGENT_DONE_W5",
+    ),
 }
 
 WORKFLOW_ALIASES = {
@@ -101,6 +108,13 @@ WORKFLOW_ALIASES = {
     "framework": "W4",
     "workflow_4": "W4",
     "workflow_4_case_conceptualization": "W4",
+    "w5": "W5",
+    "next-session-plan": "W5",
+    "next_session_plan": "W5",
+    "session-plan": "W5",
+    "planning": "W5",
+    "workflow_5": "W5",
+    "workflow_5_next_session_plan": "W5",
 }
 
 OUTPUT_CONTRACTS = {
@@ -133,6 +147,15 @@ OUTPUT_CONTRACTS["W4"] = [
     "Use tentative language such as may, possible, working hypothesis, and needs verification. Do not output deterministic diagnosis.",
     "The output may suggest framework-consistent directions for exploration, but must not become a full treatment plan or a multi-session roadmap.",
     "If the user requests a specific framework such as CBT, psychodynamic, humanistic, or integrative, stay within that lens while preserving ethics and privacy boundaries.",
+]
+
+OUTPUT_CONTRACTS["W5"] = [
+    "Title: next-session plan",
+    "Generate a bounded plan for one upcoming counseling session only, not a treatment plan or multi-session roadmap.",
+    "Include at minimum: selected framework, session goal, focus areas, planned interventions, suggested questions, risk monitoring, between-session tasks, and do-not-do boundaries.",
+    "If a framework is named, keep the plan consistent with that framework. If no framework is named, use generic counselor-facing planning language.",
+    "Use tentative, counselor-facing wording. Do not output deterministic diagnosis, final risk grading, or prescriptive crisis handling decisions.",
+    "Between-session tasks must remain optional, proportionate, and safe; do not assign risky homework, exposure tasks, or multi-week programs unless the user explicitly provided them.",
 ]
 
 STRUCTURED_OUTPUT_CONTRACTS = {
@@ -208,6 +231,23 @@ STRUCTURED_OUTPUT_CONTRACTS["W4"] = {
     "questions_to_verify": [],
     "boundary_notes": [
         "This conceptualization is a working hypothesis, not a diagnosis, final risk judgment, or treatment decision."
+    ],
+}
+
+STRUCTURED_OUTPUT_CONTRACTS["W5"] = {
+    "workflow": "W5",
+    "document_type": "next_session_plan",
+    "title": "Next session plan",
+    "selected_framework": "generic",
+    "session_goal": "",
+    "focus_areas": [],
+    "planned_interventions": [],
+    "suggested_questions": [],
+    "risk_monitoring": [],
+    "between_session_tasks": [],
+    "do_not_do": [],
+    "boundary_notes": [
+        "This is a bounded plan for one upcoming session, not a diagnosis, final risk judgment, or full treatment plan."
     ],
 }
 
@@ -550,7 +590,7 @@ def normalize_workflow(value):
     alias = (value or "").strip().lower()
     workflow_id = WORKFLOW_ALIASES.get(alias)
     if not workflow_id:
-        accepted = "W1/intake, W2/case, W3/session, W4/conceptualization"
+        accepted = "W1/intake, W2/case, W3/session, W4/conceptualization, W5/next-session-plan"
         raise AgentInputError(f"Unknown workflow `{value}`. Accepted workflows: {accepted}.")
     return WORKFLOWS[workflow_id]
 
@@ -809,6 +849,13 @@ def _has_non_empty(data, key):
     return value is not None and value != [] and value != {} and value != ""
 
 
+def _contains_forbidden_scope(text, forbidden_terms, allowed_negated_phrases=()):
+    lowered = text.lower()
+    for phrase in allowed_negated_phrases:
+        lowered = lowered.replace(phrase.lower(), " ")
+    return any(term in lowered for term in forbidden_terms)
+
+
 def _check_common(workflow, data, expected_document_type):
     issues = []
     if not isinstance(data, dict):
@@ -910,8 +957,56 @@ def _validate_w4(workflow, data):
     if framework and framework not in allowed:
         issues.append(_structured_issue("selected_framework", "Unsupported framework."))
     text = _json_text(data).lower()
-    if "treatment plan" in text or "roadmap" in text:
+    if _contains_forbidden_scope(
+        text,
+        ["treatment plan", "roadmap"],
+        allowed_negated_phrases=[
+            "not a treatment plan",
+            "not a full treatment plan",
+            "not a roadmap",
+            "not a multi-session roadmap",
+            "not a diagnosis or full treatment plan",
+        ],
+    ):
         issues.append(_structured_issue("$", "W4 must not turn into a treatment plan or roadmap."))
+    return issues
+
+
+def _validate_w5(workflow, data):
+    issues = _check_common(workflow, data, "next_session_plan")
+    required_keys = [
+        "selected_framework",
+        "session_goal",
+        "focus_areas",
+        "planned_interventions",
+        "suggested_questions",
+        "risk_monitoring",
+        "between_session_tasks",
+        "do_not_do",
+    ]
+    for key in required_keys:
+        if not _has_non_empty(data, key):
+            issues.append(_structured_issue(key, f"{key} must be present and non-empty."))
+    framework = str(data.get("selected_framework", "")).strip().lower()
+    allowed = {"generic", "cbt", "psychodynamic", "humanistic", "integrative"}
+    if framework and framework not in allowed:
+        issues.append(_structured_issue("selected_framework", "Unsupported framework."))
+    text = _json_text(data).lower()
+    if _contains_forbidden_scope(
+        text,
+        ["treatment plan", "roadmap", "12-session", "12 session", "multi-session"],
+        allowed_negated_phrases=[
+            "not a treatment plan",
+            "not a full treatment plan",
+            "not a roadmap",
+            "not a multi-session roadmap",
+            "not a diagnosis or full treatment plan",
+            "do not turn this into a full treatment roadmap",
+            "do not turn this into a full treatment plan",
+            "do not turn this into a multi-session roadmap",
+        ],
+    ):
+        issues.append(_structured_issue("$", "W5 must stay bounded to one upcoming session."))
     return issues
 
 
@@ -921,6 +1016,7 @@ def validate_structured_output(workflow, data):
         "W2": _validate_w2,
         "W3": _validate_w3,
         "W4": _validate_w4,
+        "W5": _validate_w5,
     }
     issues = validators[workflow.workflow_id](workflow, data)
     return {
@@ -1077,7 +1173,7 @@ def run_agent_once(
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Run counselor assistant workflows locally.")
-    parser.add_argument("--workflow", required=True, help="Workflow: W1/intake, W2/case, W3/session, W4/conceptualization.")
+    parser.add_argument("--workflow", required=True, help="Workflow: W1/intake, W2/case, W3/session, W4/conceptualization, W5/next-session-plan.")
     parser.add_argument("--input", dest="input", default=None, help="Inline user input.")
     parser.add_argument("--input-file", dest="input_file", default=None, help="UTF-8 text/markdown input file.")
     parser.add_argument("--run-root", dest="run_root", default=str(DEFAULT_RUN_ROOT), help="Root folder for timestamped agent runs.")

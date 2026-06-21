@@ -213,7 +213,7 @@ def parse_args(argv=None):
     parser.add_argument("--username", default="", help="Operator username or the new signup username.")
     parser.add_argument("--password", default="", help="Operator password or the new signup password.")
     parser.add_argument("--invite-code", default="", help="Signup invite code when signup is enabled.")
-    parser.add_argument("--workflow", default=DEFAULT_WORKFLOW, choices=["W1", "W2", "W3", "W4"])
+    parser.add_argument("--workflow", default=DEFAULT_WORKFLOW, choices=["W1", "W2", "W3", "W4", "W5"])
     parser.add_argument("--input", default=DEFAULT_INPUT, help="Workflow input text used for smoke validation.")
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--expect-pilot-ready", action="store_true")

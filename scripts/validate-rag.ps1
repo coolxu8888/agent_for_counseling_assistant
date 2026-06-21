@@ -14,14 +14,16 @@ $allowedSections = @(
     "session-notes",
     "intake-assessment",
     "forms-fields",
-    "theory-frameworks"
+    "theory-frameworks",
+    "next-session-planning"
 )
 
 $allowedWorkflows = @(
     "workflow_1_intake_form",
     "workflow_2_case_summary",
     "workflow_3_session_note",
-    "workflow_4_case_conceptualization"
+    "workflow_4_case_conceptualization",
+    "workflow_5_next_session_plan"
 )
 
 $allowedRiskLevels = @("low", "medium", "high")

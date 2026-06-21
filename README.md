@@ -129,6 +129,32 @@ For pilot deployments, prefer separate counselor workspaces over a shared demo l
 
 The Coze API server also serves the Web MVP at `/` while keeping Coze endpoints under `/coze/*`. This allows the existing Render service URL to act as a product landing URL after redeploy. Plugin metadata remains available at `/service-info`, and the OpenAPI spec remains at `/openapi.json`.
 
+To validate a hosted deployment before pilot use, run the product smoke test:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-hosted-smoke.ps1 `
+  -BaseUrl https://your-service.onrender.com `
+  -Username operator `
+  -Password 'strong-password' `
+  -ExpectPilotReady `
+  -RealRun
+```
+
+When counselor self-signup is enabled, use a fresh username plus the invite code:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-hosted-smoke.ps1 `
+  -BaseUrl https://your-service.onrender.com `
+  -Username pilot-user-001 `
+  -Password 'strong-password' `
+  -InviteCode 'your-invite-code' `
+  -RequireSignup `
+  -ExpectPilotReady `
+  -RealRun
+```
+
+The smoke checks `/health`, `/service-info`, `/openapi.json`, `/api/session`, login or signup, and a real `/api/run` workflow call unless `-SkipRun` is used.
+
 启动本地 Coze 演示 API：
 
 ```powershell

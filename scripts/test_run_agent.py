@@ -67,6 +67,7 @@ class RunAgentTest(unittest.TestCase):
         self.assertEqual(normalize_workflow("case").workflow_id, "W2")
         self.assertEqual(normalize_workflow("session").workflow_id, "W3")
         self.assertEqual(normalize_workflow("conceptualization").workflow_id, "W4")
+        self.assertEqual(normalize_workflow("next-session-plan").workflow_id, "W5")
 
     def test_normalize_workflow_rejects_unknown_alias(self):
         with self.assertRaisesRegex(AgentInputError, "W1"):
@@ -223,6 +224,28 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn('"working_hypotheses"', prompt)
         self.assertIn('"questions_to_verify"', prompt)
         self.assertIn("AGENT_DONE_W4", prompt)
+
+    def test_build_prompt_package_w5_mentions_single_session_plan_boundaries(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W5"),
+            "Plan the next CBT-oriented counseling session for this de-identified case.",
+            [
+                {
+                    "chunk_id": "next-session-planning-bounded-next-session-plan-001",
+                    "path": "rag/next-session-planning/bounded-next-session-plan.md",
+                    "content": "# Next-session plan\nKeep the output limited to one upcoming session.",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("next-session plan", prompt.lower())
+        self.assertIn('"document_type": "next_session_plan"', prompt)
+        self.assertIn('"session_goal"', prompt)
+        self.assertIn('"planned_interventions"', prompt)
+        self.assertIn('"between_session_tasks"', prompt)
+        self.assertIn('"do_not_do"', prompt)
+        self.assertIn("AGENT_DONE_W5", prompt)
 
     def test_build_prompt_package_w1_default_contract_is_pre_intake_guide(self):
         prompt = build_prompt_package(
@@ -566,6 +589,44 @@ AGENT_DONE_W3
         issue_paths = {issue["path"] for issue in check["issues"]}
         self.assertIn("selected_framework", issue_paths)
         self.assertIn("working_hypotheses", issue_paths)
+
+    def test_validate_structured_output_w5_requires_plan_sections(self):
+        data = {
+            "workflow": "W5",
+            "document_type": "next_session_plan",
+            "title": "Next session plan",
+            "selected_framework": "cbt",
+            "boundary_notes": ["Single-session plan only."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W5"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        issue_paths = {issue["path"] for issue in check["issues"]}
+        self.assertIn("session_goal", issue_paths)
+        self.assertIn("planned_interventions", issue_paths)
+        self.assertIn("between_session_tasks", issue_paths)
+        self.assertIn("do_not_do", issue_paths)
+
+    def test_validate_structured_output_w5_accepts_bounded_plan(self):
+        data = {
+            "workflow": "W5",
+            "document_type": "next_session_plan",
+            "title": "Next session plan",
+            "selected_framework": "cbt",
+            "session_goal": "Help the counselor explore the criticism-anxiety cycle.",
+            "focus_areas": ["Review the trigger-thought-emotion sequence before performance reviews."],
+            "planned_interventions": ["Use a brief thought record in session to test the client's feared prediction."],
+            "suggested_questions": ["What happens in the first minute after receiving criticism?"],
+            "risk_monitoring": ["Re-check suicide ideation, self-harm, and sleep deterioration at the start of session."],
+            "between_session_tasks": ["Invite the client to jot down one recent criticism episode if appropriate."],
+            "do_not_do": ["Do not turn this into a full treatment roadmap or assign unsafe exposure work."],
+            "boundary_notes": ["This is a single-session working plan, not a diagnosis or full treatment plan."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W5"), data)
+
+        self.assertEqual(check["status"], "PASS")
 
     def test_load_retrieval_map_reads_json(self):
         with tempfile.TemporaryDirectory() as tmp:

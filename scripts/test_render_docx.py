@@ -63,6 +63,22 @@ class RenderDocxTest(unittest.TestCase):
             "boundary_notes": ["本记录不替代咨询师专业判断。"],
         }
 
+    def minimal_w5(self):
+        return {
+            "workflow": "W5",
+            "document_type": "next_session_plan",
+            "title": "Next session plan",
+            "selected_framework": "cbt",
+            "session_goal": "Explore the criticism-anxiety cycle in one upcoming session.",
+            "focus_areas": ["Map triggers, automatic thoughts, and avoidance after criticism."],
+            "planned_interventions": ["Use a brief in-session thought record and collaborative review."],
+            "suggested_questions": ["What does the client predict will happen after one mistake?"],
+            "risk_monitoring": ["Re-check suicide ideation, self-harm, sleep disruption, and escalation in avoidance."],
+            "between_session_tasks": ["Invite the client to record one criticism episode if clinically appropriate."],
+            "do_not_do": ["Do not turn this into a multi-session roadmap or assign unsupported exposure tasks."],
+            "boundary_notes": ["This is a bounded next-session plan, not a diagnosis or full treatment plan."],
+        }
+
     def read_document_xml(self, docx_path):
         with zipfile.ZipFile(docx_path) as package:
             return package.read("word/document.xml").decode("utf-8")
@@ -118,6 +134,19 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("本次主题", document_xml)
         self.assertIn("风险变化", document_xml)
         self.assertIn("下次咨询重点", document_xml)
+
+    def test_render_w5_contains_bounded_plan_sections(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w5.docx"
+
+            render_docx(self.minimal_w5(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("Next session plan", document_xml)
+        self.assertIn("Session goal", document_xml)
+        self.assertIn("Planned interventions", document_xml)
+        self.assertIn("Between-session tasks", document_xml)
+        self.assertIn("Do not do", document_xml)
 
     def test_parse_args_accepts_input_output_and_check_path(self):
         args = parse_args(["--input", "in.json", "--output", "out.docx", "--check-output", "check.json"])

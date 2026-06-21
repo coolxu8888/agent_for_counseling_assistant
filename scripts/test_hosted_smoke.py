@@ -10,6 +10,11 @@ import hosted_smoke
 
 
 class HostedSmokeTest(unittest.TestCase):
+    def test_parse_args_accepts_w5_workflow_choice(self):
+        args = hosted_smoke.parse_args(["--base-url", "https://example.test", "--workflow", "W5"])
+
+        self.assertEqual(args.workflow, "W5")
+
     def test_run_smoke_checks_core_endpoints_and_login(self):
         request_json = Mock(
             side_effect=[

@@ -69,6 +69,12 @@ EVALS = [
         "query": "Build a CBT case conceptualization for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and then avoids replying to colleagues. She grew up with frequent comparisons to higher-performing cousins. After a recent conflict with her supervisor, she reported poor sleep and thoughts such as 'If I make one mistake, everyone will see I am inadequate.' She denied suicide plans. Separate known facts, working hypotheses, risk considerations, and questions that still need verification.",
         "expected": "Workflow 4: framework-based case conceptualization. The answer should explicitly name CBT, separate known facts from working hypotheses, organize predisposing/precipitating/maintaining/protective factors, keep risk considerations visible, and avoid diagnosis or full treatment planning.",
     },
+    {
+        "id": "W5-001",
+        "name": "cbt-next-session-plan",
+        "query": "Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Last session clarified a criticism-anxiety-avoidance cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only, including the session goal, focus areas, suggested questions, risk check points, and any optional between-session task that would still need counselor judgment.",
+        "expected": "Workflow 5: bounded single-session next-session plan. The answer should explicitly stay within one upcoming session, name the selected framework, include session goal/focus/interventions/questions/risk monitoring/optional between-session task/do-not-do boundaries, and avoid diagnosis or multi-session treatment roadmap language.",
+    },
 ]
 
 

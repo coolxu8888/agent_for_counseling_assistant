@@ -7,14 +7,15 @@
     "高风险主题优先检索 ethics-risk。",
     "记录类任务优先检索 case-recording 和 session-notes。",
     "系统字段类任务优先检索 forms-fields。",
-    "W1-W3 不检索 CBT、人本、精神动力、家庭系统等流派 chunk 来改变基础信息抓取结构；W4 可按用户指定流派组织概念化 prompt。",
+    "W1-W3 不检索 CBT、人本、精神动力、家庭系统等流派 chunk 来改变基础信息抓取结构；W4-W5 可按用户指定流派组织概念化或下一次会谈计划 prompt。",
     "检索结果只能辅助咨询师形成结构化输出，不替代诊断、风险分级、危机处置或机构流程。"
   ],
   "allowed_workflows": [
     "workflow_1_intake_form",
     "workflow_2_case_summary",
     "workflow_3_session_note",
-    "workflow_4_case_conceptualization"
+    "workflow_4_case_conceptualization",
+    "workflow_5_next_session_plan"
   ],
   "allowed_sections": [
     "ethics-risk",
@@ -22,7 +23,8 @@
     "session-notes",
     "intake-assessment",
     "forms-fields",
-    "theory-frameworks"
+    "theory-frameworks",
+    "next-session-planning"
   ],
   "fallback": {
     "unclear_user_intent": {
@@ -31,7 +33,7 @@
     },
     "modality_specific_request_in_v0_1": {
       "action": "do_not_retrieve_modality_chunks",
-      "message": "W1-W3 阶段先生成统一基础信息抓取结果。若用户明确要求 CBT、人本、精神动力、家庭系统或整合取向概念化，请改走 W4 个案概念化能力。"
+      "message": "W1-W3 阶段先生成统一基础信息抓取结果。若用户明确要求 CBT、人本、精神动力、家庭系统或整合取向概念化，请改走 W4；若用户明确要求基于某一流派生成下一次会谈计划，请改走 W5。"
     }
   },
   "workflows": {
@@ -364,6 +366,91 @@
             "theory-frameworks-integrative-case-conceptualization-001",
             "ethics-risk-cps-professional-boundary-001",
             "case-recording-cps-professional-materials-recording-001"
+          ]
+        }
+      ]
+    },
+    "workflow_5_next_session_plan": {
+      "name": "Next-session plan",
+      "default_sections": [
+        "next-session-planning",
+        "theory-frameworks",
+        "ethics-risk"
+      ],
+      "default_topics": [
+        "single_session_focus",
+        "risk_monitoring",
+        "framework_consistency",
+        "between_session_task_boundary"
+      ],
+      "intent_routes": [
+        {
+          "intent": "Generic next-session plan",
+          "topics": [
+            "single_session_focus",
+            "risk_monitoring",
+            "between_session_task_boundary"
+          ],
+          "priority_chunks": [
+            "next-session-planning-bounded-next-session-plan-001",
+            "ethics-risk-cps-professional-boundary-001",
+            "case-recording-cps-professional-materials-recording-001"
+          ]
+        },
+        {
+          "intent": "CBT next-session plan",
+          "topics": [
+            "single_session_focus",
+            "cognitive_cycle",
+            "behavioral_patterns",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "next-session-planning-bounded-next-session-plan-001",
+            "theory-frameworks-cbt-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "Psychodynamic next-session plan",
+          "topics": [
+            "single_session_focus",
+            "relationship_patterns",
+            "conflict_defense",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "next-session-planning-bounded-next-session-plan-001",
+            "theory-frameworks-psychodynamic-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "Humanistic next-session plan",
+          "topics": [
+            "single_session_focus",
+            "felt_experience",
+            "self_concept",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "next-session-planning-bounded-next-session-plan-001",
+            "theory-frameworks-humanistic-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "Integrative next-session plan",
+          "topics": [
+            "single_session_focus",
+            "cross_framework_hypothesis",
+            "protective_factors",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "next-session-planning-bounded-next-session-plan-001",
+            "theory-frameworks-integrative-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
           ]
         }
       ]
