@@ -13,13 +13,15 @@ $allowedSections = @(
     "case-recording",
     "session-notes",
     "intake-assessment",
-    "forms-fields"
+    "forms-fields",
+    "theory-frameworks"
 )
 
 $allowedWorkflows = @(
     "workflow_1_intake_form",
     "workflow_2_case_summary",
-    "workflow_3_session_note"
+    "workflow_3_session_note",
+    "workflow_4_case_conceptualization"
 )
 
 $allowedRiskLevels = @("low", "medium", "high")

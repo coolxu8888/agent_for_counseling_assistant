@@ -66,6 +66,7 @@ class RunAgentTest(unittest.TestCase):
         self.assertEqual(normalize_workflow("intake").workflow_id, "W1")
         self.assertEqual(normalize_workflow("case").workflow_id, "W2")
         self.assertEqual(normalize_workflow("session").workflow_id, "W3")
+        self.assertEqual(normalize_workflow("conceptualization").workflow_id, "W4")
 
     def test_normalize_workflow_rejects_unknown_alias(self):
         with self.assertRaisesRegex(AgentInputError, "W1"):
@@ -201,6 +202,27 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn('"risk_change"', prompt)
         self.assertIn('"boundary_notes"', prompt)
         self.assertIn("本记录不替代咨询师专业判断", prompt)
+
+    def test_build_prompt_package_w4_mentions_framework_hypothesis_boundaries(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W4"),
+            "Please build a CBT case conceptualization for this de-identified case.",
+            [
+                {
+                    "chunk_id": "theory-frameworks-cbt-case-conceptualization-001",
+                    "path": "rag/theory-frameworks/cbt-case-conceptualization.md",
+                    "content": "# CBT\nUse triggers, beliefs, emotions, behaviors, and maintaining cycles.",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("case conceptualization", prompt.lower())
+        self.assertIn('"document_type": "case_conceptualization"', prompt)
+        self.assertIn('"selected_framework"', prompt)
+        self.assertIn('"working_hypotheses"', prompt)
+        self.assertIn('"questions_to_verify"', prompt)
+        self.assertIn("AGENT_DONE_W4", prompt)
 
     def test_build_prompt_package_w1_default_contract_is_pre_intake_guide(self):
         prompt = build_prompt_package(
@@ -506,6 +528,44 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "FAIL")
         self.assertTrue(any("确诊为" in issue["message"] for issue in check["issues"]))
+
+    def test_validate_structured_output_w4_accepts_framework_specific_conceptualization(self):
+        data = {
+            "workflow": "W4",
+            "document_type": "case_conceptualization",
+            "title": "CBT case conceptualization",
+            "selected_framework": "CBT",
+            "known_facts": ["Sleep worsened after conflict with father."],
+            "presenting_patterns": ["Avoids conflict and ruminates afterward."],
+            "predisposing_factors": ["Long-standing sensitivity to criticism is possible but still needs verification."],
+            "precipitating_factors": ["Recent family pressure and job stress."],
+            "maintaining_factors": ["Rumination and avoidance may reinforce distress."],
+            "protective_factors": ["Help-seeking and continued work attendance."],
+            "risk_considerations": ["Passive suicide-related wording was reported; further assessment is needed."],
+            "working_hypotheses": ["The case may involve a criticism-threat cycle shaped by perfectionistic beliefs."],
+            "questions_to_verify": ["What automatic thoughts appear before withdrawal?"],
+            "boundary_notes": ["This is a working hypothesis, not a diagnosis or final treatment decision."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W4"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w4_requires_framework_and_hypotheses(self):
+        data = {
+            "workflow": "W4",
+            "document_type": "case_conceptualization",
+            "title": "Missing framework",
+            "known_facts": ["Known fact"],
+            "boundary_notes": ["Working hypothesis only."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W4"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        issue_paths = {issue["path"] for issue in check["issues"]}
+        self.assertIn("selected_framework", issue_paths)
+        self.assertIn("working_hypotheses", issue_paths)
 
     def test_load_retrieval_map_reads_json(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -71,6 +71,13 @@ WORKFLOWS = {
         eval_id="W3-001",
         completion_marker="AGENT_DONE_W3",
     ),
+    "W4": WorkflowSpec(
+        workflow_id="W4",
+        workflow_key="workflow_4_case_conceptualization",
+        name="Case conceptualization by framework",
+        eval_id="W4-001",
+        completion_marker="AGENT_DONE_W4",
+    ),
 }
 
 WORKFLOW_ALIASES = {
@@ -88,6 +95,12 @@ WORKFLOW_ALIASES = {
     "note": "W3",
     "workflow_3": "W3",
     "workflow_3_session_note": "W3",
+    "w4": "W4",
+    "conceptualization": "W4",
+    "formulation": "W4",
+    "framework": "W4",
+    "workflow_4": "W4",
+    "workflow_4_case_conceptualization": "W4",
 }
 
 OUTPUT_CONTRACTS = {
@@ -112,6 +125,15 @@ OUTPUT_CONTRACTS = {
         "未提供的观察、反应或判断不得编造，必须标注材料中未提供或待补充。",
     ],
 }
+
+OUTPUT_CONTRACTS["W4"] = [
+    "Title: case conceptualization",
+    "The output must name the selected framework and separate known facts, working hypotheses, and open questions.",
+    "Include at minimum: selected framework, presenting patterns, predisposing factors, precipitating factors, maintaining factors, protective factors, risk considerations, working hypotheses, and questions to verify.",
+    "Use tentative language such as may, possible, working hypothesis, and needs verification. Do not output deterministic diagnosis.",
+    "The output may suggest framework-consistent directions for exploration, but must not become a full treatment plan or a multi-session roadmap.",
+    "If the user requests a specific framework such as CBT, psychodynamic, humanistic, or integrative, stay within that lens while preserving ethics and privacy boundaries.",
+]
 
 STRUCTURED_OUTPUT_CONTRACTS = {
     "W1": {
@@ -168,6 +190,25 @@ STRUCTURED_OUTPUT_CONTRACTS = {
         "missing_information": [],
         "boundary_notes": ["本记录不替代咨询师专业判断。"],
     },
+}
+
+STRUCTURED_OUTPUT_CONTRACTS["W4"] = {
+    "workflow": "W4",
+    "document_type": "case_conceptualization",
+    "title": "Case conceptualization",
+    "selected_framework": "",
+    "known_facts": [],
+    "presenting_patterns": [],
+    "predisposing_factors": [],
+    "precipitating_factors": [],
+    "maintaining_factors": [],
+    "protective_factors": [],
+    "risk_considerations": [],
+    "working_hypotheses": [],
+    "questions_to_verify": [],
+    "boundary_notes": [
+        "This conceptualization is a working hypothesis, not a diagnosis, final risk judgment, or treatment decision."
+    ],
 }
 
 W1_INITIAL_INTERVIEW_SECTIONS = [
@@ -509,7 +550,7 @@ def normalize_workflow(value):
     alias = (value or "").strip().lower()
     workflow_id = WORKFLOW_ALIASES.get(alias)
     if not workflow_id:
-        accepted = "W1/intake, W2/case, W3/session"
+        accepted = "W1/intake, W2/case, W3/session, W4/conceptualization"
         raise AgentInputError(f"Unknown workflow `{value}`. Accepted workflows: {accepted}.")
     return WORKFLOWS[workflow_id]
 
@@ -847,11 +888,39 @@ def _validate_w3(workflow, data):
     return issues
 
 
+def _validate_w4(workflow, data):
+    issues = _check_common(workflow, data, "case_conceptualization")
+    required_keys = [
+        "selected_framework",
+        "known_facts",
+        "presenting_patterns",
+        "predisposing_factors",
+        "precipitating_factors",
+        "maintaining_factors",
+        "protective_factors",
+        "risk_considerations",
+        "working_hypotheses",
+        "questions_to_verify",
+    ]
+    for key in required_keys:
+        if not _has_non_empty(data, key):
+            issues.append(_structured_issue(key, f"{key} must be present and non-empty."))
+    framework = str(data.get("selected_framework", "")).strip().lower()
+    allowed = {"cbt", "psychodynamic", "humanistic", "integrative"}
+    if framework and framework not in allowed:
+        issues.append(_structured_issue("selected_framework", "Unsupported framework."))
+    text = _json_text(data).lower()
+    if "treatment plan" in text or "roadmap" in text:
+        issues.append(_structured_issue("$", "W4 must not turn into a treatment plan or roadmap."))
+    return issues
+
+
 def validate_structured_output(workflow, data):
     validators = {
         "W1": _validate_w1,
         "W2": _validate_w2,
         "W3": _validate_w3,
+        "W4": _validate_w4,
     }
     issues = validators[workflow.workflow_id](workflow, data)
     return {
@@ -1007,8 +1076,8 @@ def run_agent_once(
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="Run counselor assistant v0.1 workflows locally.")
-    parser.add_argument("--workflow", required=True, help="Workflow: W1/intake, W2/case, W3/session.")
+    parser = argparse.ArgumentParser(description="Run counselor assistant workflows locally.")
+    parser.add_argument("--workflow", required=True, help="Workflow: W1/intake, W2/case, W3/session, W4/conceptualization.")
     parser.add_argument("--input", dest="input", default=None, help="Inline user input.")
     parser.add_argument("--input-file", dest="input_file", default=None, help="UTF-8 text/markdown input file.")
     parser.add_argument("--run-root", dest="run_root", default=str(DEFAULT_RUN_ROOT), help="Root folder for timestamped agent runs.")

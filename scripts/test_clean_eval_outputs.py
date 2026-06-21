@@ -365,6 +365,34 @@ P：
         self.assertIn("Preferred API answer", clean_text)
         self.assertNotIn("Legacy web answer", clean_text)
 
+    def test_w4_001_bilingual_rubric_accepts_chinese_conceptualization_output(self):
+        answer = """
+CBT个案概念化
+已知事实
+来访者26岁，教师。近期与主管冲突后，在绩效评估前出现强烈焦虑。
+概念化（工作假设）
+这是一个基于CBT框架的工作假设，不能替代诊断，也不构成完整的治疗方案。
+维持因素
+回避和反复反刍维持了焦虑。
+保护因素
+有求助动机，工作基本稳定。
+风险考虑
+目前仅见否认自杀计划，其他风险信息仍需继续评估。
+待验证问题
+1. 回避同事互动前的自动想法是什么？
+2. 睡眠困难与焦虑之间的时间顺序如何？
+去识别化说明
+以上内容仅保留已知事实。
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W4-001", clean_answer)
+        rubric_result = run_dimension_rubric("W4-001", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Privacy minimized"]["status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()

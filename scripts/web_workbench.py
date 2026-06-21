@@ -100,6 +100,21 @@ DEMO_SCENARIOS = [
         ),
         "output_style": "institutional_record",
     },
+    {
+        "id": "conceptualization-criticism-cycle",
+        "title": "W4 Demo: CBT conceptualization",
+        "workflow": "W4",
+        "summary": "A de-identified conceptualization request that asks for a framework-specific hypothesis without turning into diagnosis or treatment planning.",
+        "input": (
+            "Build a CBT case conceptualization for this de-identified case. The client is a 26-year-old teacher"
+            " who becomes intensely anxious before performance reviews, replays criticism for days, and then avoids"
+            " replying to colleagues. She grew up with frequent comparisons to higher-performing cousins. After a"
+            " recent conflict with her supervisor, she reported poor sleep and thoughts such as 'If I make one mistake,"
+            " everyone will see I am inadequate.' She denied suicide plans. Separate known facts, working hypotheses,"
+            " risk considerations, and questions that still need verification."
+        ),
+        "output_style": "supervision_summary",
+    },
 ]
 
 AGENT_STYLE_INSTRUCTIONS = {
@@ -144,8 +159,6 @@ WORKFLOW_KEYWORDS = {
     ],
     "W2": [
         "case summary",
-        "case formulation",
-        "case conceptualization",
         "biopsychosocial",
         "bps",
         "supervision summary",
@@ -156,6 +169,23 @@ WORKFLOW_KEYWORDS = {
         "\u4e2a\u6848\u80cc\u666f",
         "\u7763\u5bfc",
         "\u53bb\u8bc6\u522b",
+    ],
+    "W4": [
+        "case formulation",
+        "case conceptualization",
+        "conceptualize this case",
+        "conceptualization hypothesis",
+        "cbt",
+        "psychodynamic",
+        "humanistic",
+        "integrative",
+        "framework",
+        "\u4e2a\u6848\u6982\u5ff5\u5316",
+        "\u8ba4\u77e5\u884c\u4e3a",
+        "\u4eba\u672c",
+        "\u7cbe\u795e\u52a8\u529b",
+        "\u6574\u5408\u53d6\u5411",
+        "\u6d41\u6d3e",
     ],
     "W3": [
         "soap",
@@ -188,6 +218,8 @@ def detect_workflow(user_input):
     text = str(user_input or "").lower()
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W1"]):
         return "W1"
+    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W4"]):
+        return "W4"
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W2"]):
         return "W2"
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W3"]):

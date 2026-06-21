@@ -63,6 +63,12 @@ EVALS = [
         "query": "按 SOAP 格式生成咨询记录：本次是第4次咨询。来访者报告本周焦虑有所下降，但仍担心工作汇报出错。咨询中讨论了她对“犯错就会被否定”的想法，并练习了替代性想法。她表示可以尝试在下次汇报前做呼吸练习。",
         "expected": "Workflow 3：SOAP 格式记录。应输出 S/O/A/P 四段，A 中谨慎表达，不诊断，不添加用户未提供事实。",
     },
+    {
+        "id": "W4-001",
+        "name": "cbt-case-conceptualization",
+        "query": "Build a CBT case conceptualization for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and then avoids replying to colleagues. She grew up with frequent comparisons to higher-performing cousins. After a recent conflict with her supervisor, she reported poor sleep and thoughts such as 'If I make one mistake, everyone will see I am inadequate.' She denied suicide plans. Separate known facts, working hypotheses, risk considerations, and questions that still need verification.",
+        "expected": "Workflow 4: framework-based case conceptualization. The answer should explicitly name CBT, separate known facts from working hypotheses, organize predisposing/precipitating/maintaining/protective factors, keep risk considerations visible, and avoid diagnosis or full treatment planning.",
+    },
 ]
 
 

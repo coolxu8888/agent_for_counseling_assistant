@@ -142,6 +142,23 @@ def render_session_note(data):
     return parts
 
 
+def render_case_conceptualization(data):
+    parts = [paragraph(data.get("title") or "Case conceptualization", "Heading1")]
+    parts.append(paragraph("Selected framework", "Heading2"))
+    parts.append(paragraph(data.get("selected_framework", "")))
+    append_list(parts, "Known facts", data.get("known_facts", []))
+    append_list(parts, "Presenting patterns", data.get("presenting_patterns", []))
+    append_list(parts, "Predisposing factors", data.get("predisposing_factors", []))
+    append_list(parts, "Precipitating factors", data.get("precipitating_factors", []))
+    append_list(parts, "Maintaining factors", data.get("maintaining_factors", []))
+    append_list(parts, "Protective factors", data.get("protective_factors", []))
+    append_list(parts, "Risk considerations", data.get("risk_considerations", []))
+    append_list(parts, "Working hypotheses", data.get("working_hypotheses", []))
+    append_list(parts, "Questions to verify", data.get("questions_to_verify", []))
+    append_list(parts, "Boundary notes", data.get("boundary_notes", []))
+    return parts
+
+
 def render_body(data):
     document_type = data.get("document_type")
     if document_type == "intake_form":
@@ -150,6 +167,8 @@ def render_body(data):
         return render_case_summary(data)
     if document_type == "session_note":
         return render_session_note(data)
+    if document_type == "case_conceptualization":
+        return render_case_conceptualization(data)
     return [paragraph(data.get("title") or "咨询师助理文档", "Heading1")]
 
 

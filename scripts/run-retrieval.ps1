@@ -20,7 +20,8 @@ $allowedSections = @(
     "case-recording",
     "session-notes",
     "intake-assessment",
-    "forms-fields"
+    "forms-fields",
+    "theory-frameworks"
 )
 
 function Convert-Scalar {
@@ -191,6 +192,21 @@ function Select-Workflow {
             (U "\u4e0b\u6b21\u54a8\u8be2\u91cd\u70b9"),
             (U "\u603b\u7ed3\u4eca\u5929")
         )
+        workflow_4_case_conceptualization = @(
+            "conceptualization",
+            "case formulation",
+            "framework",
+            "CBT",
+            "psychodynamic",
+            "humanistic",
+            "integrative",
+            (U "\u4e2a\u6848\u6982\u5ff5\u5316"),
+            (U "\u8ba4\u77e5\u884c\u4e3a"),
+            (U "\u4eba\u672c"),
+            (U "\u7cbe\u795e\u52a8\u529b"),
+            (U "\u6574\u5408\u53d6\u5411"),
+            (U "\u6d41\u6d3e")
+        )
     }
 
     $scores = @{}
@@ -265,6 +281,19 @@ function Select-Intent {
             return (U "\u6d89\u53ca\u4fdd\u5bc6\u6216\u8bb0\u5f55\u4fdd\u5b58")
         }
         return (U "\u666e\u901a session \u8bb0\u5f55")
+    }
+
+    if ($WorkflowName -eq "workflow_4_case_conceptualization") {
+        if (Test-AnyPattern $Text @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"))) {
+            return "CBT conceptualization"
+        }
+        if (Test-AnyPattern $Text @("psychodynamic", (U "\u7cbe\u795e\u52a8\u529b"))) {
+            return "Psychodynamic conceptualization"
+        }
+        if (Test-AnyPattern $Text @("humanistic", (U "\u4eba\u672c"))) {
+            return "Humanistic conceptualization"
+        }
+        return "Integrative conceptualization"
     }
 
     return ""
@@ -388,7 +417,7 @@ $chunksById = Read-ChunkIndex
 $selectedWorkflow = if (-not [string]::IsNullOrWhiteSpace($Workflow)) { $Workflow } else { Select-Workflow $Query }
 $boundaryNotes = [System.Collections.Generic.List[string]]::new()
 
-if (Test-AnyPattern $Query @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"), (U "\u4eba\u672c"), (U "\u7cbe\u795e\u52a8\u529b"), (U "\u5bb6\u5ead\u7cfb\u7edf"), (U "\u6d41\u6d3e"))) {
+if ($selectedWorkflow -ne "workflow_4_case_conceptualization" -and (Test-AnyPattern $Query @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"), (U "\u4eba\u672c"), (U "\u7cbe\u795e\u52a8\u529b"), (U "\u5bb6\u5ead\u7cfb\u7edf"), (U "\u6d41\u6d3e")))) {
     $boundaryNotes.Add("The query mentions a modality preference; v0.1 does not use modality-specific chunks to alter the basic information capture structure.") | Out-Null
 }
 

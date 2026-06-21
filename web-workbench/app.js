@@ -44,6 +44,15 @@ const FALLBACK_DEMO_CATALOG = {
         "来访者表示最近一周入睡困难，和母亲沟通后感到委屈，否认自伤自杀计划。本次主要讨论情绪识别与下次沟通准备。请生成本次咨询记录，并保留需要后续补充的信息。",
       output_style: "institutional_record",
     },
+    {
+      id: "conceptualization-criticism-cycle",
+      title: "W4 Demo: CBT conceptualization",
+      workflow: "W4",
+      summary: "A de-identified framework-specific conceptualization request for supervision-style review.",
+      input:
+        "Build a CBT case conceptualization for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and then avoids replying to colleagues. She grew up with frequent comparisons to higher-performing cousins. After a recent conflict with her supervisor, she reported poor sleep and thoughts such as 'If I make one mistake, everyone will see I am inadequate.' She denied suicide plans. Separate known facts, working hypotheses, risk considerations, and questions that still need verification.",
+      output_style: "supervision_summary",
+    },
   ],
   templates: [],
   privacy_notice: "Use de-identified demo material only. Avoid names, phone numbers, IDs, and real client data in public MVP validation.",
@@ -377,6 +386,7 @@ function workflowLabel(workflow) {
     W1: "Intake",
     W2: "Case summary",
     W3: "Session note",
+    W4: "Conceptualization",
     TEMPLATE: "Template draft",
   }[workflow] || workflow;
 }
