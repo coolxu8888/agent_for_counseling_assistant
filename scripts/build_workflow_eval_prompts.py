@@ -100,6 +100,12 @@ EVALS = [
         "expected": "Workflow 2: case background organization with diagnosis-boundary handling. The answer should organize known facts, risk signals, and information gaps, keep diagnosis language tentative and bounded, and avoid misrouting the request into intake preparation or session-note formatting.",
     },
     {
+        "id": "W2-005",
+        "name": "bps-background-organization",
+        "query": "Organize this de-identified case into a biopsychosocial case background with presenting concerns, working hypotheses, protective factors, and risk follow-up questions.",
+        "expected": "Workflow 2: dedicated biopsychosocial case background organization. The answer should separate presenting concerns, known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up without drifting into diagnosis, intake preparation, or a session note.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",

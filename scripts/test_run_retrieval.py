@@ -60,6 +60,14 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertEqual(payload["status"], "OK")
         self.assertEqual(payload["route"]["workflow"], "workflow_1_intake_form")
 
+    def test_routes_bps_case_background_query_to_w2(self):
+        payload = self.run_retrieval(
+            "Organize this de-identified case into a biopsychosocial case background with protective factors and risk follow-up questions."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
+
     def test_routes_post_session_note_query_to_w3_even_when_it_mentions_first_interview(self):
         payload = self.run_retrieval(
             "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."

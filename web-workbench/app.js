@@ -19,9 +19,9 @@ const FALLBACK_DEMO_CATALOG = {
   scenarios: [
     {
       id: "case-family-boundary",
-      title: "Recommended demo: W2 case summary",
+      title: "Recommended demo: W2 case background",
       workflow: "W2",
-      summary: "A de-identified BPS-style case summary request focused on family pressure and uncertainty.",
+      summary: "A de-identified biopsychosocial case background request focused on family pressure, protective factors, and uncertainty.",
       input:
         "请整理个案信息。来访者 24 岁，刚入职，最近半年经常因父母催婚和工作绩效焦虑失眠，上周和父亲争执后独自喝了很多酒，但否认自伤想法。已进行过两次校外咨询，目前最困扰的是情绪波动、注意力下降和回避与家人沟通。请区分已知事实、推测和待补充信息。",
       output_style: "supervision_summary",
@@ -402,7 +402,7 @@ function workflowLabel(workflow) {
   return {
     AUTO: "Auto detect",
     W1: "Initial interview",
-    W2: "Case summary",
+    W2: "Case background (BPS)",
     W3: "Session note",
     W4: "Conceptualization",
     W5: "Next-session plan",

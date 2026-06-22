@@ -61,16 +61,16 @@ RUN_ARTIFACT_FILE_NAMES = {
 DEMO_SCENARIOS = [
     {
         "id": "case-family-boundary",
-        "title": "Recommended demo: W2 case summary",
+        "title": "Recommended demo: W2 case background",
         "workflow": "W2",
-        "summary": "A de-identified BPS-style case summary request focused on family pressure and uncertainty. This is the strongest end-to-end sample for first-pass validation.",
+        "summary": "A de-identified biopsychosocial case background request focused on family pressure, protective factors, and uncertainty. This is the strongest end-to-end sample for first-pass validation.",
         "input": (
-            "Please organize this de-identified case summary. The client is a 24-year-old recent hire who has had"
+            "Please organize this de-identified biopsychosocial case background. The client is a 24-year-old recent hire who has had"
             " insomnia for about six months due to family pressure about marriage and anxiety about job performance."
             " After an argument with her father last week, she drank heavily alone but denied self-harm thoughts."
             " She has completed two outside counseling sessions. Current concerns include mood swings, lower"
-            " concentration, and avoiding communication with family. Separate known facts, working hypotheses,"
-            " and information that still needs verification."
+            " concentration, and avoiding communication with family. Separate presenting concerns, known facts, working hypotheses,"
+            " missing information, protective factors, and risk follow-up questions."
         ),
         "output_style": "supervision_summary",
     },
@@ -176,7 +176,7 @@ AGENT_STYLE_INSTRUCTIONS = {
 WORKFLOW_LABELS = {
     "AUTO": "Auto detect",
     "W1": "Initial interview",
-    "W2": "Case summary",
+    "W2": "Case background (BPS)",
     "W3": "Session note",
     "W4": "Conceptualization",
     "W5": "Next-session plan",
@@ -229,6 +229,9 @@ ROUTING_RULES = {
             (r"biopsychosocial", 4),
             (r"\bbps\b", 4),
             (r"supervision summary", 4),
+            (r"protective factors?", 4),
+            (r"follow-up questions?", 3),
+            (r"case background organization", 5),
             (r"diagnosis questions", 4),
             (r"risk signals", 4),
             (r"missing facts", 4),
@@ -240,6 +243,8 @@ ROUTING_RULES = {
             (r"\u53bb\u8bc6\u522b", 3),
             (r"\u8bca\u65ad", 4),
             (r"\u98ce\u9669\u4fe1\u53f7", 4),
+            (r"\u4fdd\u62a4\u56e0\u7d20", 4),
+            (r"\u540e\u7eed\u8ffd\u95ee", 3),
             (r"\u4fe1\u606f\u7f3a\u53e3", 4),
         ],
         "negative": [

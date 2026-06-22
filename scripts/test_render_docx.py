@@ -23,7 +23,7 @@ class RenderDocxTest(unittest.TestCase):
                             "required": False,
                             "sensitive": True,
                             "risk_signal": True,
-                            "notes": "待填写",
+                            "notes": "待补充",
                         }
                     ],
                 }
@@ -71,6 +71,47 @@ class RenderDocxTest(unittest.TestCase):
             ],
             "summary_guidance": ["Separate known facts, unclear facts, and follow-up questions."],
             "boundary_notes": ["Organize only the provided material and do not output a final diagnosis or risk rating."],
+        }
+
+    def minimal_w2_bps(self):
+        return {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "Case background organization",
+            "presenting_concerns": ["Sleep disruption and conflict distress."],
+            "case_overview": {
+                "known_facts": ["Adult client, married, one child."],
+                "working_hypotheses": ["Role strain may be contributing to distress."],
+                "information_gaps": ["Prior coping history is incomplete."],
+            },
+            "bio_psycho_social": {
+                "biological": {
+                    "known_facts": ["Insomnia and fatigue."],
+                    "working_hypotheses": ["Sleep disruption may worsen emotional reactivity."],
+                    "information_gaps": ["Appetite changes are not documented."],
+                    "follow_up_questions": ["How many hours is the client sleeping?"],
+                },
+                "psychological": {
+                    "known_facts": ["Feels wronged and suppresses distress before outbursts."],
+                    "working_hypotheses": ["Emotion suppression may be part of the pattern."],
+                    "information_gaps": ["Core beliefs are not yet clear."],
+                    "follow_up_questions": ["What thoughts appear before withdrawal?"],
+                },
+                "social": {
+                    "known_facts": ["Work stress and partner conflict are active."],
+                    "working_hypotheses": ["Limited support may intensify stress."],
+                    "information_gaps": ["Support outside the family is unclear."],
+                    "follow_up_questions": ["Who can offer support outside the home?"],
+                },
+            },
+            "protective_factors": ["Help-seeking and parenting responsibilities."],
+            "risk_formulation": {
+                "observed_clues": ["No self-harm or suicide content was reported."],
+                "missing_or_unclear": ["Direct risk inquiry results are not documented."],
+                "follow_up_questions": ["Ask directly about self-harm, suicide, violence, and alcohol use."],
+            },
+            "recommended_focus": ["Clarify the conflict timeline and existing supports."],
+            "boundary_notes": ["This is a counselor-facing organizer, not a diagnosis or final risk judgment."],
         }
 
     def minimal_w3(self):
@@ -166,10 +207,10 @@ class RenderDocxTest(unittest.TestCase):
             document_xml = self.read_document_xml(output_path)
 
         self.assertIn("个案信息整理", document_xml)
-        self.assertIn("生物维度", document_xml)
-        self.assertIn("心理维度", document_xml)
-        self.assertIn("社会维度", document_xml)
-        self.assertIn("建议进一步询问", document_xml)
+        self.assertIn("Biological dimension", document_xml)
+        self.assertIn("Psychological dimension", document_xml)
+        self.assertIn("Social dimension", document_xml)
+        self.assertIn("Follow-up questions", document_xml)
 
     def test_render_w1_initial_summary_contains_known_unclear_and_follow_up_lists(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -183,6 +224,24 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("Known facts", document_xml)
         self.assertIn("Unclear or missing", document_xml)
         self.assertIn("Follow-up questions", document_xml)
+
+    def test_render_w2_bps_contains_dimension_splits_and_risk_follow_up(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w2-bps.docx"
+
+            render_docx(self.minimal_w2_bps(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("Case background organization", document_xml)
+        self.assertIn("Presenting concerns", document_xml)
+        self.assertIn("Case overview", document_xml)
+        self.assertIn("Biological dimension", document_xml)
+        self.assertIn("Psychological dimension", document_xml)
+        self.assertIn("Social dimension", document_xml)
+        self.assertIn("Working hypotheses", document_xml)
+        self.assertIn("Follow-up questions", document_xml)
+        self.assertIn("Risk formulation", document_xml)
+        self.assertIn("Recommended focus", document_xml)
 
     def test_render_w6_contains_phases_and_referral_reminders(self):
         with tempfile.TemporaryDirectory() as tmp:

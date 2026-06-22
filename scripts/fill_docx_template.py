@@ -165,6 +165,36 @@ def build_source_map(data):
     return entries
 
 
+_BASE_BUILD_SOURCE_MAP = build_source_map
+
+
+def build_source_map(data):
+    entries = _BASE_BUILD_SOURCE_MAP(data)
+    if not isinstance(data, dict) or data.get("document_type") != "case_summary":
+        return entries
+    bps = data.get("bio_psycho_social") or {}
+    overview = data.get("case_overview") or {}
+    risk_formulation = data.get("risk_formulation") or {}
+    _add_entry(entries, "presenting_concerns", data.get("presenting_concerns"), ["主诉", "Presenting concerns", "当前困扰"])
+    _add_entry(entries, "case_overview.known_facts", overview.get("known_facts"), ["已知事实", "个案背景", "基本情况", "Known facts"])
+    _add_entry(entries, "case_overview.working_hypotheses", overview.get("working_hypotheses"), ["工作假设", "Working hypotheses", "初步理解"])
+    _add_entry(entries, "case_overview.information_gaps", overview.get("information_gaps"), ["信息缺口", "Information gaps", "待补充信息"])
+    for dimension_key, label in [("biological", "Biological"), ("psychological", "Psychological"), ("social", "Social")]:
+        dimension = bps.get(dimension_key) or {}
+        if not isinstance(dimension, dict):
+            continue
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.known_facts", dimension.get("known_facts"), [f"{label} dimension", f"{label} known facts"])
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.working_hypotheses", dimension.get("working_hypotheses"), [f"{label} working hypotheses"])
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.information_gaps", dimension.get("information_gaps"), [f"{label} information gaps"])
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.follow_up_questions", dimension.get("follow_up_questions"), [f"{label} follow-up questions"])
+    _add_entry(entries, "protective_factors", data.get("protective_factors"), ["保护因素", "Protective factors"])
+    _add_entry(entries, "risk_formulation.observed_clues", risk_formulation.get("observed_clues"), ["风险线索", "Observed clues", "风险信号"])
+    _add_entry(entries, "risk_formulation.missing_or_unclear", risk_formulation.get("missing_or_unclear"), ["风险信息缺口", "Missing or unclear risk information"])
+    _add_entry(entries, "risk_formulation.follow_up_questions", risk_formulation.get("follow_up_questions"), ["风险追问", "Risk follow-up questions", "后续风险询问"])
+    _add_entry(entries, "recommended_focus", data.get("recommended_focus"), ["建议后续聚焦", "Recommended focus"])
+    return entries
+
+
 def find_source_match(template_label, source_map):
     normalized = normalize_label(template_label)
     if not normalized:

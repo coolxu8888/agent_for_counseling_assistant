@@ -154,6 +154,56 @@ def render_session_note(data):
     return parts
 
 
+def render_case_summary(data):
+    parts = [paragraph(data.get("title") or "Case background organization", "Heading1")]
+    if data.get("presenting_concerns"):
+        append_list(parts, "Presenting concerns", data.get("presenting_concerns", []))
+    overview = data.get("case_overview")
+    if isinstance(overview, dict):
+        parts.append(paragraph("Case overview", "Heading2"))
+        append_list(parts, "Known facts", overview.get("known_facts", []))
+        append_list(parts, "Working hypotheses", overview.get("working_hypotheses", []))
+        append_list(parts, "Information gaps", overview.get("information_gaps", []))
+    else:
+        append_list(parts, "宸茬煡浜嬪疄", data.get("known_facts", []))
+
+    bps = data.get("bio_psycho_social", {})
+    parts.append(paragraph("Biopsychosocial structure", "Heading2"))
+    for heading, key in [
+        ("Biological dimension", "biological"),
+        ("Psychological dimension", "psychological"),
+        ("Social dimension", "social"),
+    ]:
+        dimension = bps.get(key, {}) if isinstance(bps, dict) else {}
+        if isinstance(dimension, dict):
+            parts.append(paragraph(heading, "Heading2"))
+            append_list(parts, "Known facts", dimension.get("known_facts", []))
+            append_list(parts, "Working hypotheses", dimension.get("working_hypotheses", []))
+            append_list(parts, "Information gaps", dimension.get("information_gaps", []))
+            append_list(parts, "Follow-up questions", dimension.get("follow_up_questions", []))
+        else:
+            append_list(parts, heading, dimension or [])
+
+    risk_formulation = data.get("risk_formulation")
+    if isinstance(risk_formulation, dict):
+        parts.append(paragraph("Risk formulation", "Heading2"))
+        append_list(parts, "Observed clues", risk_formulation.get("observed_clues", []))
+        append_list(parts, "Missing or unclear", risk_formulation.get("missing_or_unclear", []))
+        append_list(parts, "Follow-up questions", risk_formulation.get("follow_up_questions", []))
+    else:
+        append_list(parts, "椋庨櫓淇″彿", data.get("risk_signals", []))
+
+    if data.get("protective_factors"):
+        append_list(parts, "Protective factors", data.get("protective_factors", []))
+    if data.get("recommended_focus"):
+        append_list(parts, "Recommended focus", data.get("recommended_focus", []))
+    else:
+        append_list(parts, "淇℃伅缂哄彛", data.get("information_gaps", []))
+        append_list(parts, "Follow-up questions", data.get("suggested_questions", []))
+    append_list(parts, "Boundary notes", data.get("boundary_notes", []))
+    return parts
+
+
 def render_case_conceptualization(data):
     parts = [paragraph(data.get("title") or "Case conceptualization", "Heading1")]
     parts.append(paragraph("Selected framework", "Heading2"))

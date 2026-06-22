@@ -244,6 +244,14 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(web_workbench.detect_workflow("Create a CBT next-session plan with risk check points"), "W5")
         self.assertEqual(web_workbench.detect_workflow("Build an integrative multi-session counseling roadmap with phases"), "W6")
 
+    def test_detect_workflow_routes_bps_case_background_requests_to_w2(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "Organize these notes into a biopsychosocial case background with presenting concerns, protective factors, and risk follow-up questions."
+            ),
+            "W2",
+        )
+
     def test_detect_workflow_prefers_w1_for_pre_interview_preparation_requests(self):
         self.assertEqual(
             web_workbench.detect_workflow(
@@ -323,7 +331,7 @@ class WebWorkbenchTest(unittest.TestCase):
 
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 200)
-        self.assertIn("Please organize this de-identified case summary.", payload["scenarios"][0]["input"])
+        self.assertIn("Please organize this de-identified biopsychosocial case background.", payload["scenarios"][0]["input"])
         self.assertIn("Create an intake information guide", payload["scenarios"][1]["input"])
 
     def test_handle_run_auto_detects_workflow(self):

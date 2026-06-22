@@ -164,6 +164,14 @@ OUTPUT_CONTRACTS["W4"] = [
     "If the user requests a specific framework such as CBT, psychodynamic, humanistic, or integrative, stay within that lens while preserving ethics and privacy boundaries.",
 ]
 
+OUTPUT_CONTRACTS["W2"] = [
+    "Title: case background organization.",
+    "Include at minimum: presenting concerns, case overview, biopsychosocial structure, protective factors, risk formulation, recommended focus, and boundary notes.",
+    "The biopsychosocial structure must separate biological, psychological, and social dimensions, and each dimension must split known facts, working hypotheses, information gaps, and follow-up questions.",
+    "Risk formulation must stay bounded to observed clues, missing or unclear risk information, and counselor-facing follow-up questions. Do not output a final diagnosis or final risk rating.",
+    "Keep facts, working hypotheses, and missing information clearly separated. If information is not provided, state that it is missing or still needs verification.",
+]
+
 OUTPUT_CONTRACTS["W5"] = [
     "Title: next-session plan",
     "Generate a bounded plan for one upcoming counseling session only, not a treatment plan or multi-session roadmap.",
@@ -246,6 +254,48 @@ STRUCTURED_OUTPUT_CONTRACTS["W4"] = {
     "questions_to_verify": [],
     "boundary_notes": [
         "This conceptualization is a working hypothesis, not a diagnosis, final risk judgment, or treatment decision."
+    ],
+}
+
+STRUCTURED_OUTPUT_CONTRACTS["W2"] = {
+    "workflow": "W2",
+    "document_type": "case_summary",
+    "title": "Case background organization",
+    "presenting_concerns": [],
+    "case_overview": {
+        "known_facts": [],
+        "working_hypotheses": [],
+        "information_gaps": [],
+    },
+    "bio_psycho_social": {
+        "biological": {
+            "known_facts": [],
+            "working_hypotheses": [],
+            "information_gaps": [],
+            "follow_up_questions": [],
+        },
+        "psychological": {
+            "known_facts": [],
+            "working_hypotheses": [],
+            "information_gaps": [],
+            "follow_up_questions": [],
+        },
+        "social": {
+            "known_facts": [],
+            "working_hypotheses": [],
+            "information_gaps": [],
+            "follow_up_questions": [],
+        },
+    },
+    "protective_factors": [],
+    "risk_formulation": {
+        "observed_clues": [],
+        "missing_or_unclear": [],
+        "follow_up_questions": [],
+    },
+    "recommended_focus": [],
+    "boundary_notes": [
+        "This is a counselor-facing case background organizer, not a diagnosis, final risk rating, or treatment decision."
     ],
 }
 
@@ -805,6 +855,13 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
             parts.append(
                 "The risk_crisis section must separate observed risk clues, missing or unclear risk information, and counselor-facing safety follow-up questions. Do not output a final diagnosis or final risk rating."
             )
+        if workflow.workflow_id == "W2":
+            parts.append(
+                "For W2, use the dedicated case background organization structure. Include presenting_concerns, case_overview, bio_psycho_social, protective_factors, risk_formulation, recommended_focus, and boundary_notes."
+            )
+            parts.append(
+                "Each biopsychosocial dimension must include known_facts, working_hypotheses, information_gaps, and follow_up_questions. Keep known_facts limited to source material, mark uncertainty as working_hypotheses or information_gaps, and keep risk_formulation bounded to observed_clues, missing_or_unclear, and counselor-facing follow_up_questions."
+            )
     parts.extend(
         [
             "# RAG 参考资料",
@@ -938,6 +995,33 @@ def _has_non_empty(data, key):
     return value is not None and value != [] and value != {} and value != ""
 
 
+def _validate_list_field(issues, data, path, allow_empty=False):
+    current = data
+    for part in path.split("."):
+        if not isinstance(current, dict):
+            current = None
+            break
+        current = current.get(part)
+    if current is None:
+        issues.append(_structured_issue(path, f"{path} is required."))
+        return
+    if not isinstance(current, list):
+        issues.append(_structured_issue(path, f"{path} must be a list."))
+        return
+    if not allow_empty and not current:
+        issues.append(_structured_issue(path, f"{path} must be non-empty."))
+
+
+def _validate_w2_dimension(issues, bps, dimension_name):
+    dimension = bps.get(dimension_name)
+    if not isinstance(dimension, dict):
+        for key in ["known_facts", "working_hypotheses", "information_gaps", "follow_up_questions"]:
+            issues.append(_structured_issue(f"bio_psycho_social.{dimension_name}.{key}", f"{key} is required."))
+        return
+    for key in ["known_facts", "working_hypotheses", "information_gaps", "follow_up_questions"]:
+        _validate_list_field(issues, {"bio_psycho_social": bps}, f"bio_psycho_social.{dimension_name}.{key}")
+
+
 def _contains_forbidden_scope(text, forbidden_terms, allowed_negated_phrases=()):
     lowered = text.lower()
     for phrase in allowed_negated_phrases:
@@ -1029,16 +1113,42 @@ def _validate_w1(workflow, data):
 
 def _validate_w2(workflow, data):
     issues = _check_common(workflow, data, "case_summary")
-    for key in ["known_facts", "bio_psycho_social", "information_gaps", "suggested_questions"]:
+    legacy_mode = any(key in data for key in ["known_facts", "risk_signals", "information_gaps", "suggested_questions"]) and not any(
+        key in data for key in ["presenting_concerns", "case_overview", "risk_formulation", "recommended_focus"]
+    )
+    if legacy_mode:
+        for key in ["known_facts", "bio_psycho_social", "information_gaps", "suggested_questions"]:
+            if not _has_non_empty(data, key):
+                issues.append(_structured_issue(key, f"{key} must be present and non-empty."))
+        if "risk_signals" not in data:
+            issues.append(_structured_issue("risk_signals", "risk_signals must be present."))
+        bps = data.get("bio_psycho_social", {})
+        if isinstance(bps, dict):
+            for key in ["biological", "psychological", "social"]:
+                if not _has_non_empty(bps, key):
+                    issues.append(_structured_issue(f"bio_psycho_social.{key}", f"{key} content is required."))
+        return issues
+    for key in ["presenting_concerns", "case_overview", "bio_psycho_social", "protective_factors", "risk_formulation", "recommended_focus"]:
         if not _has_non_empty(data, key):
             issues.append(_structured_issue(key, f"{key} must be present and non-empty."))
-    if "risk_signals" not in data:
-        issues.append(_structured_issue("risk_signals", "risk_signals must be present."))
+    case_overview = data.get("case_overview", {})
+    if isinstance(case_overview, dict):
+        for key in ["known_facts", "working_hypotheses", "information_gaps"]:
+            _validate_list_field(issues, data, f"case_overview.{key}")
+    else:
+        for key in ["known_facts", "working_hypotheses", "information_gaps"]:
+            issues.append(_structured_issue(f"case_overview.{key}", f"{key} is required."))
     bps = data.get("bio_psycho_social", {})
     if isinstance(bps, dict):
         for key in ["biological", "psychological", "social"]:
-            if not _has_non_empty(bps, key):
-                issues.append(_structured_issue(f"bio_psycho_social.{key}", f"{key} content is required."))
+            _validate_w2_dimension(issues, bps, key)
+    risk_formulation = data.get("risk_formulation", {})
+    if isinstance(risk_formulation, dict):
+        for key in ["observed_clues", "missing_or_unclear", "follow_up_questions"]:
+            _validate_list_field(issues, data, f"risk_formulation.{key}")
+    else:
+        for key in ["observed_clues", "missing_or_unclear", "follow_up_questions"]:
+            issues.append(_structured_issue(f"risk_formulation.{key}", f"{key} is required."))
     return issues
 
 

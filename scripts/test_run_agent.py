@@ -580,6 +580,92 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
+    def test_validate_structured_output_w2_accepts_dedicated_bps_background_structure(self):
+        data = {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "Case background organization",
+            "presenting_concerns": ["Sleep disruption and marital conflict."],
+            "case_overview": {
+                "known_facts": ["Adult client, married, one child."],
+                "working_hypotheses": ["Stress appears linked to role overload but still needs verification."],
+                "information_gaps": ["No clear timeline for symptom escalation."],
+            },
+            "bio_psycho_social": {
+                "biological": {
+                    "known_facts": ["Insomnia."],
+                    "working_hypotheses": ["Fatigue may be reinforcing irritability."],
+                    "information_gaps": ["Sleep duration is not documented."],
+                    "follow_up_questions": ["How many hours is the client sleeping most nights?"],
+                },
+                "psychological": {
+                    "known_facts": ["Feels wronged and suppresses emotion before outbursts."],
+                    "working_hypotheses": ["Emotion suppression may contribute to abrupt escalation."],
+                    "information_gaps": ["No direct description of core beliefs."],
+                    "follow_up_questions": ["What thoughts appear before she stops speaking?"],
+                },
+                "social": {
+                    "known_facts": ["Work stress and partner conflict are both active."],
+                    "working_hypotheses": ["Limited support at home may worsen distress."],
+                    "information_gaps": ["Support network outside the marriage is unclear."],
+                    "follow_up_questions": ["Who can provide support outside the home?"],
+                },
+            },
+            "protective_factors": ["Help-seeking and ongoing parenting responsibilities."],
+            "risk_formulation": {
+                "observed_clues": ["No self-harm or suicide content was reported in the material."],
+                "missing_or_unclear": ["Direct risk inquiry results are not documented."],
+                "follow_up_questions": ["Ask directly about self-harm, suicide, violence, and alcohol use."],
+            },
+            "recommended_focus": ["Clarify recent stress timeline and support resources."],
+            "boundary_notes": ["This is a counselor-facing case background organizer, not a diagnosis or final risk rating."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W2"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w2_requires_split_bps_dimensions_and_risk_structure(self):
+        data = {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "Case background organization",
+            "presenting_concerns": ["Distress after conflict."],
+            "case_overview": {
+                "known_facts": ["Adult client."],
+                "working_hypotheses": ["May be overwhelmed."],
+                "information_gaps": ["History is sparse."],
+            },
+            "bio_psycho_social": {
+                "biological": ["Insomnia"],
+                "psychological": {
+                    "known_facts": ["Anxiety"],
+                    "working_hypotheses": ["Perfectionism may be relevant."],
+                    "information_gaps": ["No cognitive details."],
+                    "follow_up_questions": ["What thoughts appear before panic?"],
+                },
+                "social": {
+                    "known_facts": ["Family pressure."],
+                    "working_hypotheses": ["Support may be inconsistent."],
+                    "information_gaps": ["Peer support unknown."],
+                    "follow_up_questions": ["Who is available for support?"],
+                },
+            },
+            "protective_factors": ["Help-seeking."],
+            "risk_formulation": ["Risk unclear."],
+            "recommended_focus": ["Clarify timeline."],
+            "boundary_notes": ["Working organizer only."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W2"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        issue_paths = {issue["path"] for issue in check["issues"]}
+        self.assertIn("bio_psycho_social.biological.known_facts", issue_paths)
+        self.assertIn("bio_psycho_social.biological.follow_up_questions", issue_paths)
+        self.assertIn("risk_formulation.observed_clues", issue_paths)
+        self.assertIn("risk_formulation.follow_up_questions", issue_paths)
+
     def test_validate_structured_output_w3_requires_stable_sections(self):
         data = {
             "workflow": "W3",

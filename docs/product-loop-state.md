@@ -55,7 +55,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | Intent recognition across counselor tasks | partial | web workbench + Coze API now default to auto-routing, return route metadata, and cover mixed-intent eval cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | extend bilingual ambiguity coverage and verify the hosted deployment uses the new AUTO contract |
 | P0 | W1 initial interview preparation guide | partial | workflow/eval exists | ensure UX distinguishes pre-interview question guide from post-interview summary |
 | P0 | W1 initial interview summary into fixed template | partial | template filling prototype and W1 logic exist | strengthen raw-note-to-template mapping and missing-field prompts |
-| P0 | W2 case background organization with BPS | partial | docs/eval/RAG structure exists | productize dedicated structured output and front-end rendering |
+| P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
 | P0 | W3 session summary and counseling record | partial | eval exists; risk-change section supported | strengthen crisis/risk-change handling and SOAP/DAP/BIRP variants |
 | P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval | add more framework-specific eval cases and RAG cards |
 | P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval | add framework-specific evals and hosted verification |
@@ -134,87 +134,66 @@ A capability is not complete just because a prompt exists. It is considered prod
 - Added bilingual W6 clean/rubric checks.
 - Regenerated `eval-prompts/manifest.json` so retrieval-backed eval assets now include W6.
 
-## This Run: W1 Initial Interview Summary Into Fixed Template
+## This Run: W2 Case Background Organization With BPS
 
 Capability worked on:
 
-- `W1` post-interview initial interview summarization from raw counselor notes into a fixed structured template.
+- `W2` case background organization from raw counselor materials into a dedicated biopsychosocial structure.
 
 What changed:
 
-- Repositioned `W1` in the web workbench and router as `Initial interview` instead of only `Intake guide`, so the product now recognizes both pre-interview and post-interview W1 requests through the same intent family.
-- Tightened AUTO intent recognition in:
-  - `scripts/web_workbench.py`
+- Productized a dedicated `W2` structured output in `scripts/run_agent.py` for case background organization:
+  - `presenting_concerns`
+  - `case_overview`
+  - `bio_psycho_social`
+  - `protective_factors`
+  - `risk_formulation`
+  - `recommended_focus`
+  - `boundary_notes`
+- Tightened the `W2` prompt contract so each biopsychosocial dimension must separate:
+  - `known_facts`
+  - `working_hypotheses`
+  - `information_gaps`
+  - `follow_up_questions`
+  and so risk content stays bounded to observed clues, unclear or missing information, and counselor-facing follow-up questions without producing a final diagnosis or risk rating.
+- Extended `W2` structured-output validation to accept the new dedicated BPS schema while still recognizing the older legacy shape during transition.
+- Added dedicated `W2` DOCX rendering in `scripts/render_docx.py` for the new case-background structure, including presenting concerns, case overview, dimension-level BPS splits, risk formulation, protective factors, recommended focus, and boundary notes.
+- Updated template-fill support in `scripts/fill_docx_template.py` so the BPS dimension entries can be mapped from the richer `W2` structure into uploaded Word templates.
+- Strengthened AUTO routing and workbench copy in:
   - `scripts/run-retrieval.ps1`
-  so plain-language requests such as "initial interview summary", "first interview summary", "organize these intake notes into the fixed template", and corresponding Chinese variants route to `W1` instead of leaking to `W3`.
-- Added an explicit mixed-intent route notice when the user mentions both interview notes and summary/template language, explaining why `W1` was chosen over session-record generation.
-- Hardened the `W1` structured summary contract in `scripts/run_agent.py`:
-  - document type: `initial_session_summary`
-  - fixed section ids:
-    - `main_distress`
-    - `basic_situation`
-    - `functioning`
-    - `support_coping`
-    - `history`
-    - `psychological_tests`
-    - `risk_crisis`
-    - `handling_suggestion`
-    - `other_notes`
-  - each section now separates:
-    - `known_facts`
-    - `unclear_or_missing`
-    - `follow_up_questions`
-  - added summary-level `summary_guidance` and `boundary_notes`
-- Strengthened W1 prompt instructions so the model is explicitly asked to preserve missing information, produce counselor-facing follow-up questions, and keep `risk_crisis` bounded to observed clues plus missing/unclear risk information.
-- Extended structured-output validation for `initial_session_summary` so malformed or incomplete section objects are rejected before downstream rendering.
-- Added DOCX rendering support in `scripts/render_docx.py` for the new W1 summary structure, including headings for `Known facts`, `Unclear or missing`, `Follow-up questions`, `Summary guidance`, and `Boundary notes`.
-- Added eval coverage with `W1-005 initial-interview-summary-template` and regenerated `eval-prompts/manifest.json`.
-- Updated workbench copy in `web-workbench/app.js` and `web-workbench/index.html` so the product now advertises both initial-interview preparation and completed initial-interview summarization.
+  - `scripts/web_workbench.py`
+  - `web-workbench/app.js`
+  - `web-workbench/index.html`
+  so plain-language requests for a biopsychosocial case background, protective factors, and risk follow-up route to `W2`, and the user-facing product now labels the capability as `Case background (BPS)` instead of a generic case summary.
+- Added eval coverage with `W2-005 bps-background-organization`, updated cleaner/rubric logic in `scripts/clean_eval_outputs.py`, and regenerated `eval-prompts/manifest.json`.
 
 Tests and evals run:
 
-- `python -m py_compile scripts/run_agent.py scripts/web_workbench.py scripts/render_docx.py scripts/build_workflow_eval_prompts.py scripts/clean_eval_outputs.py scripts/test_run_agent.py scripts/test_web_workbench.py scripts/test_render_docx.py scripts/test_build_workflow_eval_prompts.py`
-- `python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_render_docx scripts.test_build_workflow_eval_prompts`
+- `python -m unittest discover -s scripts -p "test_*.py"`
 - `python scripts/build_workflow_eval_prompts.py`
-- `python scripts/run_model_eval.py --ids W1-005`
-- `python scripts/clean_eval_outputs.py --result-dir eval-results/api --clean-dir eval-results/api/clean`
+- `python scripts/run_model_eval.py --ids W2-005 --manifest eval-prompts/manifest.json`
 
 Outcome:
 
-- The new W1 route, schema, renderer, and eval fixture are implemented end to end.
-- The live DeepSeek-backed eval for `W1-005` executed successfully, satisfying the real integration requirement for a model-behavior change.
+- The new `W2` BPS route, schema, renderer, template-fill bridge, and eval fixture are implemented end to end.
+- The live DeepSeek-backed eval for `W2-005` executed successfully, satisfying the real integration requirement for this model-behavior change.
 
 Remaining gaps:
 
-- `W1-005` still cleans to `WARN` because the live model output does not yet reliably echo every literal rubric token such as `initial interview summary`, `unclear_or_missing`, and `follow_up_questions`, even though the request routes correctly and returns the intended structure class.
-- W1 still needs a cleaner product distinction between:
-  - pre-interview information collection guide
-  - post-interview fixed-template summary
-  so pilot users understand which artifact they are requesting without learning internal workflow codes.
-- Word template filling remains partial beyond the fixed internal DOCX renderer; uploaded-template section mapping is not yet robust enough to mark that P0/P1 item complete.
+- Uploaded-template mapping is still partial beyond the fixed internal DOCX renderer; the richer `W2` structure now maps more cleanly, but model-assisted section matching and merge policy are still not strong enough to mark the broader template-filling capability complete.
 - Hosted deployment verification is stale until the latest local commits are pushed and Render smoke tests are rerun.
+- Retrieval/eval automation is still broader than this single capability: failure-matrix coverage and more bilingual `W2` rubric checks remain under the separate eval-automation backlog item.
 
 ## Next Recommended Capability
 
-Improve `W2 case background organization with BPS` as the next P0 capability.
+Improve `W3 session summary and counseling record` as the next P0 capability.
 
 Recommended scope:
 
-- Productize a dedicated biopsychosocial structured output from raw counselor materials.
-- Add a user-facing web workbench path or AUTO route for case-background organization requests.
-- Render the BPS structure in both JSON validation and DOCX output.
-- Add at least one regression test and one DeepSeek eval focused on de-identified background organization with bounded ethics/risk language.
-
-## Deployment Readiness Notes
-
-Do not claim deployment-ready until:
-
-- `git status` is clean except allowed ignored runtime files.
-- Tests for changed areas pass.
-- Latest commits are pushed to the remote.
-- Render deployment completes.
-- Hosted health and at least one hosted workflow smoke test pass.
-- No secrets or local sensitive runtime data are committed.
+- Strengthen crisis and risk-change handling inside session-note generation.
+- Add clearer structure support for at least one counselor-facing record format beyond the current baseline, such as SOAP, DAP, or BIRP.
+- Ensure the workbench/export path makes the record artifact explicit and distinct from `W1` interview summary and `W2` case background outputs.
+- Add at least one regression test and one DeepSeek eval focused on bounded session-record generation with risk-change documentation.
 
 ## Deployment Readiness Notes
 
