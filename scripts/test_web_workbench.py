@@ -233,6 +233,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(web_workbench.detect_workflow("Summarize this case using a BPS structure"), "W2")
         self.assertEqual(web_workbench.detect_workflow("Create a CBT case conceptualization hypothesis"), "W4")
         self.assertEqual(web_workbench.detect_workflow("Plan the next session agenda for this de-identified case"), "W5")
+        self.assertEqual(web_workbench.detect_workflow("Create a phased counseling roadmap for this de-identified case"), "W6")
 
     def test_detect_workflow_routes_english_product_prompts(self):
         self.assertEqual(web_workbench.detect_workflow("Create an intake guide for a first session"), "W1")
@@ -240,6 +241,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(web_workbench.detect_workflow("Write a session note and risk update"), "W3")
         self.assertEqual(web_workbench.detect_workflow("Use a psychodynamic framework to conceptualize this case"), "W4")
         self.assertEqual(web_workbench.detect_workflow("Create a CBT next-session plan with risk check points"), "W5")
+        self.assertEqual(web_workbench.detect_workflow("Build an integrative multi-session counseling roadmap with phases"), "W6")
 
     def test_apply_output_style_uses_clean_english_instruction_label(self):
         result = web_workbench.apply_output_style("Base prompt", style="professional_concise")

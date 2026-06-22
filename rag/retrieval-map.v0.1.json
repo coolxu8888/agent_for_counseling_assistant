@@ -15,7 +15,8 @@
     "workflow_2_case_summary",
     "workflow_3_session_note",
     "workflow_4_case_conceptualization",
-    "workflow_5_next_session_plan"
+    "workflow_5_next_session_plan",
+    "workflow_6_counseling_roadmap"
   ],
   "allowed_sections": [
     "ethics-risk",
@@ -24,7 +25,8 @@
     "intake-assessment",
     "forms-fields",
     "theory-frameworks",
-    "next-session-planning"
+    "next-session-planning",
+    "roadmap-planning"
   ],
   "fallback": {
     "unclear_user_intent": {
@@ -449,6 +451,91 @@
           ],
           "priority_chunks": [
             "next-session-planning-bounded-next-session-plan-001",
+            "theory-frameworks-integrative-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        }
+      ]
+    },
+    "workflow_6_counseling_roadmap": {
+      "name": "Counseling roadmap",
+      "default_sections": [
+        "roadmap-planning",
+        "theory-frameworks",
+        "ethics-risk"
+      ],
+      "default_topics": [
+        "phased_planning",
+        "risk_monitoring",
+        "framework_consistency",
+        "collaboration_referral_boundary"
+      ],
+      "intent_routes": [
+        {
+          "intent": "Generic counseling roadmap",
+          "topics": [
+            "phased_planning",
+            "risk_monitoring",
+            "collaboration_referral_boundary"
+          ],
+          "priority_chunks": [
+            "roadmap-planning-bounded-counseling-roadmap-001",
+            "ethics-risk-cps-professional-boundary-001",
+            "case-recording-cps-professional-materials-recording-001"
+          ]
+        },
+        {
+          "intent": "CBT counseling roadmap",
+          "topics": [
+            "phased_planning",
+            "cognitive_cycle",
+            "behavioral_patterns",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "roadmap-planning-bounded-counseling-roadmap-001",
+            "theory-frameworks-cbt-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "Psychodynamic counseling roadmap",
+          "topics": [
+            "phased_planning",
+            "relationship_patterns",
+            "conflict_defense",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "roadmap-planning-bounded-counseling-roadmap-001",
+            "theory-frameworks-psychodynamic-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "Humanistic counseling roadmap",
+          "topics": [
+            "phased_planning",
+            "felt_experience",
+            "self_concept",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "roadmap-planning-bounded-counseling-roadmap-001",
+            "theory-frameworks-humanistic-case-conceptualization-001",
+            "ethics-risk-cps-professional-boundary-001"
+          ]
+        },
+        {
+          "intent": "Integrative counseling roadmap",
+          "topics": [
+            "phased_planning",
+            "cross_framework_hypothesis",
+            "protective_factors",
+            "risk_monitoring"
+          ],
+          "priority_chunks": [
+            "roadmap-planning-bounded-counseling-roadmap-001",
             "theory-frameworks-integrative-case-conceptualization-001",
             "ethics-risk-cps-professional-boundary-001"
           ]

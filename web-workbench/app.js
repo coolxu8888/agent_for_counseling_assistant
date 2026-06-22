@@ -62,6 +62,15 @@ const FALLBACK_DEMO_CATALOG = {
         "Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Last session clarified a criticism-anxiety-avoidance cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only, including the session goal, focus areas, suggested questions, risk check points, and any optional between-session task that would still need counselor judgment.",
       output_style: "supervision_summary",
     },
+    {
+      id: "roadmap-criticism-cycle",
+      title: "W6 Demo: Counseling roadmap",
+      workflow: "W6",
+      summary: "A bounded multi-session roadmap request that stays framework-aware without turning into a rigid treatment prescription.",
+      input:
+        "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Earlier work identified a likely criticism-anxiety-avoidance cycle, poor sleep after supervisor conflicts, and no reported suicide plan. Build a bounded roadmap with phases, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, and explicit do-not-do boundaries.",
+      output_style: "supervision_summary",
+    },
   ],
   templates: [],
   privacy_notice: "Use de-identified demo material only. Avoid names, phone numbers, IDs, and real client data in public MVP validation.",
@@ -397,6 +406,7 @@ function workflowLabel(workflow) {
     W3: "Session note",
     W4: "Conceptualization",
     W5: "Next-session plan",
+    W6: "Counseling roadmap",
     TEMPLATE: "Template draft",
   }[workflow] || workflow;
 }

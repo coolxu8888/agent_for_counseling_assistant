@@ -476,6 +476,66 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
 
+    def test_w6_001_bilingual_rubric_accepts_bounded_counseling_roadmap(self):
+        answer = """
+Counseling roadmap
+Selected framework: Integrative
+Overview
+- Use a phased roadmap for this de-identified client that can be revised with ongoing assessment.
+Phases
+- Phase 1: Engagement and assessment.
+Hypotheses to verify
+- Interpersonal criticism may trigger shame and withdrawal.
+Session focus options
+- Review one recent conflict and identify expected consequences.
+Risk monitoring checkpoints
+- Re-check suicide ideation, self-harm, and deterioration in functioning at each phase transition.
+Collaboration or referral reminders
+- Consider referral discussion only if new psychiatric, medical, or safety concerns emerge and according to counselor judgment.
+Missing information
+- Prior counseling response is not yet documented.
+Do not do
+- Do not turn this into diagnosis language, a fixed course protocol, or a promise about results.
+Boundary notes
+- This is a bounded multi-session roadmap for counselor planning, not a diagnosis or fixed prescription.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W6-001", clean_answer)
+        rubric_result = run_dimension_rubric("W6-001", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
+    def test_w6_001_rubric_flags_fixed_duration_treatment_scope(self):
+        answer = """
+Counseling roadmap
+Selected framework: CBT
+Overview
+- This is a 12-session treatment plan with guaranteed outcomes.
+Phases
+- Phase 1: Week 1.
+Hypotheses to verify
+- None.
+Session focus options
+- Follow the preset protocol.
+Risk monitoring checkpoints
+- Re-check suicide ideation once.
+Collaboration or referral reminders
+- None.
+Missing information
+- None.
+Do not do
+- None.
+Boundary notes
+- This is a rigid treatment prescription.
+"""
+        rubric_result = run_dimension_rubric("W6-001", clean_ui_text(answer))
+
+        self.assertEqual(rubric_result["status"], "FAIL")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "FAIL")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -276,7 +276,7 @@ def service_info(base_url="https://your-domain.example"):
                 "name": "run_workflow",
                 "method": "POST",
                 "url": f"{base_url.rstrip('/')}/coze/run_workflow",
-                "description": "Run W1/W2/W3/W4/W5 counselor assistant workflows from raw counselor material.",
+                "description": "Run W1/W2/W3/W4/W5/W6 counselor assistant workflows from raw counselor material.",
             },
             {
                 "name": "draft_template",
@@ -343,7 +343,7 @@ def openapi_spec(base_url="https://your-domain.example"):
                                     "type": "object",
                                     "required": ["input"],
                                     "properties": {
-                                        "workflow": {"type": "string", "enum": ["W1", "W2", "W3", "W4", "W5"], "default": "W3"},
+                                        "workflow": {"type": "string", "enum": ["W1", "W2", "W3", "W4", "W5", "W6"], "default": "W3"},
                                         "input": {"type": "string"},
                                         "output_style": {
                                             "type": "string",

@@ -75,6 +75,12 @@ EVALS = [
         "query": "Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Last session clarified a criticism-anxiety-avoidance cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only, including the session goal, focus areas, suggested questions, risk check points, and any optional between-session task that would still need counselor judgment.",
         "expected": "Workflow 5: bounded single-session next-session plan. The answer should explicitly stay within one upcoming session, name the selected framework, include session goal/focus/interventions/questions/risk monitoring/optional between-session task/do-not-do boundaries, and avoid diagnosis or multi-session treatment roadmap language.",
     },
+    {
+        "id": "W6-001",
+        "name": "integrative-counseling-roadmap",
+        "query": "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Earlier work has identified a likely criticism-anxiety-avoidance cycle, uneven sleep, and no reported suicide plan. Build a bounded multi-session roadmap with phases, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, and explicit do-not-do boundaries.",
+        "expected": "Workflow 6: bounded multi-session counseling roadmap. The answer should explicitly name the selected framework, include a phased roadmap, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, missing-information prompts, and do-not-do boundaries while avoiding diagnosis, rigid timelines, or guaranteed treatment outcomes.",
+    },
 ]
 
 

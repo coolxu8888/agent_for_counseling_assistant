@@ -147,5 +147,20 @@
       "theory-frameworks-cbt-case-conceptualization-001",
       "ethics-risk-cps-professional-boundary-001"
     ]
+  },
+  {
+    "id": "W6-001",
+    "name": "integrative-counseling-roadmap",
+    "query": "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Earlier work has identified a likely criticism-anxiety-avoidance cycle, uneven sleep, and no reported suicide plan. Build a bounded multi-session roadmap with phases, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, and explicit do-not-do boundaries.",
+    "expected": "Workflow 6: bounded multi-session counseling roadmap. The answer should explicitly name the selected framework, include a phased roadmap, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, missing-information prompts, and do-not-do boundaries while avoiding diagnosis, rigid timelines, or guaranteed treatment outcomes.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W6-001-integrative-counseling-roadmap.txt",
+    "route_status": "OK",
+    "workflow": "workflow_6_counseling_roadmap",
+    "intent": "Integrative counseling roadmap",
+    "chunks": [
+      "roadmap-planning-bounded-counseling-roadmap-001",
+      "theory-frameworks-integrative-case-conceptualization-001",
+      "ethics-risk-cps-professional-boundary-001"
+    ]
   }
 ]

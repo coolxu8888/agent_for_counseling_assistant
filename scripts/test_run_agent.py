@@ -68,6 +68,7 @@ class RunAgentTest(unittest.TestCase):
         self.assertEqual(normalize_workflow("session").workflow_id, "W3")
         self.assertEqual(normalize_workflow("conceptualization").workflow_id, "W4")
         self.assertEqual(normalize_workflow("next-session-plan").workflow_id, "W5")
+        self.assertEqual(normalize_workflow("roadmap").workflow_id, "W6")
 
     def test_normalize_workflow_rejects_unknown_alias(self):
         with self.assertRaisesRegex(AgentInputError, "W1"):
@@ -246,6 +247,31 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn('"between_session_tasks"', prompt)
         self.assertIn('"do_not_do"', prompt)
         self.assertIn("AGENT_DONE_W5", prompt)
+
+    def test_build_prompt_package_w6_mentions_bounded_roadmap_contract(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W6"),
+            "Create a bounded CBT counseling roadmap for this de-identified case.",
+            [
+                {
+                    "chunk_id": "roadmap-planning-bounded-counseling-roadmap-001",
+                    "path": "rag/roadmap-planning/bounded-counseling-roadmap.md",
+                    "content": "# Counseling roadmap\nKeep the output phased, collaborative, and bounded.",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("counseling roadmap", prompt.lower())
+        self.assertIn('"document_type": "counseling_roadmap"', prompt)
+        self.assertIn('"phases"', prompt)
+        self.assertIn('"hypotheses_to_verify"', prompt)
+        self.assertIn('"session_focus_options"', prompt)
+        self.assertIn('"risk_monitoring_checkpoints"', prompt)
+        self.assertIn('"collaboration_referral_reminders"', prompt)
+        self.assertIn('"missing_information"', prompt)
+        self.assertIn('"do_not_do"', prompt)
+        self.assertIn("AGENT_DONE_W6", prompt)
 
     def test_build_prompt_package_w1_default_contract_is_pre_intake_guide(self):
         prompt = build_prompt_package(
@@ -625,6 +651,55 @@ AGENT_DONE_W3
         }
 
         check = validate_structured_output(normalize_workflow("W5"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w6_requires_roadmap_sections(self):
+        data = {
+            "workflow": "W6",
+            "document_type": "counseling_roadmap",
+            "title": "Counseling roadmap",
+            "selected_framework": "cbt",
+            "boundary_notes": ["This is a bounded roadmap, not a diagnosis or rigid treatment prescription."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W6"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        issue_paths = {issue["path"] for issue in check["issues"]}
+        self.assertIn("overview", issue_paths)
+        self.assertIn("phases", issue_paths)
+        self.assertIn("hypotheses_to_verify", issue_paths)
+        self.assertIn("session_focus_options", issue_paths)
+        self.assertIn("risk_monitoring_checkpoints", issue_paths)
+        self.assertIn("collaboration_referral_reminders", issue_paths)
+        self.assertIn("missing_information", issue_paths)
+        self.assertIn("do_not_do", issue_paths)
+
+    def test_validate_structured_output_w6_accepts_bounded_roadmap(self):
+        data = {
+            "workflow": "W6",
+            "document_type": "counseling_roadmap",
+            "title": "Counseling roadmap",
+            "selected_framework": "cbt",
+            "overview": "Use a phased roadmap to test the criticism-anxiety-avoidance cycle without promising a fixed treatment course.",
+            "phases": [
+                {
+                    "phase_name": "Early engagement and stabilization",
+                    "goals": ["Clarify goals and map the criticism-anxiety-avoidance pattern."],
+                    "markers_to_monitor": ["Sleep disruption", "avoidance after criticism", "risk language"],
+                }
+            ],
+            "hypotheses_to_verify": ["Harsh self-appraisal may intensify avoidance after supervisor feedback."],
+            "session_focus_options": ["Review one recent criticism episode and identify automatic thoughts."],
+            "risk_monitoring_checkpoints": ["Revisit suicide ideation, self-harm, and escalation in withdrawal at phase transitions."],
+            "collaboration_referral_reminders": ["Consider referral discussion only if new safety, psychiatric, or medical concerns emerge and according to counselor judgment."],
+            "missing_information": ["History of prior counseling responses is not yet documented."],
+            "do_not_do": ["Do not treat this as a diagnosis, guaranteed timeline, or rigid treatment prescription."],
+            "boundary_notes": ["This roadmap is a working aid for counselor planning and must be revised with ongoing assessment."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W6"), data)
 
         self.assertEqual(check["status"], "PASS")
 

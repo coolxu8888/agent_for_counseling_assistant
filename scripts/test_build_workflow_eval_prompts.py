@@ -16,6 +16,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("next-session plan", w5["query"].lower())
         self.assertIn("single-session", w5["expected"].lower())
 
+    def test_evals_include_w6_counseling_roadmap(self):
+        w6 = next(
+            item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W6-001"
+        )
+
+        self.assertIn("counseling roadmap", w6["query"].lower())
+        self.assertIn("multi-session", w6["expected"].lower())
+
     def test_main_writes_manifest_including_w5(self):
         with tempfile.TemporaryDirectory() as tmp:
             out_dir = Path(tmp) / "eval-prompts"
@@ -54,6 +62,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
             "next-session-planning-bounded-next-session-plan-001",
             w5["chunks"],
         )
+        self.assertIn("W6-001", eval_ids)
 
 
 if __name__ == "__main__":

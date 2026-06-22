@@ -22,7 +22,8 @@ $allowedSections = @(
     "intake-assessment",
     "forms-fields",
     "theory-frameworks",
-    "next-session-planning"
+    "next-session-planning",
+    "roadmap-planning"
 )
 
 function Convert-Scalar {
@@ -150,6 +151,21 @@ function Select-Workflow {
     param([string]$Text)
 
     if (Test-AnyPattern $Text @(
+            "counseling\s*roadmap",
+            "multi-session",
+            "multi session",
+            "phased roadmap",
+            "phase plan",
+            (U "\u54a8\u8be2\u8def\u7ebf\u56fe"),
+            (U "\u591a\u8282\u54a8\u8be2"),
+            (U "\u591a\u9636\u6bb5"),
+            (U "\u5206\u9636\u6bb5"),
+            (U "\u8def\u7ebf\u56fe")
+        )) {
+        return "workflow_6_counseling_roadmap"
+    }
+
+    if (Test-AnyPattern $Text @(
             "next-session\s*plan",
             "next session\s*plan",
             "session agenda",
@@ -235,6 +251,19 @@ function Select-Workflow {
             (U "\u4e0b\u4e00\u6b21\u54a8\u8be2"),
             (U "\u4f1a\u8c08\u8bae\u7a0b"),
             (U "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9")
+        )
+        workflow_6_counseling_roadmap = @(
+            "counseling\s*roadmap",
+            "multi-session",
+            "multi session",
+            "phased roadmap",
+            "phase plan",
+            "roadmap",
+            (U "\u54a8\u8be2\u8def\u7ebf\u56fe"),
+            (U "\u591a\u8282\u54a8\u8be2"),
+            (U "\u591a\u9636\u6bb5"),
+            (U "\u5206\u9636\u6bb5"),
+            (U "\u8def\u7ebf\u56fe")
         )
     }
 
@@ -336,6 +365,22 @@ function Select-Intent {
             return "Humanistic next-session plan"
         }
         return "Generic next-session plan"
+    }
+
+    if ($WorkflowName -eq "workflow_6_counseling_roadmap") {
+        if (Test-AnyPattern $Text @("CBT", (U "\u8ba4\u77e5\u884c\u4e3a"))) {
+            return "CBT counseling roadmap"
+        }
+        if (Test-AnyPattern $Text @("psychodynamic", (U "\u7cbe\u795e\u52a8\u529b"))) {
+            return "Psychodynamic counseling roadmap"
+        }
+        if (Test-AnyPattern $Text @("humanistic", (U "\u4eba\u672c"))) {
+            return "Humanistic counseling roadmap"
+        }
+        if (Test-AnyPattern $Text @("integrative", (U "\u6574\u5408\u53d6\u5411"))) {
+            return "Integrative counseling roadmap"
+        }
+        return "Generic counseling roadmap"
     }
 
     return ""

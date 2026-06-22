@@ -1,30 +1,136 @@
 # Product Loop State
 
-## Current Priority
-P0: Agent core capabilities before generic product polish.
+Last updated: 2026-06-22
 
-## Capability Worked This Run
-Next-session plan (`W5`).
+This file is the durable handoff state for autonomous product iterations. Future automation runs should read this file before planning. It exists so the project can continue from repository state instead of relying on chat context.
 
-## What Changed
-- Completed the end-to-end `W5` workflow for a bounded next-session plan across the agent, retrieval, workbench, and hosted API:
-  - workflow aliases, routing, structured output contract, and scope validation in [C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run_agent.py](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run_agent.py)
-  - retrieval routing and workflow scoring in [C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1)
-  - new approved RAG chunk under [C:\Users\win\Documents\Codex\2026-05-15\agent\rag\next-session-planning\bounded-next-session-plan.md](C:\Users\win\Documents\Codex\2026-05-15\agent\rag\next-session-planning\bounded-next-session-plan.md)
-  - retrieval map updates in [C:\Users\win\Documents\Codex\2026-05-15\agent\rag\retrieval-map.v0.1.json](C:\Users\win\Documents\Codex\2026-05-15\agent\rag\retrieval-map.v0.1.json)
-- Productized `W5` in the deployable web product:
-  - workbench workflow detection and demo scenario in [C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py)
-  - fallback catalog, workflow labels, and result rendering in [C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js)
-  - user-facing workflow copy in [C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\index.html](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\index.html)
-  - hosted API/OpenAPI workflow enum handling in [C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\coze_api_server.py](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\coze_api_server.py)
-- Extended document/export and smoke support for `next_session_plan` in:
-  - [C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\render_docx.py](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\render_docx.py)
-  - [C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\hosted_smoke.py](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\hosted_smoke.py)
-- Extended eval automation:
-  - new prompt builder entry `W5-001`
-  - bilingual W5 clean/rubric checks so both English and Chinese DeepSeek outputs pass when bounded and safe
+## Product Objective
 
-## Tests And Evals Run
+Build a market-validation-ready web product for a counselor assistant agent.
+
+The product is not just a generic web app. The core value is a counselor-facing agent that can understand raw counselor materials, route the user's intent, produce structured clinical-assistant outputs, use RAG-backed professional boundaries, generate editable documents, and preserve privacy/ethics constraints.
+
+## Current Product Snapshot
+
+- Repository: `C:\Users\win\Documents\Codex\2026-05-15\agent`
+- Main branch status at last check: local `main` was ahead of `origin/main` by 20 commits.
+- Hosted product URL: `https://counselor-agent-coze-api.onrender.com`
+- Hosted health endpoint previously returned: `{"status":"ok"}`
+- Current implementation shape:
+  - Python backend / API service under `scripts/`
+  - Deployable web workbench under `web-workbench/`
+  - RAG source cards and retrieval map under `rag/`
+  - Eval prompts/results under `eval-prompts/` and `eval-results/`
+  - Local workbench runtime data under `workbench-data/` and `agent-runs/`; keep these out of git unless there is an explicit fixture need.
+
+## Loop Operating Rules
+
+Automation should continue from this file, not restart from a blank plan.
+
+1. Prefer P0 agent capabilities over generic product polish.
+2. Pick exactly one unfinished P0 capability per run unless all P0 items are complete or blocked.
+3. Do not prioritize password changes, cosmetic UI tweaks, settings pages, or account-management polish unless they directly unblock a P0/P1 capability.
+4. For model-behavior changes, update prompts/schemas/evals and run a real or fixture-backed eval. Use DeepSeek only through configured environment variables; never commit API keys.
+5. For product behavior changes, update backend, frontend, tests, and docs together when needed.
+6. Preserve privacy and ethics boundaries: do not ask users to enter direct identifiers in test data; do not produce diagnosis or final risk classification; keep risk changes separately documented.
+7. After each run, update this file with the capability worked on, changes made, tests/evals run, remaining gaps, and next recommended capability.
+8. Commit coherent changes after tests pass. Do not commit secrets, local runtime data, uploaded client documents, or generated private outputs.
+
+## Definition Of Done For A Capability
+
+A capability is not complete just because a prompt exists. It is considered productized only when it has:
+
+- intent routing or a clear user-facing entry without exposing internal workflow codes as the main UX
+- backend/API support
+- prompt/schema/retrieval logic when model behavior is involved
+- web workbench integration where relevant
+- at least one automated test or eval fixture
+- risk/privacy/ethics boundary handling
+- documentation in this file
+
+## Current Capability Backlog
+
+| Priority | Capability | Status | Evidence | Next Step |
+|---|---|---|---|---|
+| P0 | Intent recognition across counselor tasks | partial | API runner and web workbench auto-routing exist | improve mixed-intent routing evals and ambiguity handling |
+| P0 | W1 initial interview preparation guide | partial | workflow/eval exists | ensure UX distinguishes pre-interview question guide from post-interview summary |
+| P0 | W1 initial interview summary into fixed template | partial | template filling prototype and W1 logic exist | strengthen raw-note-to-template mapping and missing-field prompts |
+| P0 | W2 case background organization with BPS | partial | docs/eval/RAG structure exists | productize dedicated structured output and front-end rendering |
+| P0 | W3 session summary and counseling record | partial | eval exists; risk-change section supported | strengthen crisis/risk-change handling and SOAP/DAP/BIRP variants |
+| P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval | add more framework-specific eval cases and RAG cards |
+| P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval | add framework-specific evals and hosted verification |
+| P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval | add more framework-specific roadmap evals and hosted verification |
+| P0 | RAG-backed ethics/risk/documentation retrieval | partial | chunks/map and validation scripts exist | expand retrieval eval matrix and failure tests |
+| P0 | Theory-specific RAG support | partial | initial W4 support exists | add CBT/humanistic/psychodynamic/integrative source cards and routing |
+| P0 | Word template understanding and filling | partial | prototype exists | make model-assisted section mapping reliable with merge/replace policy |
+| P0 | Eval automation across workflows | partial | eval builder and cleaners exist | broaden bilingual rubric coverage and generate failure-reason reports |
+| P1 | Case workspace/history | shipped partial | web workbench case history exists | verify privacy-safe deletion/export flows |
+| P1 | File upload/download and docx export | partial | render_docx and template flow exist | improve UX for template upload, generated output, and error reporting |
+| P1 | Audit log and data governance controls | partial | workbench run log and governance controls exist | confirm user-facing privacy copy and retention behavior |
+| P1 | Hosted deployment diagnostics | partial | hosted smoke/health tests exist | run after pushing latest local commits |
+| P2 | Minimal high-end web UX | partial | liquid-style workbench exists | continue only when it improves core workflow usability |
+| P3 | Generic account settings | partial | password rotation exists | defer unless required for deployment validation |
+
+## Recently Completed
+
+### W4 Case Conceptualization
+
+- Added framework-based case conceptualization workflow.
+- Integrated runner, web workbench, RAG/eval support.
+- Needs more per-framework live evals.
+
+### W5 Next-Session Planning
+
+- Completed an end-to-end bounded next-session planning workflow across:
+  - `scripts/run_agent.py`
+  - `scripts/run-retrieval.ps1`
+  - `scripts/web_workbench.py`
+  - `scripts/coze_api_server.py`
+  - `scripts/render_docx.py`
+  - `scripts/hosted_smoke.py`
+  - `web-workbench/app.js`
+  - `web-workbench/index.html`
+  - `rag/next-session-planning/`
+  - `rag/retrieval-map.v0.1.json`
+- Added eval prompt `W5-001`.
+- Added bilingual W5 clean/rubric checks.
+
+### W6 Counseling Roadmap
+
+- Completed an end-to-end bounded counseling roadmap workflow across:
+  - `scripts/run_agent.py`
+  - `scripts/run-retrieval.ps1`
+  - `scripts/web_workbench.py`
+  - `scripts/coze_api_server.py`
+  - `scripts/render_docx.py`
+  - `scripts/validate-rag.ps1`
+  - `web-workbench/app.js`
+  - `web-workbench/index.html`
+  - `rag/roadmap-planning/`
+  - `rag/retrieval-map.v0.1.json`
+- Added eval prompt `W6-001`.
+- Added bilingual W6 clean/rubric checks.
+- Regenerated `eval-prompts/manifest.json` so retrieval-backed eval assets now include W6.
+
+## Tests And Evals Recently Run
+
+This run successfully completed:
+
+- `python scripts/test_run_agent.py`
+- `python scripts/test_web_workbench.py`
+- `python scripts/test_render_docx.py`
+- `python scripts/test_run_retrieval.py`
+- `python scripts/test_build_workflow_eval_prompts.py`
+- `python scripts/test_clean_eval_outputs.py`
+- `python scripts/test_coze_api_server.py`
+- `python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs scripts.test_coze_api_server`
+- `python scripts/build_workflow_eval_prompts.py`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-rag.ps1 -Json`
+- `python scripts/run_model_eval.py --ids W6-001`
+- `python scripts/clean_eval_outputs.py --result-dir eval-results/api --clean-dir eval-results/api/clean`
+
+The earlier loop state had also recorded:
+
 - `python scripts/test_run_agent.py`
 - `python scripts/test_run_retrieval.py`
 - `python scripts/test_web_workbench.py`
@@ -38,26 +144,42 @@ Next-session plan (`W5`).
 - `python scripts/run_model_eval.py --ids W5-001`
 - `python scripts/clean_eval_outputs.py`
 
-## Current Capability Backlog
+Before deployment, rerun the relevant subset plus hosted smoke tests after pushing.
 
-| Capability | Status | Evidence | Next Step |
-|---|---|---|---|
-| Intent recognition | partial | API runner exists | improve routing eval coverage, especially mixed prompts |
-| W1 interview guide | partial | workflow/eval exists | frontend/API polish |
-| W1 interview summary template | partial | template filling exists | improve raw-note mapping |
-| W2 case background BPS | partial | docs/eval exists | productize UI/API |
-| Case conceptualization by theory | partial | `W4` shipped in runner/web/RAG/eval | add more live eval cases per framework |
-| W3 session records | partial | eval exists | strengthen risk handling |
-| Next-session plan | partial | `W5` shipped in runner/web/RAG/eval | add more framework-specific eval cases and hosted verification |
-| Counseling roadmap | not started | roadmap only | design workflow with strict scope boundaries |
-| Word template filling | partial | prototype exists | model-assisted mapping |
-| RAG retrieval | partial | chunks/map exist | expand retrieval eval matrix and failure tests |
-| Eval automation | partial | scripts exist | broaden bilingual rubric coverage across workflows |
+## Remaining Product Gaps
 
-## Remaining Gaps
-- `W5` now has one live eval case, but each framework still needs its own model eval and regression fixture.
-- Hosted smoke coverage accepts `W5`, but no public deployed environment verification was run in this iteration.
-- The remaining major product gap is capability sequencing beyond one session: no bounded counseling roadmap workflow yet.
+The bounded counseling roadmap capability now exists as `W6`, but it still needs more framework-specific eval depth and hosted verification before it can be treated as fully hardened.
+
+Other important gaps:
+
+- The web UI should hide workflow codes from normal users and let intent routing do the work.
+- W1 needs clearer separation between:
+  - pre-interview information collection guide
+  - post-interview fixed-template summary
+- Word template filling still needs stronger model-assisted mapping and handling of prefilled content.
+- RAG coverage should be expanded for theory-specific conceptualization and roadmap planning.
+- Eval coverage should include mixed/ambiguous inputs and more per-framework outputs, especially for W4-W6.
+- Latest local commits must be pushed and redeployed before online validation can be considered current.
 
 ## Next Recommended Capability
-Build `Counseling roadmap` as the next highest-impact P0 gap, keeping it explicitly bounded, counselor-facing, and separate from diagnosis or prescriptive treatment planning.
+
+Improve `Intent recognition across counselor tasks` as the next P0 capability.
+
+Recommended scope:
+
+- Keep workflow codes internal; route from plain counselor requests only.
+- Add mixed-intent and ambiguity eval cases across W1/W2/W3/W4/W5/W6.
+- Tighten disambiguation between W1 pre-interview guide, W1 post-interview summary, W5 next-session plan, and W6 roadmap requests.
+- Preserve boundary behavior when users ask for diagnosis, rigid treatment plans, or crisis decisions.
+- Add tests and eval fixtures that verify the router chooses the correct capability from realistic counselor phrasing.
+
+## Deployment Readiness Notes
+
+Do not claim deployment-ready until:
+
+- `git status` is clean except allowed ignored runtime files.
+- Tests for changed areas pass.
+- Latest commits are pushed to the remote.
+- Render deployment completes.
+- Hosted health and at least one hosted workflow smoke test pass.
+- No secrets or local sensitive runtime data are committed.

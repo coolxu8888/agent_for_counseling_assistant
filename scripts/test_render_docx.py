@@ -79,6 +79,29 @@ class RenderDocxTest(unittest.TestCase):
             "boundary_notes": ["This is a bounded next-session plan, not a diagnosis or full treatment plan."],
         }
 
+    def minimal_w6(self):
+        return {
+            "workflow": "W6",
+            "document_type": "counseling_roadmap",
+            "title": "Counseling roadmap",
+            "selected_framework": "integrative",
+            "overview": "A phased roadmap for counselor planning that should evolve with ongoing assessment.",
+            "phases": [
+                {
+                    "phase_name": "Engagement and assessment",
+                    "goals": ["Clarify goals and map the current anxiety-avoidance cycle."],
+                    "markers_to_monitor": ["Sleep disruption", "withdrawal after conflict"],
+                }
+            ],
+            "hypotheses_to_verify": ["Interpersonal criticism may trigger shame and withdrawal."],
+            "session_focus_options": ["Review one recent conflict and identify what the client predicted would happen."],
+            "risk_monitoring_checkpoints": ["Re-check suicide ideation, self-harm, and deterioration in functioning at each phase."],
+            "collaboration_referral_reminders": ["Coordinate referral discussion only if new needs emerge and according to counselor judgment."],
+            "missing_information": ["History of prior counseling response is not yet documented."],
+            "do_not_do": ["Do not present this as a diagnosis, fixed duration, or guaranteed treatment course."],
+            "boundary_notes": ["This roadmap is a working aid, not a rigid treatment prescription."],
+        }
+
     def read_document_xml(self, docx_path):
         with zipfile.ZipFile(docx_path) as package:
             return package.read("word/document.xml").decode("utf-8")
@@ -122,6 +145,18 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("心理维度", document_xml)
         self.assertIn("社会维度", document_xml)
         self.assertIn("建议进一步询问", document_xml)
+
+    def test_render_w6_contains_phases_and_referral_reminders(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w6.docx"
+
+            render_docx(self.minimal_w6(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("Counseling roadmap", document_xml)
+        self.assertIn("Engagement and assessment", document_xml)
+        self.assertIn("collaboration_referral_reminders", document_xml.lower())
+        self.assertIn("diagnosis, fixed duration, or guaranteed treatment course", document_xml)
 
     def test_render_w3_contains_session_sections(self):
         with tempfile.TemporaryDirectory() as tmp:

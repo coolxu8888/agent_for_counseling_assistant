@@ -175,6 +175,23 @@ def render_next_session_plan(data):
     return parts
 
 
+def render_counseling_roadmap(data):
+    parts = [paragraph(data.get("title") or "Counseling roadmap", "Heading1")]
+    parts.append(paragraph("Selected framework", "Heading2"))
+    parts.append(paragraph(data.get("selected_framework", "")))
+    parts.append(paragraph("Overview", "Heading2"))
+    parts.append(paragraph(data.get("overview", "")))
+    append_list(parts, "Phases", data.get("phases", []))
+    append_list(parts, "Hypotheses to verify", data.get("hypotheses_to_verify", []))
+    append_list(parts, "Session focus options", data.get("session_focus_options", []))
+    append_list(parts, "Risk monitoring checkpoints", data.get("risk_monitoring_checkpoints", []))
+    append_list(parts, "Collaboration_referral_reminders", data.get("collaboration_referral_reminders", []))
+    append_list(parts, "Missing information", data.get("missing_information", []))
+    append_list(parts, "Do not do", data.get("do_not_do", []))
+    append_list(parts, "Boundary notes", data.get("boundary_notes", []))
+    return parts
+
+
 def render_body(data):
     document_type = data.get("document_type")
     if document_type == "intake_form":
@@ -187,6 +204,8 @@ def render_body(data):
         return render_case_conceptualization(data)
     if document_type == "next_session_plan":
         return render_next_session_plan(data)
+    if document_type == "counseling_roadmap":
+        return render_counseling_roadmap(data)
     return [paragraph(data.get("title") or "咨询师助理文档", "Heading1")]
 
 

@@ -130,6 +130,21 @@ DEMO_SCENARIOS = [
         ),
         "output_style": "supervision_summary",
     },
+    {
+        "id": "roadmap-criticism-cycle",
+        "title": "W6 Demo: Counseling roadmap",
+        "workflow": "W6",
+        "summary": "A bounded multi-session roadmap request that stays framework-aware without turning into a rigid treatment prescription.",
+        "input": (
+            "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher"
+            " who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying"
+            " to colleagues after conflicts. Earlier work identified a likely criticism-anxiety-avoidance cycle, poor"
+            " sleep after supervisor conflicts, and no reported suicide plan. Build a bounded roadmap with phases,"
+            " hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral"
+            " reminders, and explicit do-not-do boundaries."
+        ),
+        "output_style": "supervision_summary",
+    },
 ]
 
 AGENT_STYLE_INSTRUCTIONS = {
@@ -216,6 +231,19 @@ WORKFLOW_KEYWORDS = {
         "\u4f1a\u8c08\u8bae\u7a0b",
         "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9",
     ],
+    "W6": [
+        "counseling roadmap",
+        "multi-session",
+        "multi session",
+        "phased roadmap",
+        "phase plan",
+        "roadmap",
+        "\u54a8\u8be2\u8def\u7ebf\u56fe",
+        "\u591a\u8282\u54a8\u8be2",
+        "\u591a\u9636\u6bb5",
+        "\u5206\u9636\u6bb5",
+        "\u8def\u7ebf\u56fe",
+    ],
     "W3": [
         "soap",
         "dap",
@@ -247,6 +275,8 @@ def detect_workflow(user_input):
     text = str(user_input or "").lower()
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W1"]):
         return "W1"
+    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W6"]):
+        return "W6"
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W5"]):
         return "W5"
     if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W4"]):
