@@ -746,6 +746,23 @@ function renderIntentSummary(data) {
   box.append(title, body);
 }
 
+function renderWorkflowModeSummary(data) {
+  const box = $("workflowModeSummary");
+  if (!box) {
+    return;
+  }
+  const title = document.createElement("strong");
+  title.textContent = "Workflow mode";
+  const body = document.createElement("span");
+  if (!data || !data.workflow_mode_label) {
+    body.textContent = "W1 prep vs summary details will appear here when the intake workflow runs.";
+  } else {
+    body.textContent = `${data.workflow_mode_label} | ${data.workflow_mode_notice || "Mode-specific intake guidance is active."}`;
+  }
+  box.innerHTML = "";
+  box.append(title, body);
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -763,6 +780,7 @@ function updateRunResult(data) {
   setPathDisplay("runDir", data.run_dir, false);
   setPathDisplay("docxPath", data.docx && data.docx.path ? data.docx.path : null, true);
   renderIntentSummary(data);
+  renderWorkflowModeSummary(data);
   updateTemplateAvailability();
 }
 

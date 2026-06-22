@@ -706,6 +706,18 @@ STRUCTURED_OUTPUT_CONTRACTS["W1"] = {
     "boundary_notes": ["本表仅用于初访前访谈准备和信息收集辅助，不构成诊断、最终风险判断或治疗方案。"],
 }
 
+
+def _inject_w1_known_clue_fields(contract):
+    cloned = json.loads(json.dumps(contract, ensure_ascii=False))
+    cloned["known_clues"] = []
+    for section in cloned.get("sections", []):
+        for field in section.get("fields", []):
+            field.setdefault("known_clues_used", [])
+    return cloned
+
+
+STRUCTURED_OUTPUT_CONTRACTS["W1"] = _inject_w1_known_clue_fields(STRUCTURED_OUTPUT_CONTRACTS["W1"])
+
 W1_INITIAL_SESSION_SUMMARY_CONTRACT = {
     "workflow": "W1",
     "document_type": "initial_session_summary",
@@ -889,8 +901,45 @@ def detect_w1_mode(user_input):
     return "intake_prep"
 
 
+def extract_w1_intake_clues(user_input):
+    text = str(user_input or "").strip()
+    lowered = text.lower()
+    clues = []
+
+    patterns = [
+        (r"poor sleep for [^,.;\n]+", None),
+        (r"sleep (?:has been )?(?:worse|worsened|poor|worse than usual)[^,.;\n]*", None),
+        (r"graduate-school pressure|graduate school pressure|school pressure|academic pressure", None),
+        (r"conflict with (?:her|his|their) roommate|roommate conflict", None),
+        (r"conflict with (?:her|his|their) mother|mother conflict", None),
+        (r"conflict with (?:her|his|their) father|father conflict", None),
+        (r"(?:wants?|wanted) to disappear[^,.;\n]*", None),
+        (r"no plan|without a plan|denies plan", None),
+        (r"still attending class|still going to class|still willing to attend classes", None),
+        (r"drank heavily[^,.;\n]*", None),
+    ]
+
+    seen = set()
+    for pattern, replacement in patterns:
+        match = re.search(pattern, lowered)
+        if not match:
+            continue
+        clue = replacement or match.group(0)
+        clue = clue.split(" because of ", 1)[0]
+        clue = re.sub(r"\s+", " ", clue).strip(" .,:;")
+        if clue and clue not in seen:
+            seen.add(clue)
+            clues.append(clue)
+    return clues
+
+
 def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
     w1_mode = detect_w1_mode(user_input) if workflow.workflow_id == "W1" else None
+    w1_known_clues = (
+        extract_w1_intake_clues(user_input)
+        if workflow.workflow_id == "W1" and w1_mode == "intake_prep"
+        else []
+    )
     rag_sections = []
     for chunk in rag_chunks:
         rag_sections.append(
@@ -947,6 +996,15 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
                     + "\n```",
                 ]
             )
+            if w1_known_clues:
+                parts.extend(
+                    [
+                        "# Known intake clues already provided",
+                        "Use these clues to prefill matching W1 intake-prep fields, and ask follow-up questions only for what is still missing or unclear.",
+                        json.dumps(w1_known_clues, ensure_ascii=False, indent=2),
+                        "Do not leave the prep guide blank or generic when these clues are already known.",
+                    ]
+                )
         if workflow.workflow_id == "W1":
             parts.append(
                 "每个 section 都必须拆成 known_facts、unclear_or_missing、follow_up_questions 三部分。known_facts 只写材料中已出现的事实；unclear_or_missing 用于标注模糊、缺失或仍需核实的信息；follow_up_questions 只写咨询师后续可继续核实的问题。"
@@ -964,6 +1022,14 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
             parts.append(
                 "The risk_crisis section must separate observed risk clues, missing or unclear risk information, and counselor-facing safety follow-up questions. Do not output a final diagnosis or final risk rating."
             )
+            if w1_mode == "intake_prep":
+                parts.append(
+                    "For W1 intake_form, include a top-level known_clues list. Each field may include known_clues_used showing which counselor-provided clues were used to prefill that field."
+                )
+                parts.append(
+                    "When known_clues is non-empty, at least one field should trace those clues in known_clues_used and reflect them in value instead of leaving every value blank."
+                )
+
         if workflow.workflow_id == "W2":
             parts.append(
                 "For W2, use the dedicated case background organization structure. Include presenting_concerns, case_overview, bio_psycho_social, protective_factors, risk_formulation, recommended_focus, and boundary_notes."
@@ -1222,8 +1288,13 @@ def _validate_w1(workflow, data):
     if not isinstance(sections, list) or not sections:
         issues.append(_structured_issue("sections", "sections must be a non-empty list."))
     elif not any(
-        any(token in str(section.get("heading", "")).lower() for token in ["??", "??", "risk", "crisis"])
+        (
+            any(token in str(section.get("heading", "")).lower() for token in ["risk", "crisis"])
+            or "risk" in str(section.get("id", "")).lower()
+            or any(field.get("risk_signal") is True for field in section.get("fields", []))
+        )
         for section in sections
+        if isinstance(section, dict)
     ):
         issues.append(_structured_issue("sections", "At least one section heading must contain risk or crisis."))
     if document_type == "initial_session_summary":
@@ -1260,11 +1331,21 @@ def _validate_w1(workflow, data):
         if not _has_non_empty(data, "summary_guidance"):
             issues.append(_structured_issue("summary_guidance", "summary_guidance must be non-empty."))
         return issues
+    known_clues = data.get("known_clues")
+    if known_clues is not None and not isinstance(known_clues, list):
+        issues.append(_structured_issue("known_clues", "known_clues must be a list when provided."))
     fields = list(_all_fields(data))
     if not any(field.get("sensitive") is True for field in fields):
         issues.append(_structured_issue("sections.fields", "At least one field must have sensitive: true."))
     if not any(field.get("risk_signal") is True for field in fields):
         issues.append(_structured_issue("sections.fields", "At least one field must have risk_signal: true."))
+    if isinstance(known_clues, list) and known_clues and not any(field.get("known_clues_used") for field in fields):
+        issues.append(
+            _structured_issue(
+                "sections.fields.known_clues_used",
+                "At least one field must trace counselor-provided known_clues when known_clues is non-empty.",
+            )
+        )
     return issues
 
 

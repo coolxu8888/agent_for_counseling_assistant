@@ -362,6 +362,37 @@ def workflow_label(workflow):
     return WORKFLOW_LABELS.get(str(workflow or "").upper(), str(workflow or ""))
 
 
+def describe_workflow_mode(payload):
+    workflow = str(payload.get("detected_workflow") or payload.get("workflow") or "").upper()
+    if workflow != "W1":
+        return None
+
+    w1_mode = (
+        payload.get("w1_mode")
+        or ((payload.get("metadata") or {}).get("w1_mode") if isinstance(payload.get("metadata"), dict) else None)
+    )
+    structured_output = payload.get("structured_output") if isinstance(payload.get("structured_output"), dict) else {}
+    known_clues = structured_output.get("known_clues") if isinstance(structured_output, dict) else None
+    if not isinstance(known_clues, list):
+        known_clues = []
+
+    if w1_mode == "initial_interview_summary":
+        return {
+            "workflow_mode": w1_mode,
+            "workflow_mode_label": "Initial interview summary",
+            "workflow_mode_notice": "Using the fixed initial interview summary structure for completed intake notes.",
+        }
+
+    notice = "Using the pre-interview intake guide mode."
+    if known_clues:
+        notice = "Using the pre-interview intake guide mode with prefill from known clues: " + ", ".join(known_clues[:3]) + "."
+    return {
+        "workflow_mode": "intake_prep",
+        "workflow_mode_label": "Initial interview prep",
+        "workflow_mode_notice": notice,
+    }
+
+
 def route_notice_for(workflow, route_status, top_candidates):
     label = workflow_label(workflow)
     if route_status == "fallback":
@@ -857,7 +888,7 @@ def load_run_payload(result):
     docx_check = read_json_artifact(run_dir / "docx_check.json", issues)
     docx_path = run_dir / "output.docx"
 
-    return {
+    payload = {
         "status": result.status,
         "workflow": result.workflow_id,
         "run_dir": path_for_ui(run_dir),
@@ -878,6 +909,10 @@ def load_run_payload(result):
         },
         "issues": issues,
     }
+    mode_summary = describe_workflow_mode(payload)
+    if mode_summary:
+        payload.update(mode_summary)
+    return payload
 
 
 def available_run_files(run_dir):
@@ -990,6 +1025,9 @@ def handle_api_run(payload):
             (response_payload.get("metadata") or {}).get("w1_mode")
             or route_details.get("w1_mode")
         )
+        mode_summary = describe_workflow_mode(response_payload)
+        if mode_summary:
+            response_payload.update(mode_summary)
         return json_response(response_payload)
     except AgentInputError as exc:
         return error_response(400, str(exc))

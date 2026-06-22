@@ -380,6 +380,40 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["w1_mode"], "initial_interview_summary")
         self.assertIn("summary", payload["route_notice"].lower())
 
+    def test_handle_run_returns_w1_prep_mode_summary_for_product_ui(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("prep answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success","w1_mode":"intake_prep"}', encoding="utf-8")
+            (run_dir / "structured_output.json").write_text(
+                json.dumps(
+                    {
+                        "workflow": "W1",
+                        "document_type": "intake_form",
+                        "known_clues": ["poor sleep for two weeks", "roommate conflict"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+                status, _headers, body = web_workbench.handle_api_run(
+                    {
+                        "workflow": "AUTO",
+                        "input": "Before tomorrow's first interview, create an intake question guide. "
+                        "The client has had poor sleep for two weeks and more conflict with her roommate.",
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["w1_mode"], "intake_prep")
+        self.assertEqual(payload["workflow_mode_label"], "Initial interview prep")
+        self.assertIn("prefill", payload["workflow_mode_notice"].lower())
+        self.assertIn("poor sleep for two weeks", payload["workflow_mode_notice"].lower())
+
     def test_handle_login_sets_session_cookie(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")

@@ -12,6 +12,7 @@ from run_agent import (
     AgentRunError,
     build_prompt_package,
     detect_w1_mode,
+    extract_w1_intake_clues,
     extract_structured_json,
     load_rag_chunks,
     load_retrieval_map,
@@ -508,6 +509,44 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn("write at least one concise unclear_or_missing item", prompt)
         self.assertIn("follow_up_questions", prompt)
 
+    def test_extract_w1_intake_clues_captures_partial_known_risk_and_context(self):
+        clues = extract_w1_intake_clues(
+            "Before tomorrow's first interview, create an intake question guide. "
+            "The client has had poor sleep for two weeks because of graduate-school pressure, "
+            "more conflict with her roommate, and she sometimes says she wants to disappear, "
+            "but there is no plan and she is still attending class."
+        )
+
+        self.assertIn("poor sleep for two weeks", clues)
+        self.assertIn("graduate-school pressure", clues)
+        self.assertIn("conflict with her roommate", clues)
+        self.assertIn("wants to disappear", clues)
+        self.assertIn("no plan", clues)
+
+    def test_build_prompt_package_w1_prep_includes_known_clue_prefill_guidance(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W1"),
+            "Before tomorrow's first interview, create an intake question guide. "
+            "The client has had poor sleep for two weeks because of graduate-school pressure, "
+            "more conflict with her roommate, and she sometimes says she wants to disappear, "
+            "but there is no plan and she is still attending class.",
+            [
+                {
+                    "chunk_id": "forms-fields-pipl-minimum-necessary-fields-001",
+                    "path": "rag/forms-fields/pipl-minimum-necessary-fields.md",
+                    "content": "# Form guidance\nUse the minimum necessary fields only.",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("Known intake clues already provided", prompt)
+        self.assertIn("poor sleep for two weeks", prompt)
+        self.assertIn("graduate-school pressure", prompt)
+        self.assertIn("conflict with her roommate", prompt)
+        self.assertIn("known_clues_used", prompt)
+        self.assertIn("Do not leave the prep guide blank", prompt)
+
     def test_strip_agent_marker_removes_markdown_wrapped_marker(self):
         clean = strip_agent_marker("正文\n**AGENT_DONE_W3**\n", normalize_workflow("W3"))
 
@@ -635,6 +674,45 @@ AGENT_DONE_W3
         check = validate_structured_output(normalize_workflow("W1"), data)
 
         self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w1_requires_prefill_trace_when_known_clues_exist(self):
+        data = {
+            "workflow": "W1",
+            "document_type": "intake_form",
+            "title": "Initial interview prep guide",
+            "known_clues": ["poor sleep for two weeks", "the client says she wants to disappear"],
+            "sections": [
+                {
+                    "heading": "Risk assessment",
+                    "fields": [
+                        {
+                            "label": "Risk screening",
+                            "value": "",
+                            "suggested_questions": ["Ask about timing, frequency, intent, plan, means, and protective factors."],
+                            "known_clues_used": [],
+                            "required": True,
+                            "sensitive": True,
+                            "risk_signal": True,
+                        }
+                    ],
+                }
+            ],
+            "boundary_notes": ["This is not a diagnosis or final risk rating."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        self.assertTrue(
+            any(issue["path"] == "sections.fields.known_clues_used" for issue in check["issues"])
+        )
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        self.assertTrue(
+            any(issue["path"] == "sections.fields.known_clues_used" for issue in check["issues"])
+        )
 
     def helper_validate_structured_output_w1_accepts_initial_session_summary_mode(self):
         data = {

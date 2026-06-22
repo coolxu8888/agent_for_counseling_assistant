@@ -100,6 +100,12 @@ EVALS = [
         "expected": "Workflow 1: bounded pre-interview intake preparation. The answer should stay in question-guide mode, make confidentiality and consent prompts explicit, keep suicide-related follow-up visible without assigning a final risk level, and avoid turning the output into a session record or case formulation.",
     },
     {
+        "id": "W1-007",
+        "name": "partial-clue-prefill-intake-guide",
+        "query": "Before tomorrow's first interview, create an intake question guide. The client has had poor sleep for two weeks because of graduate-school pressure, more conflict with her roommate, and she sometimes says she wants to disappear, but there is no reported plan and she is still attending class. Prefill what is already known and ask follow-up questions only for what remains unclear.",
+        "expected": "Workflow 1: bounded pre-interview intake preparation with partial-clue prefill. The answer should stay in intake-guide mode, explicitly reuse the known sleep, academic-pressure, roommate-conflict, and passive-risk clues instead of reverting to a blank template, keep counselor-facing follow-up questions for what is still unclear, and avoid turning the output into a session record, diagnosis, or case formulation.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

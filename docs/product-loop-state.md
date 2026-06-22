@@ -53,7 +53,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
 | P0 | Intent recognition across counselor tasks | partial | web workbench + Coze API now default to auto-routing, return route metadata, and cover mixed-intent eval cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | extend bilingual ambiguity coverage and verify the hosted deployment uses the new AUTO contract |
-| P0 | W1 initial interview preparation guide | partial | workflow/eval exists | ensure UX distinguishes pre-interview question guide from post-interview summary |
+| P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 runner now detects intake-prep vs initial-interview-summary mode, switches the structured contract to the fixed summary template, persists `w1_mode`, and returns it through the web workbench with live eval `W1-005` passing | strengthen structured validation coverage and verify the hosted deployment uses the new summary-mode contract |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
 | P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
@@ -179,16 +179,6 @@ Remaining gaps:
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with template upload + structured fill.
 - Raw-material template drafting remains separate from structured fill; template understanding is stronger, but the overall capability is still partial until more real counselor template shapes are covered.
 
-## Next Recommended Capability
-
-Improve `W1 initial interview summary into fixed template` as the next P0 capability.
-
-Recommended scope:
-
-- Use the stronger template-mapping layer to turn raw initial interview notes into the fixed intake summary structure with explicit known facts, unclear/missing facts, and follow-up questions.
-- Add missing-field prompt behavior for incomplete intake notes instead of leaving generic blanks.
-- Add at least one live DeepSeek-backed eval for this fixed-template W1 summary path.
-
 ## This Run: W1 Initial Interview Summary Into Fixed Template
 
 Capability worked on:
@@ -226,6 +216,59 @@ Remaining gaps:
 - The W1 summary path still relies on prompt compliance rather than a dedicated post-run structural normalizer for raw-note mapping quality.
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 summary request.
 - The workbench currently exposes W1 mode via route metadata, but there is not yet a dedicated W1 summary-specific result card or export affordance beyond the standard run payload.
+
+## This Run: W1 Initial Interview Preparation Guide
+
+Capability worked on:
+
+- `W1 initial interview preparation guide`, specifically the productized intake-prep path for counselors who already know part of the case background before the first interview.
+
+What changed:
+
+- Added partial-clue extraction in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py>) so W1 intake-prep requests now capture usable known facts such as sleep issues, academic pressure, roommate conflict, and passive risk language before the model drafts the guide.
+- Tightened the W1 intake-prep prompt contract so the model must prefill matching fields from the extracted clues, expose those clues at the top level as `known_clues`, and record field-level `known_clues_used` traces instead of falling back to an empty generic questionnaire.
+- Hardened W1 structured validation so intake-prep outputs fail if known clues are present but none of the fields trace them, while risk-section detection now accepts section ids and risk-signal flags instead of relying only on heading text.
+- Exposed a product-facing W1 mode summary in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/index.html`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/index.html>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js>)
+  so counselors can clearly see when the agent interpreted a W1 run as `Initial interview prep` and which known clues were prefilled.
+- Added eval coverage for this behavior in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py>) with new prompt `W1-007` (`partial-clue-prefill-intake-guide`) and regenerated the committed eval manifest.
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent.RunAgentTest.test_extract_w1_intake_clues_captures_partial_known_risk_and_context scripts.test_run_agent.RunAgentTest.test_build_prompt_package_w1_prep_includes_known_clue_prefill_guidance scripts.test_run_agent.RunAgentTest.test_validate_structured_output_w1_requires_prefill_trace_when_known_clues_exist scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_returns_w1_prep_mode_summary_for_product_ui`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_build_workflow_eval_prompts`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-007`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_agent.py --workflow W1 --input "<partial-clue intake-prep request>" --structured`
+
+Outcome:
+
+- The shipped product now treats W1 intake preparation as a real agent capability instead of a generic questionnaire prompt branch.
+- Real DeepSeek usage now prefills the intake guide from counselor-supplied clues and preserves those traces through structured validation.
+- The product UI/API now distinguishes W1 prep from W1 summary in a counselor-visible way, which closes the prior gap where W1 mode differences were only visible in raw metadata.
+
+Remaining gaps:
+
+- Clue extraction is still heuristic and needs broader bilingual coverage for mixed Chinese/English intake requests.
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 prep request.
+- The W1 prep result is clearer in the workbench summary, but DOCX/template-fill alignment for intake-prep guides still needs broader label coverage.
+
+## Next Recommended Capability
+
+Improve `Intent recognition across counselor tasks` as the next P0 capability.
+
+Recommended scope:
+
+- Extend bilingual ambiguity coverage so mixed Chinese/English counselor prompts still cleanly separate W1 prep, W1 summary, W3 notes, W5 next-session planning, and W6 roadmap requests.
+- Run a hosted smoke after deployment to verify the AUTO route contract and product-facing route summary match local behavior.
+- Add failure-reason visibility for ambiguous routing cases so eval automation can show why a route was chosen, not just which route won.
 
 ## This Run: RAG-Backed Ethics/Risk/Documentation Retrieval
 

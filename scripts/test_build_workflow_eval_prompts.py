@@ -34,6 +34,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
 
         self.assertIn("W1-004", ids)
         self.assertIn("W1-005", ids)
+        self.assertIn("W1-007", ids)
         self.assertIn("W2-005", ids)
         self.assertIn("W3-004", ids)
         self.assertIn("W5-002", ids)
@@ -55,6 +56,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
 
     def test_evals_expand_retrieval_boundary_matrix(self):
         w1 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-006")
+        w1_prefill = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-007")
         w3 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W3-006")
         w4 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W4-003")
         w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-003")
@@ -64,6 +66,8 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
 
         self.assertIn("confidentiality", w1["query"].lower())
         self.assertIn("risk", w1["expected"].lower())
+        self.assertIn("prefill", w1_prefill["query"].lower())
+        self.assertIn("roommate-conflict", w1_prefill["expected"].lower())
         self.assertIn("confidentiality", w3["expected"].lower())
         self.assertIn("humanistic", w4["query"].lower())
         self.assertIn("avoid drifting into a next-session plan", w4["expected"].lower())
