@@ -634,6 +634,33 @@ W1_INITIAL_SESSION_SUMMARY_CONTRACT = {
 }
 
 
+W1_INITIAL_SESSION_SUMMARY_CONTRACT = {
+    "workflow": "W1",
+    "document_type": "initial_session_summary",
+    "title": "Initial interview summary",
+    "sections": [
+        {"id": "main_distress", "heading": "Main distress", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "basic_situation", "heading": "Basic situation", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "functioning", "heading": "Functioning", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "support_coping", "heading": "Support and coping", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "history", "heading": "Prior help-seeking and treatment history", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "psychological_tests", "heading": "Psychological tests", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "risk_crisis", "heading": "Risk and crisis information", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "handling_suggestion", "heading": "Handling suggestions", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+        {"id": "other_notes", "heading": "Other notes", "known_facts": [], "unclear_or_missing": [], "follow_up_questions": []},
+    ],
+    "summary_guidance": [
+        "known_facts may include only facts explicitly present in the initial interview notes.",
+        "unclear_or_missing should capture unclear, missing, or still-unverified information.",
+        "follow_up_questions should list counselor-facing follow-up questions only.",
+        "The risk_crisis section must separate observed risk clues from missing risk data and next safety follow-up questions.",
+    ],
+    "boundary_notes": [
+        "Organize only the material the counselor provided. Do not invent missing facts, final diagnoses, or final risk ratings."
+    ],
+}
+
+
 def normalize_workflow(value):
     alias = (value or "").strip().lower()
     workflow_id = WORKFLOW_ALIASES.get(alias)
@@ -763,6 +790,20 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
                     )
                     + "\n```",
                 ]
+            )
+        if workflow.workflow_id == "W1":
+            parts.append(
+                "每个 section 都必须拆成 known_facts、unclear_or_missing、follow_up_questions 三部分。known_facts 只写材料中已出现的事实；unclear_or_missing 用于标注模糊、缺失或仍需核实的信息；follow_up_questions 只写咨询师后续可继续核实的问题。"
+            )
+            parts.append(
+                "risk_crisis section 必须明确区分：已看到的风险线索、材料中未提供或不清楚的风险信息、以及需要继续核实的安全问题。不得输出最终风险等级、诊断或替代机构危机处置决定。"
+            )
+        if workflow.workflow_id == "W1":
+            parts.append(
+                "For W1 initial_session_summary, every section must use known_facts, unclear_or_missing, and follow_up_questions. known_facts may contain only facts explicitly present in the source notes."
+            )
+            parts.append(
+                "The risk_crisis section must separate observed risk clues, missing or unclear risk information, and counselor-facing safety follow-up questions. Do not output a final diagnosis or final risk rating."
             )
     parts.extend(
         [
@@ -939,9 +980,44 @@ def _validate_w1(workflow, data):
     sections = data.get("sections")
     if not isinstance(sections, list) or not sections:
         issues.append(_structured_issue("sections", "sections must be a non-empty list."))
-    elif not any("风险" in str(section.get("heading", "")) or "危机" in str(section.get("heading", "")) for section in sections):
-        issues.append(_structured_issue("sections", "At least one section heading must contain 风险."))
+    elif not any(
+        any(token in str(section.get("heading", "")).lower() for token in ["??", "??", "risk", "crisis"])
+        for section in sections
+    ):
+        issues.append(_structured_issue("sections", "At least one section heading must contain risk or crisis."))
     if document_type == "initial_session_summary":
+        expected_section_ids = {
+            "main_distress",
+            "basic_situation",
+            "functioning",
+            "support_coping",
+            "history",
+            "psychological_tests",
+            "risk_crisis",
+            "handling_suggestion",
+            "other_notes",
+        }
+        section_ids = {section.get("id") for section in sections if isinstance(section, dict)}
+        missing_section_ids = sorted(section_id for section_id in expected_section_ids if section_id not in section_ids)
+        if missing_section_ids:
+            issues.append(
+                _structured_issue(
+                    "sections",
+                    "Missing required initial interview summary sections: " + ", ".join(missing_section_ids),
+                )
+            )
+        for index, section in enumerate(sections):
+            if not isinstance(section, dict):
+                issues.append(_structured_issue(f"sections[{index}]", "Each section must be an object."))
+                continue
+            for key in ["known_facts", "unclear_or_missing", "follow_up_questions"]:
+                value = section.get(key)
+                if value is None:
+                    issues.append(_structured_issue(f"sections[{index}].{key}", f"{key} is required."))
+                elif not isinstance(value, list):
+                    issues.append(_structured_issue(f"sections[{index}].{key}", f"{key} must be a list."))
+        if not _has_non_empty(data, "summary_guidance"):
+            issues.append(_structured_issue("summary_guidance", "summary_guidance must be non-empty."))
         return issues
     fields = list(_all_fields(data))
     if not any(field.get("sensitive") is True for field in fields):

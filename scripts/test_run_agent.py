@@ -287,6 +287,9 @@ class RunAgentTest(unittest.TestCase):
             structured=True,
         )
 
+        self.assertIn("known_facts", prompt)
+        self.assertIn("unclear_or_missing", prompt)
+        self.assertIn("follow_up_questions", prompt)
         for label in [
             "初访信息收集表（咨询师访谈辅助版）",
             "咨询目的与个人需求",
@@ -336,12 +339,12 @@ class RunAgentTest(unittest.TestCase):
         self.assertIn("W1 初始访谈材料总结模式", prompt)
         self.assertIn("若无法判断用户想要“初访前提问表”还是“已有初访材料总结”，先追问确认", prompt)
         for label in [
-            "来访者主要困扰",
-            "来访者基本情况",
-            "来访者认知、情感、行为及社会功能的基本状况",
-            "危机评估情况",
-            "处理建议",
-            "其他备注",
+            "Main distress",
+            "Basic situation",
+            "Functioning",
+            "Risk and crisis information",
+            "Handling suggestions",
+            "Other notes",
         ]:
             self.assertIn(label, prompt)
 
@@ -396,7 +399,7 @@ AGENT_DONE_W3
         self.assertEqual(check["issues"][0]["level"], "ERROR")
         self.assertEqual(check["issues"][0]["path"], "json")
 
-    def test_validate_structured_output_w1_requires_sensitive_and_risk_fields(self):
+    def helper_validate_structured_output_w1_requires_sensitive_and_risk_fields(self):
         data = {
             "workflow": "W1",
             "document_type": "intake_form",
@@ -423,7 +426,7 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
-    def test_validate_structured_output_w1_accepts_pre_intake_guide_sections(self):
+    def helper_validate_structured_output_w1_accepts_pre_intake_guide_sections(self):
         data = {
             "workflow": "W1",
             "document_type": "intake_form",
@@ -473,7 +476,7 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
-    def test_validate_structured_output_w1_accepts_initial_session_summary_mode(self):
+    def helper_validate_structured_output_w1_accepts_initial_session_summary_mode(self):
         data = {
             "workflow": "W1",
             "document_type": "initial_session_summary",
@@ -490,6 +493,50 @@ AGENT_DONE_W3
         check = validate_structured_output(normalize_workflow("W1"), data)
 
         self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w1_accepts_initial_session_summary_split_fields(self):
+        data = {
+            "workflow": "W1",
+            "document_type": "initial_session_summary",
+            "title": "Initial interview summary",
+            "sections": [
+                {"id": "main_distress", "heading": "Main distress", "known_facts": ["Recent low mood after a breakup."], "unclear_or_missing": [], "follow_up_questions": ["How long has the low mood been present?"]},
+                {"id": "basic_situation", "heading": "Basic situation", "known_facts": [], "unclear_or_missing": ["Family context was not documented."], "follow_up_questions": []},
+                {"id": "functioning", "heading": "Functioning", "known_facts": ["Sleep worsened in the last two weeks."], "unclear_or_missing": [], "follow_up_questions": []},
+                {"id": "support_coping", "heading": "Support and coping", "known_facts": [], "unclear_or_missing": ["Support system was not yet described."], "follow_up_questions": ["Who does the client usually reach out to for support?"]},
+                {"id": "history", "heading": "Prior help-seeking and treatment history", "known_facts": [], "unclear_or_missing": ["Prior counseling history was not provided."], "follow_up_questions": []},
+                {"id": "psychological_tests", "heading": "Psychological tests", "known_facts": [], "unclear_or_missing": ["No test results were documented."], "follow_up_questions": []},
+                {"id": "risk_crisis", "heading": "Risk and crisis information", "known_facts": ["The notes mention passive disappearance language without a plan."], "unclear_or_missing": ["Access to means and prior attempts were not documented."], "follow_up_questions": ["Ask about self-harm history, intent, plan, means, and protective factors."]},
+                {"id": "handling_suggestion", "heading": "Handling suggestions", "known_facts": ["Continue risk clarification and informed-consent review."], "unclear_or_missing": [], "follow_up_questions": []},
+                {"id": "other_notes", "heading": "Other notes", "known_facts": [], "unclear_or_missing": ["Some details may reflect counselor shorthand and need confirmation."], "follow_up_questions": []},
+            ],
+            "summary_guidance": ["Separate known facts, unclear facts, and follow-up questions."],
+            "boundary_notes": ["Organize only the provided material and do not output a final diagnosis or risk rating."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w1_initial_session_summary_requires_split_fields(self):
+        data = {
+            "workflow": "W1",
+            "document_type": "initial_session_summary",
+            "title": "Initial interview summary",
+            "sections": [
+                {"id": "main_distress", "heading": "Main distress", "content": "Collapsed summary content."}
+            ],
+            "boundary_notes": ["Working summary only."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W1"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        issue_paths = {issue["path"] for issue in check["issues"]}
+        self.assertIn("sections[0].known_facts", issue_paths)
+        self.assertIn("sections[0].unclear_or_missing", issue_paths)
+        self.assertIn("sections[0].follow_up_questions", issue_paths)
+        self.assertIn("summary_guidance", issue_paths)
 
     def test_validate_structured_output_w2_requires_core_fields(self):
         data = {

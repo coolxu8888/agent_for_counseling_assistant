@@ -179,6 +179,21 @@
     ]
   },
   {
+    "id": "W1-005",
+    "name": "initial-interview-summary-template",
+    "query": "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template. For each section, separate known facts, unclear or missing facts, and follow-up questions. Keep the risk items visible without assigning a final risk level.",
+    "expected": "Workflow 1: initial interview summary mode. The answer should use the fixed initial interview summary structure, separate known facts from unclear or missing facts and follow-up questions, keep risk material explicit but bounded, and avoid drifting into a counseling record, diagnosis, or treatment plan.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-005-initial-interview-summary-template.txt",
+    "route_status": "OK",
+    "workflow": "workflow_1_intake_form",
+    "intent": "生成咨询师访谈版初访表",
+    "chunks": [
+      "intake-assessment-biopsychosocial-client-assessment-001",
+      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
     "id": "W2-004",
     "name": "diagnosis-boundary-case-organization",
     "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

@@ -88,6 +88,12 @@ EVALS = [
         "expected": "Workflow 1: pre-interview intake preparation. The answer should generate an information collection guide or checklist for the first interview, highlight risk and consent follow-up items, and avoid turning the request into a case summary or session note.",
     },
     {
+        "id": "W1-005",
+        "name": "initial-interview-summary-template",
+        "query": "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template. For each section, separate known facts, unclear or missing facts, and follow-up questions. Keep the risk items visible without assigning a final risk level.",
+        "expected": "Workflow 1: initial interview summary mode. The answer should use the fixed initial interview summary structure, separate known facts from unclear or missing facts and follow-up questions, keep risk material explicit but bounded, and avoid drifting into a counseling record, diagnosis, or treatment plan.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

@@ -175,7 +175,7 @@ AGENT_STYLE_INSTRUCTIONS = {
 
 WORKFLOW_LABELS = {
     "AUTO": "Auto detect",
-    "W1": "Intake guide",
+    "W1": "Initial interview",
     "W2": "Case summary",
     "W3": "Session note",
     "W4": "Conceptualization",
@@ -195,6 +195,12 @@ ROUTING_RULES = {
             (r"information gathering", 3),
             (r"what (i|we) still need to ask", 5),
             (r"still need to ask", 4),
+            (r"initial interview summary", 5),
+            (r"first interview summary", 5),
+            (r"summarize (these|this)? ?(initial|first) interview notes", 6),
+            (r"organize (these|this)? ?(initial|first) interview notes", 5),
+            (r"fixed intake template", 5),
+            (r"initial interview template", 5),
             (r"initial interview", 3),
             (r"\bintake\b", 2),
             (r"\u521d\u8bbf", 4),
@@ -203,10 +209,15 @@ ROUTING_RULES = {
             (r"\u8bbf\u8c08\u8868", 3),
             (r"\u6536\u96c6\u8868", 3),
             (r"\u6765\u8bbf\u4fe1\u606f", 3),
+            (r"\u521d\u8bbf\u603b\u7ed3", 6),
+            (r"\u521d\u8bbf\u7b14\u8bb0", 5),
+            (r"\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3", 6),
+            (r"\u521d\u59cb\u8bbf\u8c08\u6a21\u677f", 5),
+            (r"\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f", 5),
         ],
         "negative": [
             (r"session note|progress note|counseling record|session record|soap|dap|birp", 4),
-            (r"notes from today|first interview notes|risk update|next session focus", 3),
+            (r"notes from today|risk update|next session focus", 3),
             (r"roadmap|multi-session|multi session|phases?", 4),
         ],
     },
@@ -247,7 +258,6 @@ ROUTING_RULES = {
             (r"risk update", 4),
             (r"next session focus", 4),
             (r"notes from today", 4),
-            (r"first interview notes", 4),
             (r"\bsoap\b|\bdap\b|\bbirp\b", 5),
             (r"\u54a8\u8be2\u8bb0\u5f55", 5),
             (r"\u98ce\u9669\u53d8\u5316", 4),
@@ -257,6 +267,8 @@ ROUTING_RULES = {
         "negative": [
             (r"before (the )?first (interview|session)", 4),
             (r"intake guide|intake checklist", 4),
+            (r"initial interview summary|fixed intake template", 4),
+            (r"\u521d\u8bbf\u603b\u7ed3|\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f", 4),
             (r"roadmap|multi-session|multi session|phases?", 4),
         ],
     },
@@ -348,6 +360,11 @@ def route_notice_for(workflow, route_status, top_candidates):
             return (
                 "Detected both intake-preparation and post-interview record cues; routed to "
                 "Session note because the request mentioned notes, record language, or follow-up from today."
+            )
+        if candidate_ids == ["W1", "W3"]:
+            return (
+                "Detected both initial-interview summary and session-record cues; routed to "
+                "Initial interview because the request asked for the fixed intake summary/template rather than a counseling record."
             )
         return f"Detected overlapping counselor tasks; routed to {label} based on the strongest cues."
     return f"Automatic routing matched {label}."

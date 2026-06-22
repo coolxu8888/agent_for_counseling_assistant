@@ -134,58 +134,87 @@ A capability is not complete just because a prompt exists. It is considered prod
 - Added bilingual W6 clean/rubric checks.
 - Regenerated `eval-prompts/manifest.json` so retrieval-backed eval assets now include W6.
 
-## Tests And Evals Recently Run
+## This Run: W1 Initial Interview Summary Into Fixed Template
 
-This run successfully completed:
+Capability worked on:
 
-- `python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_static_index_has_valid_title_markup scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_details_marks_mixed_signal_when_roadmap_request_mentions_next_session scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_auto_detects_workflow`
-- `python -m unittest scripts.test_coze_api_server.CozeApiServerTest.test_openapi_spec_contains_two_tool_operations scripts.test_coze_api_server.CozeApiServerTest.test_build_run_workflow_response_includes_answer_and_docx_artifact scripts.test_coze_api_server.CozeApiServerTest.test_handle_coze_run_workflow_defaults_to_auto_routing`
-- `python -m unittest scripts.test_web_workbench scripts.test_coze_api_server scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts`
+- `W1` post-interview initial interview summarization from raw counselor notes into a fixed structured template.
+
+What changed:
+
+- Repositioned `W1` in the web workbench and router as `Initial interview` instead of only `Intake guide`, so the product now recognizes both pre-interview and post-interview W1 requests through the same intent family.
+- Tightened AUTO intent recognition in:
+  - `scripts/web_workbench.py`
+  - `scripts/run-retrieval.ps1`
+  so plain-language requests such as "initial interview summary", "first interview summary", "organize these intake notes into the fixed template", and corresponding Chinese variants route to `W1` instead of leaking to `W3`.
+- Added an explicit mixed-intent route notice when the user mentions both interview notes and summary/template language, explaining why `W1` was chosen over session-record generation.
+- Hardened the `W1` structured summary contract in `scripts/run_agent.py`:
+  - document type: `initial_session_summary`
+  - fixed section ids:
+    - `main_distress`
+    - `basic_situation`
+    - `functioning`
+    - `support_coping`
+    - `history`
+    - `psychological_tests`
+    - `risk_crisis`
+    - `handling_suggestion`
+    - `other_notes`
+  - each section now separates:
+    - `known_facts`
+    - `unclear_or_missing`
+    - `follow_up_questions`
+  - added summary-level `summary_guidance` and `boundary_notes`
+- Strengthened W1 prompt instructions so the model is explicitly asked to preserve missing information, produce counselor-facing follow-up questions, and keep `risk_crisis` bounded to observed clues plus missing/unclear risk information.
+- Extended structured-output validation for `initial_session_summary` so malformed or incomplete section objects are rejected before downstream rendering.
+- Added DOCX rendering support in `scripts/render_docx.py` for the new W1 summary structure, including headings for `Known facts`, `Unclear or missing`, `Follow-up questions`, `Summary guidance`, and `Boundary notes`.
+- Added eval coverage with `W1-005 initial-interview-summary-template` and regenerated `eval-prompts/manifest.json`.
+- Updated workbench copy in `web-workbench/app.js` and `web-workbench/index.html` so the product now advertises both initial-interview preparation and completed initial-interview summarization.
+
+Tests and evals run:
+
+- `python -m py_compile scripts/run_agent.py scripts/web_workbench.py scripts/render_docx.py scripts/build_workflow_eval_prompts.py scripts/clean_eval_outputs.py scripts/test_run_agent.py scripts/test_web_workbench.py scripts/test_render_docx.py scripts/test_build_workflow_eval_prompts.py`
+- `python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_render_docx scripts.test_build_workflow_eval_prompts`
 - `python scripts/build_workflow_eval_prompts.py`
-- `python scripts/run_model_eval.py --ids W1-004,W2-004,W3-004,W4-002,W5-002,W6-002`
+- `python scripts/run_model_eval.py --ids W1-005`
 - `python scripts/clean_eval_outputs.py --result-dir eval-results/api --clean-dir eval-results/api/clean`
 
-The earlier loop state had also recorded:
+Outcome:
 
-- `python scripts/test_run_agent.py`
-- `python scripts/test_run_retrieval.py`
-- `python scripts/test_web_workbench.py`
-- `python scripts/test_clean_eval_outputs.py`
-- `python scripts/test_render_docx.py`
-- `python scripts/test_coze_api_server.py`
-- `python scripts/test_hosted_smoke.py`
-- `python scripts/test_build_workflow_eval_prompts.py`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-rag.ps1 -Json`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-retrieval.ps1 -Query "Create a CBT next-session plan for this de-identified case." -Json`
-- `python scripts/run_model_eval.py --ids W5-001`
-- `python scripts/clean_eval_outputs.py`
+- The new W1 route, schema, renderer, and eval fixture are implemented end to end.
+- The live DeepSeek-backed eval for `W1-005` executed successfully, satisfying the real integration requirement for a model-behavior change.
 
-Before deployment, rerun the relevant subset plus hosted smoke tests after pushing.
+Remaining gaps:
 
-## Remaining Product Gaps
-
-The bounded counseling roadmap capability now exists as `W6`, but it still needs more framework-specific eval depth and hosted verification before it can be treated as fully hardened.
-
-Other important gaps:
-
-- W1 needs clearer separation between:
+- `W1-005` still cleans to `WARN` because the live model output does not yet reliably echo every literal rubric token such as `initial interview summary`, `unclear_or_missing`, and `follow_up_questions`, even though the request routes correctly and returns the intended structure class.
+- W1 still needs a cleaner product distinction between:
   - pre-interview information collection guide
   - post-interview fixed-template summary
-- Word template filling still needs stronger model-assisted mapping and handling of prefilled content.
-- RAG coverage should be expanded for theory-specific conceptualization and roadmap planning.
-- Eval coverage should continue expanding bilingual mixed-intent and framework-specific cases, especially for hosted validation.
-- Latest local commits must be pushed and redeployed before online validation can be considered current.
+  so pilot users understand which artifact they are requesting without learning internal workflow codes.
+- Word template filling remains partial beyond the fixed internal DOCX renderer; uploaded-template section mapping is not yet robust enough to mark that P0/P1 item complete.
+- Hosted deployment verification is stale until the latest local commits are pushed and Render smoke tests are rerun.
 
 ## Next Recommended Capability
 
-Improve `W1 initial interview summary into fixed template` as the next P0 capability.
+Improve `W2 case background organization with BPS` as the next P0 capability.
 
 Recommended scope:
 
-- Accept raw first-interview notes and reliably map them into the fixed W1 initial interview template.
-- Strengthen missing-field prompts so the output separates known facts, unclear facts, and follow-up questions.
-- Reuse the improved intent routing so plain-language requests for "first interview notes" land on the summary/template path instead of the pre-interview guide.
-- Add at least one automated regression test and one DeepSeek eval case focused on note-to-template transformation with risk/privacy boundaries intact.
+- Productize a dedicated biopsychosocial structured output from raw counselor materials.
+- Add a user-facing web workbench path or AUTO route for case-background organization requests.
+- Render the BPS structure in both JSON validation and DOCX output.
+- Add at least one regression test and one DeepSeek eval focused on de-identified background organization with bounded ethics/risk language.
+
+## Deployment Readiness Notes
+
+Do not claim deployment-ready until:
+
+- `git status` is clean except allowed ignored runtime files.
+- Tests for changed areas pass.
+- Latest commits are pushed to the remote.
+- Render deployment completes.
+- Hosted health and at least one hosted workflow smoke test pass.
+- No secrets or local sensitive runtime data are committed.
 
 ## Deployment Readiness Notes
 

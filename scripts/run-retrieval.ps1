@@ -158,7 +158,18 @@ function Select-Workflow {
             "information collection",
             "information gathering",
             "what .*still need to ask",
-            "still need to ask"
+            "still need to ask",
+            "initial interview summary",
+            "first interview summary",
+            "summarize (these|this)? ?(initial|first) interview notes",
+            "organize (these|this)? ?(initial|first) interview notes",
+            "fixed intake template",
+            "initial interview template",
+            (U "\u521d\u8bbf\u603b\u7ed3"),
+            (U "\u521d\u8bbf\u7b14\u8bb0"),
+            (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
+            (U "\u521d\u59cb\u8bbf\u8c08\u6a21\u677f"),
+            (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f")
         )) {
         return "workflow_1_intake_form"
     }
@@ -170,8 +181,7 @@ function Select-Workflow {
             "session record",
             "risk update",
             "next session focus",
-            "notes from today",
-            "first interview notes"
+            "notes from today"
         )) {
         return "workflow_3_session_note"
     }
@@ -218,11 +228,22 @@ function Select-Workflow {
             "information gathering",
             "what .*still need to ask",
             "still need to ask",
+            "initial interview summary",
+            "first interview summary",
+            "summarize (these|this)? ?(initial|first) interview notes",
+            "organize (these|this)? ?(initial|first) interview notes",
+            "fixed intake template",
+            "initial interview template",
             "initial interview",
             "\bintake\b",
             (U "\u521d\u8bbf"),
+            (U "\u521d\u8bbf\u603b\u7ed3"),
+            (U "\u521d\u8bbf\u7b14\u8bb0"),
             (U "\u4fe1\u606f\u6536\u96c6\u8868"),
             (U "\u521d\u59cb\u8bbf\u8c08"),
+            (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
+            (U "\u521d\u59cb\u8bbf\u8c08\u6a21\u677f"),
+            (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f"),
             (U "\u8bbf\u8c08\u63d0\u7eb2"),
             (U "\u9884\u586b\u5199"),
             "JSON\s*Schema",
@@ -270,7 +291,6 @@ function Select-Workflow {
             "risk update",
             "next session focus",
             "notes from today",
-            "first interview notes",
             "session",
             "Session",
             (U "\u54a8\u8be2\u8bb0\u5f55"),

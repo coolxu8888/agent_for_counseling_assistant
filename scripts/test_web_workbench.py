@@ -260,6 +260,14 @@ class WebWorkbenchTest(unittest.TestCase):
             "W3",
         )
 
+    def test_detect_workflow_prefers_w1_for_initial_interview_summary_template_requests(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template."
+            ),
+            "W1",
+        )
+
     def test_detect_workflow_prefers_w6_for_multi_session_planning_even_with_next_session_language(self):
         self.assertEqual(
             web_workbench.detect_workflow(
@@ -286,6 +294,15 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("roadmap", details["route_notice"].lower())
         self.assertEqual(details["top_candidates"][0]["workflow"], "W6")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W5")
+
+    def test_detect_workflow_details_marks_mixed_signal_when_initial_interview_summary_mentions_notes(self):
+        details = web_workbench.detect_workflow_details(
+            "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template."
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertIn("fixed intake summary/template", details["route_notice"].lower())
 
     def test_detect_workflow_routes_diagnosis_requests_back_to_case_summary_boundaries(self):
         self.assertEqual(

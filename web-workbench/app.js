@@ -28,7 +28,7 @@ const FALLBACK_DEMO_CATALOG = {
     },
     {
       id: "intake_sleep-stress",
-      title: "W1 Demo: Intake guide",
+      title: "W1 Demo: Initial interview prep",
       workflow: "W1",
       summary: "A de-identified intake request with sleep issues, family stress, and a mild risk prompt.",
       input:
@@ -401,7 +401,7 @@ function createMiniGhostButton(label, onClick) {
 function workflowLabel(workflow) {
   return {
     AUTO: "Auto detect",
-    W1: "Intake",
+    W1: "Initial interview",
     W2: "Case summary",
     W3: "Session note",
     W4: "Conceptualization",

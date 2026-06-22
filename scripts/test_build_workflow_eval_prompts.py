@@ -33,6 +33,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         ids = {item["id"] for item in build_workflow_eval_prompts.EVALS}
 
         self.assertIn("W1-004", ids)
+        self.assertIn("W1-005", ids)
         self.assertIn("W3-004", ids)
         self.assertIn("W5-002", ids)
         self.assertIn("W6-002", ids)

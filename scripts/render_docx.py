@@ -92,6 +92,18 @@ def render_intake_form(data):
     return parts
 
 
+def render_initial_session_summary(data):
+    parts = [paragraph(data.get("title") or "Initial interview summary", "Heading1")]
+    for section in data.get("sections", []):
+        parts.append(paragraph(section.get("heading", "Unnamed section"), "Heading2"))
+        append_list(parts, "Known facts", section.get("known_facts", []))
+        append_list(parts, "Unclear or missing", section.get("unclear_or_missing", []))
+        append_list(parts, "Follow-up questions", section.get("follow_up_questions", []))
+    append_list(parts, "Summary guidance", data.get("summary_guidance", []))
+    append_list(parts, "Boundary notes", data.get("boundary_notes", []))
+    return parts
+
+
 def render_case_summary(data):
     parts = [paragraph(data.get("title") or "个案信息整理", "Heading1")]
     append_list(parts, "已知事实", data.get("known_facts", []))
@@ -196,6 +208,8 @@ def render_body(data):
     document_type = data.get("document_type")
     if document_type == "intake_form":
         return render_intake_form(data)
+    if document_type == "initial_session_summary":
+        return render_initial_session_summary(data)
     if document_type == "case_summary":
         return render_case_summary(data)
     if document_type == "session_note":

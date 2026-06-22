@@ -48,6 +48,31 @@ class RenderDocxTest(unittest.TestCase):
             "boundary_notes": ["不构成诊断。"],
         }
 
+    def minimal_w1_summary(self):
+        return {
+            "workflow": "W1",
+            "document_type": "initial_session_summary",
+            "title": "Initial interview summary",
+            "sections": [
+                {
+                    "id": "main_distress",
+                    "heading": "Main distress",
+                    "known_facts": ["Recent low mood after a breakup."],
+                    "unclear_or_missing": ["Duration still needs verification."],
+                    "follow_up_questions": ["How long has the low mood been present?"],
+                },
+                {
+                    "id": "risk_crisis",
+                    "heading": "Risk and crisis information",
+                    "known_facts": ["Passive disappearance language was documented."],
+                    "unclear_or_missing": ["No information about access to means."],
+                    "follow_up_questions": ["Ask about intent, plan, means, and protective factors."],
+                },
+            ],
+            "summary_guidance": ["Separate known facts, unclear facts, and follow-up questions."],
+            "boundary_notes": ["Organize only the provided material and do not output a final diagnosis or risk rating."],
+        }
+
     def minimal_w3(self):
         return {
             "workflow": "W3",
@@ -145,6 +170,19 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("心理维度", document_xml)
         self.assertIn("社会维度", document_xml)
         self.assertIn("建议进一步询问", document_xml)
+
+    def test_render_w1_initial_summary_contains_known_unclear_and_follow_up_lists(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w1-summary.docx"
+
+            render_docx(self.minimal_w1_summary(), output_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertIn("Initial interview summary", document_xml)
+        self.assertIn("Main distress", document_xml)
+        self.assertIn("Known facts", document_xml)
+        self.assertIn("Unclear or missing", document_xml)
+        self.assertIn("Follow-up questions", document_xml)
 
     def test_render_w6_contains_phases_and_referral_reminders(self):
         with tempfile.TemporaryDirectory() as tmp:
