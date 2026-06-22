@@ -62,7 +62,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval | add more framework-specific roadmap evals and hosted verification |
 | P0 | RAG-backed ethics/risk/documentation retrieval | partial | chunks/map and validation scripts exist | expand retrieval eval matrix and failure tests |
 | P0 | Theory-specific RAG support | partial | initial W4 support exists | add CBT/humanistic/psychodynamic/integrative source cards and routing |
-| P0 | Word template understanding and filling | partial | prototype exists | make model-assisted section mapping reliable with merge/replace policy |
+| P0 | Word template understanding and filling | partial | web workbench now supports guarded LLM-assisted structured template mapping, dedicated template-fill eval `TF-001` ships, and DeepSeek-backed structured-template mapping passes on a real fixture | expand W1/W2 template-label coverage and run hosted template smoke after deployment |
 | P0 | Eval automation across workflows | partial | eval builder and cleaners exist | broaden bilingual rubric coverage and generate failure-reason reports |
 | P1 | Case workspace/history | shipped partial | web workbench case history exists | verify privacy-safe deletion/export flows |
 | P1 | File upload/download and docx export | partial | render_docx and template flow exist | improve UX for template upload, generated output, and error reporting |
@@ -134,59 +134,60 @@ A capability is not complete just because a prompt exists. It is considered prod
 - Added bilingual W6 clean/rubric checks.
 - Regenerated `eval-prompts/manifest.json` so retrieval-backed eval assets now include W6.
 
-## This Run: W3 Session Summary And Counseling Record
+## This Run: Word Template Understanding And Filling
 
 Capability worked on:
 
-- `W3` session summary and counseling record generation, with stronger risk-change documentation and an explicit DAP record path.
+- `Word template understanding and filling`, specifically the model-assisted mapping path for structured template fill inside the shipped web product.
 
 What changed:
 
-- Extended the `W3` structured-output contract in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py>) so session-note outputs can carry:
-  - `record_format`
-  - `risk_change.content`
-  - `risk_change.change_documentation`
-  - `risk_change.follow_up_actions`
-- Added format-aware `W3` validation so explicit `SOAP`, `DAP`, and `BIRP` requests can be checked against their expected section families, while legacy generic session-note outputs still pass during the migration window.
-- Tightened the `W3` prompt instructions so model outputs are told to preserve the requested counselor record format while still documenting bounded risk change and counselor-facing follow-up actions.
-- Updated Word export in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/render_docx.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/render_docx.py>) so session-note documents can display the record format plus dedicated risk-change documentation and risk follow-up sections.
-- Updated template-fill source mapping in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py>) so uploaded Word templates can target:
-  - `record_format`
-  - `risk_change.change_documentation`
-  - `risk_change.follow_up_actions`
-- Added a product-facing DAP risk-update sample in:
+- Added a shared structured-template helper in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py>) that:
+  - builds deterministic slot mappings from `structured_output.json`
+  - runs DeepSeek only on unresolved slots
+  - fills the DOCX deterministically from the reviewed mapping
+  - writes `template_mapping.json` plus `llm_status` back into the final report
+- Tightened the LLM mapping prompt with explicit safe guidance that common counselor template labels such as `咨询目标`, `后续目标`, and `后续计划` can map to bounded follow-up fields like `next_session_focus` or `recommended_focus` when the structured source supports that interpretation.
+- Exposed the guarded model-assisted mapping path through the web workbench in:
   - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/index.html`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/index.html>)
   - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js>)
-  so pilot users can exercise the richer `W3` flow directly from the workbench.
-- Added eval coverage with `W3-005 dap-risk-change-record`, updated cleaner/rubric logic in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/clean_eval_outputs.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/clean_eval_outputs.py>), regenerated [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/manifest.json`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/manifest.json>), and wrote the new prompt file [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/W3-005-dap-risk-change-record.txt`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/W3-005-dap-risk-change-record.txt>).
+  so counselors can keep structured fill as the primary path while enabling model assistance only for unfamiliar template labels.
+- Added dedicated template-fill eval automation:
+  - eval fixture manifest [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/template-fill-manifest.json`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/template-fill-manifest.json>)
+  - fixture assets under [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/template-fill`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/template-fill>)
+  - DeepSeek-backed runner [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_template_fill_eval.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_template_fill_eval.py>)
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_fill_docx_template.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_fill_docx_template.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_template_fill_eval.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_template_fill_eval.py>)
 
 Tests and evals run:
 
-- `python -m unittest discover -s scripts -p "test_*.py"`
-- `python scripts/build_workflow_eval_prompts.py`
-- `python scripts/run_model_eval.py --ids 'W3-005' --manifest eval-prompts/manifest.json`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_fill_docx_template scripts.test_web_workbench scripts.test_run_template_fill_eval`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `$env:PYTHONPATH='scripts'; python scripts/run_template_fill_eval.py --ids TF-001`
 
 Outcome:
 
-- The `W3` session-record flow now supports a richer risk-change contract end to end across validation, DOCX export, template mapping, workbench entry, and eval assets.
-- A live DeepSeek-backed eval for `W3-005` executed successfully, satisfying the real integration requirement for this model-behavior change.
+- The shipped web product now exposes the guarded model-assisted mapping path for structured template filling instead of leaving it trapped in the CLI-only workflow.
+- A dedicated real-template eval fixture now exists for this capability, and the live DeepSeek-backed run for `TF-001` passed after tightening the mapping prompt for common counselor planning labels.
 
 Remaining gaps:
 
-- `W3` still lacks dedicated `BIRP` eval coverage and broader hosted verification after the latest commits are pushed and deployed.
-- Uploaded-template mapping is still partial beyond the fixed internal DOCX renderer; the richer `W3` structure now maps more cleanly, but model-assisted section matching and merge policy are still not strong enough to mark the broader template-filling capability complete.
-- Hosted deployment verification is stale until the latest local commits are pushed and Render smoke tests are rerun.
-- Retrieval/eval automation is still broader than this single capability: failure-matrix coverage and more bilingual `W3` rubric checks remain under the separate eval-automation backlog item.
+- The structured-template helper still needs broader alias coverage for W1 intake-summary and W2 biopsychosocial templates beyond the initial planning-label fix.
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with template upload + structured fill.
+- Raw-material template drafting remains separate from structured fill; template understanding is stronger, but the overall capability is still partial until more real counselor template shapes are covered.
 
 ## Next Recommended Capability
 
-Improve `Word template understanding and filling` as the next P0 capability.
+Improve `W1 initial interview summary into fixed template` as the next P0 capability.
 
 Recommended scope:
 
-- Make model-assisted template section matching reliable for the richer `W2` and `W3` structured outputs.
-- Define a safer merge/replace policy for prefilled DOCX templates so counselors can trust the generated draft.
-- Add at least one regression test and one DeepSeek-backed template-drafting eval that uses raw notes plus an uploaded template shape.
+- Use the stronger template-mapping layer to turn raw initial interview notes into the fixed intake summary structure with explicit known facts, unclear/missing facts, and follow-up questions.
+- Add missing-field prompt behavior for incomplete intake notes instead of leaving generic blanks.
+- Add at least one live DeepSeek-backed eval for this fixed-template W1 summary path.
 
 ## Deployment Readiness Notes
 

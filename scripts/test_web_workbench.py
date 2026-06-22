@@ -1523,6 +1523,55 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertTrue(payload["output_path"].endswith("filled_template.docx"))
         self.assertEqual(payload["report"]["status"], "PASS")
 
+    def test_handle_fill_template_can_enable_llm_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            upload = store.store_upload(
+                auth["user"]["id"],
+                "template.docx",
+                "ZG9jeA==",
+                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+            run_root = Path(tmp) / "agent-runs"
+            run_dir = run_root / "run"
+            run_dir.mkdir(parents=True)
+            structured = run_dir / "structured_output.json"
+            structured.write_text('{"workflow": "W3"}', encoding="utf-8")
+            store.register_run_artifact(auth["user"]["id"], str(run_dir), workflow="W3")
+
+            def fake_fill(template_path, structured_path, output_path, report_path, mapping_output_path=None):
+                Path(output_path).write_bytes(b"filled")
+                if mapping_output_path:
+                    Path(mapping_output_path).write_text('{"mappings": []}', encoding="utf-8")
+                report = {
+                    "status": "PASS",
+                    "filled_fields": [{"template_label": "A"}],
+                    "unfilled_fields": [],
+                    "issues": [],
+                    "llm_status": "success",
+                }
+                Path(report_path).write_text(json.dumps(report), encoding="utf-8")
+                return report
+
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "fill_docx_template_with_llm_mapping", side_effect=fake_fill):
+                    with patch.object(web_workbench, "RUN_ROOT", run_root):
+                        status, _headers, body = web_workbench.handle_fill_template(
+                            {
+                                "run_dir": str(run_dir),
+                                "template_ref": f"upload:{upload['id']}",
+                                "user_id": auth["user"]["id"],
+                                "llm_map": True,
+                            }
+                        )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["report"]["llm_status"], "success")
+        self.assertTrue(payload["mapping_path"].endswith("template_mapping.json"))
+
     def test_handle_draft_template_requires_raw_input(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")

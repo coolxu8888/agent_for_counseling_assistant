@@ -306,6 +306,14 @@ def build_llm_mapping_prompt(slots, source_paths):
             "Use confidence high, medium, low, or none.",
             "Use unmapped when the slot asks for diagnosis, unsupported risk level, missing facts, or unsafe/private information not present in sources.",
             "Low and none will not be filled automatically.",
+            "Common bounded planning labels such as 咨询目标, 后续目标, or 后续计划 can map to next_session_focus or recommended_focus when the structured source clearly contains counselor follow-up focus rather than diagnosis or a multi-session treatment plan.",
+        ],
+        "examples": [
+            {
+                "template_label": "咨询目标",
+                "preferred_source_path": "next_session_focus",
+                "when": "The structured source contains bounded follow-up focus or the next-session target.",
+            }
         ],
         "response_schema": {
             "mappings": [
@@ -1063,18 +1071,15 @@ def report_failure(message, template_path=None, structured_path=None, output_pat
     return report
 
 
-def fill_docx_template(template_path, structured_path, output_path, report_path, mapping_path=None):
+def _fill_docx_template_loaded(template_path, structured_label, output_path, report_path, data, mapping=None):
     template = Path(template_path)
-    structured = Path(structured_path)
     output = Path(output_path)
-    report = _base_report(template, structured, output)
+    report = _base_report(template, structured_label, output)
 
     try:
-        data = json.loads(structured.read_text(encoding="utf-8"))
-        mapping = json.loads(Path(mapping_path).read_text(encoding="utf-8")) if mapping_path else None
         with zipfile.ZipFile(template, "r") as source_package:
             if "word/document.xml" not in source_package.namelist():
-                report = report_failure("DOCX template is missing word/document.xml.", template, structured, output)
+                report = report_failure("DOCX template is missing word/document.xml.", template, structured_label, output)
             else:
                 document_xml = source_package.read("word/document.xml")
                 filled_xml = fill_document_xml(document_xml, data, report, mapping=mapping)
@@ -1085,8 +1090,78 @@ def fill_docx_template(template_path, structured_path, output_path, report_path,
                         output_package.writestr(item, content)
                 _finalize_report(report)
     except Exception as exc:
-        report = report_failure(str(exc), template, structured, output)
+        report = report_failure(str(exc), template, structured_label, output)
 
+    write_report(report_path, report)
+    return report
+
+
+def fill_docx_template(template_path, structured_path, output_path, report_path, mapping_path=None):
+    structured = Path(structured_path)
+    try:
+        data = json.loads(structured.read_text(encoding="utf-8"))
+        mapping = json.loads(Path(mapping_path).read_text(encoding="utf-8")) if mapping_path else None
+    except Exception as exc:
+        report = report_failure(str(exc), template_path, structured, output_path)
+        write_report(report_path, report)
+        return report
+
+    return _fill_docx_template_loaded(
+        template_path,
+        structured,
+        output_path,
+        report_path,
+        data,
+        mapping=mapping,
+    )
+
+
+def fill_docx_template_with_llm_mapping(
+    template_path,
+    structured_path,
+    output_path,
+    report_path,
+    mapping_output_path=None,
+    config=None,
+    http_post_json=post_json,
+):
+    template = Path(template_path)
+    structured = Path(structured_path)
+    try:
+        data = json.loads(structured.read_text(encoding="utf-8"))
+        slots = extract_template_slots(template)
+        source_paths = build_source_paths(data)
+        base_mapping = build_template_mapping(slots, source_paths)
+        llm_result = run_deepseek_template_mapping(
+            base_mapping,
+            source_paths,
+            config or load_deepseek_config(),
+            http_post_json=http_post_json,
+        )
+        mapping = dict(llm_result["mapping"])
+        mapping["llm_status"] = llm_result["llm_status"]
+        if llm_result["llm_issues"]:
+            mapping["llm_issues"] = llm_result["llm_issues"]
+        if mapping_output_path:
+            write_json_file(mapping_output_path, mapping)
+        report = _fill_docx_template_loaded(
+            template,
+            structured,
+            output_path,
+            report_path,
+            data,
+            mapping=llm_result["mapping"],
+        )
+    except Exception as exc:
+        report = report_failure(str(exc), template, structured, output_path)
+        write_report(report_path, report)
+        return report
+
+    report["llm_status"] = llm_result["llm_status"]
+    report["mapping_file"] = str(mapping_output_path) if mapping_output_path else ""
+    if llm_result["llm_issues"]:
+        report["issues"].extend(llm_result["llm_issues"])
+        _finalize_report(report)
     write_report(report_path, report)
     return report
 

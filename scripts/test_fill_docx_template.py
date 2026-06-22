@@ -16,6 +16,7 @@ from fill_docx_template import (
     fill_docx_template,
     fill_docx_template_from_draft,
     fill_docx_template_from_raw,
+    fill_docx_template_with_llm_mapping,
     find_source_match,
     merge_template_mappings,
     main,
@@ -174,6 +175,8 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertIn("source_path", prompt)
         self.assertIn("unmapped", prompt)
         self.assertIn("risk_change.content", prompt)
+        self.assertIn("咨询目标", prompt)
+        self.assertIn("next_session_focus", prompt)
 
     def test_extract_llm_mapping_json_accepts_fenced_json(self):
         answer = (
@@ -949,6 +952,59 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(report["status"], "WARN")
         self.assertNotIn("继续评估安全情况", document_xml)
         self.assertEqual(report["unfilled_fields"][0]["reason"], "Needs review.")
+
+    def test_fill_docx_template_with_llm_mapping_fills_unresolved_slot_and_writes_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            mapping_path = tmp_path / "template_mapping.json"
+            write_docx_package(template_path, self.unknown_placeholder_xml())
+            structured_path.write_text(json.dumps(self.sample_w3(), ensure_ascii=False), encoding="utf-8")
+
+            def fake_post(url, headers, payload, timeout):
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": json.dumps(
+                                    {
+                                        "mappings": [
+                                            {
+                                                "slot_id": "paragraph[0]",
+                                                "template_label": "咨询目标",
+                                                "source_path": "next_session_focus",
+                                                "confidence": "medium",
+                                                "reason": "This slot asks for a forward-looking counseling target.",
+                                            }
+                                        ]
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            }
+                        }
+                    ]
+                }
+
+            report = fill_docx_template_with_llm_mapping(
+                template_path,
+                structured_path,
+                output_path,
+                report_path,
+                mapping_output_path=mapping_path,
+                config=DeepSeekConfig(api_key="test-key", model="deepseek-v4-flash", base_url="https://example.test"),
+                http_post_json=fake_post,
+            )
+            document_xml = self.read_document_xml(output_path)
+            saved_mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["llm_status"], "success")
+        self.assertEqual(saved_mapping["mappings"][0]["source_path"], "next_session_focus")
+        self.assertIn("咨询目标", document_xml)
+        self.assertIn("继续评估安全情况", document_xml)
 
     def test_parse_args_accepts_template_structured_output_and_report(self):
         args = parse_args(

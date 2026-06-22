@@ -198,6 +198,10 @@
                   <option value="blank_only">Fill blank fields only</option>
                 </select>
               </label>
+              <div class="field compact-field">
+                <span>Structured fill assist</span>
+                <label><input id="templateLlmMapToggle" type="checkbox" checked /> Use model-assisted mapping for unfamiliar template labels</label>
+              </div>
               <div class="button-row">
                 <button id="inspectTemplateButton" class="ghost-button" type="button">Scan template</button>
                 <button id="draftTemplateButton" class="liquid-button secondary-button" type="button">Draft into template</button>
@@ -344,6 +348,7 @@
       <span id="uploadedTemplatePath">None</span>
       <span id="filledTemplatePath">None</span>
       <span id="templateDraftPath">None</span>
+      <span id="templateMappingPath">None</span>
       <span id="templateReportPath">None</span>
     </div>
     <script src="/app.js"></script>

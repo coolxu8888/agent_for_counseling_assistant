@@ -1,0 +1,14 @@
+[
+  {
+    "id": "TF-001",
+    "name": "structured-template-llm-map-next-session-focus",
+    "template_xml_file": "template-fill/TF-001-template.xml",
+    "structured_output_file": "template-fill/TF-001-structured-output.json",
+    "expected_source_path": "next_session_focus",
+    "expected_label": "咨询目标",
+    "expected_output_contains": [
+      "继续评估安全情况",
+      "回顾联系朋友的结果"
+    ]
+  }
+]

@@ -371,6 +371,8 @@ The legacy structured path still works when the agent has already produced `stru
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx
 ```
 
+In the web workbench, the structured path now also supports a guarded model-assisted mapping pass for unfamiliar template labels. Leave `Use model-assisted mapping for unfamiliar template labels` enabled when a counselor template uses labels such as `咨询目标` or `后续计划` that do not match the fixed structured schema exactly. The app will write a reviewed `template_mapping.json` beside the filled document and final report.
+
 The v0.1 filler supports ordinary `.docx` tables and paragraphs with recognizable labels, such as `风险变化` followed by an empty cell or `下次咨询重点：____`. It also writes `template_fill_report.json`; review this report before using the generated document because unmatched fields and skipped non-empty cells are listed there.
 
 To inspect and review the template mapping layer, write the intermediate artifact files too:
@@ -392,3 +394,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.p
 ```
 
 The model is constrained to choose from `source_paths.json` entries or return `unmapped`; it does not write final Word content directly. The code still performs the final fill and writes `template_fill_report.json` for review.
+
+To run the dedicated template-fill eval against the real DeepSeek API:
+
+```powershell
+python scripts\run_template_fill_eval.py --ids TF-001
+```
+
+This eval uses a real DOCX template fixture plus structured output, runs the guarded LLM mapping path, and scores whether the expected slot-to-source mapping and final filled output were produced.

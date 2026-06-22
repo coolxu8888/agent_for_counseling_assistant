@@ -935,6 +935,7 @@ function updateTemplateResult(data) {
   }
   setPathDisplay("filledTemplatePath", data.output_path, true);
   setPathDisplay("templateDraftPath", data.draft_path, true);
+  setPathDisplay("templateMappingPath", data.mapping_path, true);
   setPathDisplay("templateReportPath", data.report_path, true);
   $("templatePane").textContent = formatReportSummary(data.report);
   setPane("template");
@@ -946,6 +947,7 @@ function templatePayloadBase() {
   return {
     template_path: $("templatePath").value.trim(),
     template_ref: state.selectedTemplateRef || undefined,
+    llm_map: $("templateLlmMapToggle").checked,
   };
 }
 

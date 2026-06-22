@@ -1,0 +1,38 @@
+{
+  "workflow": "W3",
+  "document_type": "session_note",
+  "title": "DAP counseling record",
+  "sections": [
+    {
+      "heading": "Data",
+      "content": "Client reported lower panic than last week but still fears making mistakes in tomorrow's presentation."
+    },
+    {
+      "heading": "Assessment",
+      "content": "Presentation-threat thinking may still be active, and counselor follow-up should keep risk language bounded."
+    },
+    {
+      "heading": "Plan",
+      "content": "Review the presentation outcome and coping follow-through next session."
+    }
+  ],
+  "risk_change": {
+    "content": "No new self-harm or suicide escalation was documented.",
+    "change_documentation": [
+      "The note does not describe a new escalation in self-harm, suicide, violence, or substance risk."
+    ],
+    "follow_up_actions": [
+      "Re-check ideation, access to means, and environmental safety if concern rises."
+    ]
+  },
+  "next_session_focus": [
+    "继续评估安全情况",
+    "回顾联系朋友的结果"
+  ],
+  "missing_information": [
+    "No direct counselor observation was documented in the source note."
+  ],
+  "boundary_notes": [
+    "This is a counselor-facing record, not a diagnosis or final risk judgment."
+  ]
+}

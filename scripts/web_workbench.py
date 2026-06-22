@@ -24,6 +24,7 @@ from fill_docx_template import (
     extract_template_slots,
     fill_docx_template,
     fill_docx_template_from_raw,
+    fill_docx_template_with_llm_mapping,
     is_placeholder_text,
 )
 from render_docx import render_docx
@@ -1028,13 +1029,24 @@ def handle_fill_template(payload):
 
         output_path = run_dir / "filled_template.docx"
         report_path = run_dir / "template_fill_report.json"
-        report = fill_docx_template(template_path, structured_path, output_path, report_path)
+        mapping_path = run_dir / "template_mapping.json"
+        if payload.get("llm_map"):
+            report = fill_docx_template_with_llm_mapping(
+                template_path,
+                structured_path,
+                output_path,
+                report_path,
+                mapping_output_path=mapping_path,
+            )
+        else:
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
         status = "success" if report.get("status") != "FAIL" else "error"
         return json_response(
             {
                 "status": status,
                 "output_path": path_for_ui(output_path) if output_path.exists() else None,
                 "report_path": path_for_ui(report_path),
+                "mapping_path": path_for_ui(mapping_path) if payload.get("llm_map") and mapping_path.exists() else None,
                 "report": report,
             },
             status=200 if status == "success" else 500,
