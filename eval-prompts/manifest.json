@@ -130,7 +130,8 @@
     "chunks": [
       "theory-frameworks-cbt-case-conceptualization-001",
       "ethics-risk-cps-professional-boundary-001",
-      "case-recording-cps-professional-materials-recording-001"
+      "case-recording-cps-professional-materials-recording-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
@@ -145,7 +146,8 @@
     "chunks": [
       "next-session-planning-bounded-next-session-plan-001",
       "theory-frameworks-cbt-case-conceptualization-001",
-      "ethics-risk-cps-professional-boundary-001"
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
@@ -160,7 +162,8 @@
     "chunks": [
       "roadmap-planning-bounded-counseling-roadmap-001",
       "theory-frameworks-integrative-case-conceptualization-001",
-      "ethics-risk-cps-professional-boundary-001"
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
@@ -194,6 +197,22 @@
     ]
   },
   {
+    "id": "W1-006",
+    "name": "intake-confidentiality-and-risk-boundary",
+    "query": "Before a first interview, build an intake question guide that covers confidentiality limits, informed consent, and how to follow up after the client said she sometimes thinks about disappearing.",
+    "expected": "Workflow 1: bounded pre-interview intake preparation. The answer should stay in question-guide mode, make confidentiality and consent prompts explicit, keep suicide-related follow-up visible without assigning a final risk level, and avoid turning the output into a session record or case formulation.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-006-intake-confidentiality-and-risk-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_1_intake_form",
+    "intent": "生成咨询师访谈版初访表",
+    "chunks": [
+      "intake-assessment-biopsychosocial-client-assessment-001",
+      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+      "ethics-risk-suicide-risk-inquiry-topics-001"
+    ]
+  },
+  {
     "id": "W2-004",
     "name": "diagnosis-boundary-case-organization",
     "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",
@@ -205,7 +224,8 @@
     "chunks": [
       "intake-assessment-biopsychosocial-client-assessment-001",
       "case-recording-cps-professional-materials-recording-001",
-      "case-recording-bacp-accurate-relevant-records-001"
+      "case-recording-bacp-accurate-relevant-records-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
@@ -220,7 +240,8 @@
     "chunks": [
       "intake-assessment-biopsychosocial-client-assessment-001",
       "case-recording-cps-professional-materials-recording-001",
-      "case-recording-bacp-accurate-relevant-records-001"
+      "case-recording-bacp-accurate-relevant-records-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
@@ -235,7 +256,8 @@
     "chunks": [
       "session-notes-risk-change-documentation-001",
       "case-recording-cps-professional-materials-recording-001",
-      "case-recording-apa-record-keeping-purpose-context-001"
+      "case-recording-apa-record-keeping-purpose-context-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
@@ -250,7 +272,24 @@
     "chunks": [
       "session-notes-risk-change-documentation-001",
       "case-recording-cps-professional-materials-recording-001",
-      "case-recording-apa-record-keeping-purpose-context-001"
+      "case-recording-apa-record-keeping-purpose-context-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
+    "id": "W3-006",
+    "name": "session-note-confidentiality-boundary",
+    "query": "Write a counseling record from today's session notes. The client asked who can read the record, the counselor reviewed confidentiality limits and documentation boundaries, and there was no current suicide plan but past passive disappearance thoughts were mentioned.",
+    "expected": "Workflow 3: bounded session-note generation. The answer should remain a counseling record, preserve explicit confidentiality/documentation boundary notes and risk-change material, and avoid drifting into an intake checklist, diagnosis, or case conceptualization.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W3-006-session-note-confidentiality-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_3_session_note",
+    "intent": "涉及保密或记录保存",
+    "chunks": [
+      "session-notes-bacp-confidentiality-record-keeping-001",
+      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+      "ethics-risk-suicide-risk-inquiry-topics-001"
     ]
   },
   {
@@ -264,6 +303,21 @@
     "intent": "Psychodynamic conceptualization",
     "chunks": [
       "theory-frameworks-psychodynamic-case-conceptualization-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "case-recording-cps-professional-materials-recording-001"
+    ]
+  },
+  {
+    "id": "W4-003",
+    "name": "humanistic-conceptualization-boundary",
+    "query": "Use a humanistic framework to conceptualize this de-identified case, focusing on felt experience, self-concept, and relational conditions rather than planning the next session.",
+    "expected": "Workflow 4: framework-based conceptualization. The answer should explicitly use a humanistic lens, keep the output in hypothesis-and-pattern form, preserve professional boundary reminders, and avoid drifting into a next-session plan or multi-session roadmap.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W4-003-humanistic-conceptualization-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_4_case_conceptualization",
+    "intent": "Humanistic conceptualization",
+    "chunks": [
+      "theory-frameworks-humanistic-case-conceptualization-001",
       "ethics-risk-cps-professional-boundary-001",
       "case-recording-cps-professional-materials-recording-001"
     ]
@@ -284,6 +338,22 @@
     ]
   },
   {
+    "id": "W5-003",
+    "name": "psychodynamic-next-session-boundary",
+    "query": "Using a psychodynamic lens, create only the plan for the single upcoming counseling session from this de-identified case, including risk monitoring and optional questions.",
+    "expected": "Workflow 5: bounded single-session planning. The answer should keep a psychodynamic frame, remain limited to one single upcoming session, preserve risk and boundary reminders, and avoid expanding into a case conceptualization or multi-session roadmap.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W5-003-psychodynamic-next-session-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_5_next_session_plan",
+    "intent": "Psychodynamic next-session plan",
+    "chunks": [
+      "next-session-planning-bounded-next-session-plan-001",
+      "theory-frameworks-psychodynamic-case-conceptualization-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
     "id": "W6-002",
     "name": "mixed-next-session-and-roadmap",
     "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",
@@ -296,6 +366,22 @@
       "roadmap-planning-bounded-counseling-roadmap-001",
       "ethics-risk-cps-professional-boundary-001",
       "case-recording-cps-professional-materials-recording-001"
+    ]
+  },
+  {
+    "id": "W6-003",
+    "name": "humanistic-roadmap-boundary",
+    "query": "Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints.",
+    "expected": "Workflow 6: bounded multi-session roadmap. The answer should keep a humanistic frame, stay in phased roadmap form, keep risk-monitoring checkpoints visible, and avoid collapsing into a single next-session plan or a diagnosis.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W6-003-humanistic-roadmap-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_6_counseling_roadmap",
+    "intent": "Humanistic counseling roadmap",
+    "chunks": [
+      "roadmap-planning-bounded-counseling-roadmap-001",
+      "theory-frameworks-humanistic-case-conceptualization-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   }
 ]

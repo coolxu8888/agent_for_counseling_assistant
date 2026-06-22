@@ -1,6 +1,6 @@
 # Product Loop State
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 This file is the durable handoff state for autonomous product iterations. Future automation runs should read this file before planning. It exists so the project can continue from repository state instead of relying on chat context.
 
@@ -57,10 +57,10 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 runner now detects intake-prep vs initial-interview-summary mode, switches the structured contract to the fixed summary template, persists `w1_mode`, and returns it through the web workbench with live eval `W1-005` passing | strengthen structured validation coverage and verify the hosted deployment uses the new summary-mode contract |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
 | P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
-| P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval | add more framework-specific eval cases and RAG cards |
-| P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval | add framework-specific evals and hosted verification |
-| P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval | add more framework-specific roadmap evals and hosted verification |
-| P0 | RAG-backed ethics/risk/documentation retrieval | partial | chunks/map and validation scripts exist | expand retrieval eval matrix and failure tests |
+| P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic retrieval-backed boundary coverage (`W4-002`, `W4-003`) | add more framework-specific source cards and hosted verification |
+| P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval and now includes psychodynamic boundary coverage (`W5-003`) | verify hosted deployment and continue theory-specific source-card expansion |
+| P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval and now includes humanistic roadmap coverage (`W6-003`) | add more framework-specific roadmap source cards and hosted verification |
+| P0 | RAG-backed ethics/risk/documentation retrieval | shipped partial | runner now validates retrieval coverage before model calls, the retrieval selector locks confidentiality/risk/documentation chunk mixes, and eval coverage now includes `W1-006`, `W3-006`, `W4-003`, `W5-003`, and `W6-003` with live `W5-003` passing | expand theory-specific source cards and run hosted retrieval smoke tests |
 | P0 | Theory-specific RAG support | partial | initial W4 support exists | add CBT/humanistic/psychodynamic/integrative source cards and routing |
 | P0 | Word template understanding and filling | partial | web workbench now supports guarded LLM-assisted structured template mapping, dedicated template-fill eval `TF-001` ships, and DeepSeek-backed structured-template mapping passes on a real fixture | expand W1/W2 template-label coverage and run hosted template smoke after deployment |
 | P0 | Eval automation across workflows | partial | eval builder and cleaners exist | broaden bilingual rubric coverage and generate failure-reason reports |
@@ -227,15 +227,61 @@ Remaining gaps:
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 summary request.
 - The workbench currently exposes W1 mode via route metadata, but there is not yet a dedicated W1 summary-specific result card or export affordance beyond the standard run payload.
 
+## This Run: RAG-Backed Ethics/Risk/Documentation Retrieval
+
+Capability worked on:
+
+- `RAG-backed ethics/risk/documentation retrieval`, specifically retrieval coverage validation plus adjacent-workflow boundary selection for theory-specific and confidentiality-sensitive requests.
+
+What changed:
+
+- Added retrieval coverage guards in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py>) so `run_agent_once` now fails before any model call when a workflow's retrieved chunk set is missing required section classes such as `ethics-risk`, `session-notes`, `theory-frameworks`, `next-session-planning`, or `roadmap-planning`.
+- Extended chunk metadata indexing in the same runner so coverage checks use `rag_section` plus workflow-specific anchor chunks like `session-notes-risk-change-documentation-001`, `next-session-planning-bounded-next-session-plan-001`, and `ethics-risk-cps-professional-boundary-001`.
+- Hardened the retrieval selector in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run-retrieval.ps1`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run-retrieval.ps1>) by:
+  - recognizing English confidentiality/documentation boundary wording for W3
+  - explicitly adding confidentiality chunks when the request mentions record access or informed-consent boundaries
+  - tightening the W5 single-session wording so psychodynamic next-session planning no longer falls into W3 just because it says `session`
+- Expanded retrieval-backed eval coverage in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py>) with:
+  - `W1-006` intake confidentiality + suicide-follow-up boundary
+  - `W3-006` session-note confidentiality/documentation boundary
+  - `W4-003` humanistic conceptualization boundary
+  - `W5-003` psychodynamic single-session planning boundary
+  - `W6-003` humanistic roadmap boundary
+- Regenerated the committed eval assets under [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts>) so the manifest and prompt files now reflect the corrected retrieval routes and chunk sets.
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_retrieval.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_retrieval.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_build_workflow_eval_prompts scripts.test_run_retrieval`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-rag.ps1 -Json`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W5-003`
+
+Outcome:
+
+- Retrieval failures that previously would have reached the model with an incomplete evidence set are now blocked at the runner boundary.
+- W3 confidentiality/documentation requests now retrieve the intended record-keeping and informed-consent chunks instead of silently falling back to the generic session-note bundle.
+- The new psychodynamic W5 boundary case now routes to W5 correctly, and the live DeepSeek-backed eval `W5-003` passed.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested on at least one confidentiality-sensitive W3 request and one theory-specific W5/W6 request.
+- Theory-specific RAG support is still partial because the current framework cards cover the main CBT/humanistic/psychodynamic/integrative concepts but not a broader reference set or richer per-framework subtopics.
+- Eval automation is broader now, but the rubric layer still needs more bilingual failure-reason reporting instead of only pass/fail summary output.
+
 ## Next Recommended Capability
 
-Improve `RAG-backed ethics/risk/documentation retrieval` as the next P0 capability.
+Improve `Theory-specific RAG support` as the next P0 capability.
 
 Recommended scope:
 
-- Expand retrieval eval coverage around ethics, risk, and documentation failure cases across W1-W6.
-- Add explicit retrieval failure tests so missing or mismatched risk/ethics chunks are surfaced before model calls.
-- Verify theory-specific and risk-boundary retrieval still stays bounded when AUTO routing chooses adjacent workflows.
+- Expand the theory-framework source cards and retrieval-map routes for CBT, humanistic, psychodynamic, and integrative work beyond the current single-card-per-framework baseline.
+- Add source-backed evals that distinguish conceptualization vs next-session planning vs roadmap language within each framework.
+- Run hosted retrieval smokes after deployment to confirm the public product is using the updated framework-aware retrieval set.
 
 ## Deployment Readiness Notes
 

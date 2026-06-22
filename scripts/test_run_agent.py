@@ -23,6 +23,7 @@ from run_agent import (
     selected_chunk_ids_for_workflow,
     strip_agent_marker,
     structured_failure,
+    validate_retrieval_coverage,
     validate_structured_output,
 )
 from run_model_eval import DeepSeekConfig
@@ -34,6 +35,61 @@ LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 class RunAgentTest(unittest.TestCase):
     def make_rag_fixture(self, tmp_path):
         rag_root = tmp_path / "rag"
+        chunk_specs = [
+            (
+                rag_root / "session-notes" / "risk-change-documentation.md",
+                "session-notes-risk-change-documentation-001",
+                "session-notes",
+                "# Risk change\nKeep risk-change documentation explicit.\n",
+            ),
+            (
+                rag_root / "case-recording" / "professional-materials-recording.md",
+                "case-recording-cps-professional-materials-recording-001",
+                "case-recording",
+                "# Recording\nUse accurate, relevant professional records.\n",
+            ),
+            (
+                rag_root / "ethics-risk" / "risk-boundary.md",
+                "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+                "ethics-risk",
+                "# Risk boundary\nKeep suicide, self-harm, and harm-to-others boundaries explicit.\n",
+            ),
+        ]
+        for chunk_path, chunk_id, rag_section, body in chunk_specs:
+            chunk_path.parent.mkdir(parents=True, exist_ok=True)
+            chunk_path.write_text(
+                (
+                    "---\n"
+                    f"chunk_id: {chunk_id}\n"
+                    f"rag_section: {rag_section}\n"
+                    "---\n\n"
+                    f"{body}"
+                ),
+                encoding="utf-8",
+            )
+        retrieval_map_path = tmp_path / "retrieval-map.json"
+        retrieval_map_path.write_text(
+            json.dumps(
+                {
+                    "workflows": {
+                        "workflow_3_session_note": {
+                            "intent_routes": [
+                                {
+                                    "intent": "standard session note",
+                                    "priority_chunks": [
+                                        "session-notes-risk-change-documentation-001",
+                                        "case-recording-cps-professional-materials-recording-001",
+                                        "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+                                    ],
+                                }
+                            ]
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        return rag_root, retrieval_map_path
         chunk_path = rag_root / "session-notes" / "risk-change-documentation.md"
         chunk_path.parent.mkdir(parents=True)
         chunk_path.write_text(
@@ -147,6 +203,76 @@ class RunAgentTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(AgentRunError, "missing-chunk-001"):
                 load_rag_chunks(["missing-chunk-001"], Path(tmp))
+
+    def test_validate_retrieval_coverage_rejects_missing_theory_boundary_chunks(self):
+        chunks = [
+            {
+                "chunk_id": "case-recording-cps-professional-materials-recording-001",
+                "path": Path("rag/case-recording/materials-recording.md"),
+                "content": (
+                    "---\n"
+                    "chunk_id: case-recording-cps-professional-materials-recording-001\n"
+                    "rag_section: case-recording\n"
+                    "---\n"
+                    "\n"
+                    "# Recording\nUse accurate records.\n"
+                ),
+            }
+        ]
+
+        with self.assertRaisesRegex(AgentRunError, "theory-frameworks.*ethics-risk"):
+            validate_retrieval_coverage(normalize_workflow("W4"), chunks)
+
+    def test_run_agent_once_rejects_retrieval_gap_before_model_call(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root = tmp_path / "rag"
+            chunk_path = rag_root / "case-recording" / "materials-recording.md"
+            chunk_path.parent.mkdir(parents=True)
+            chunk_path.write_text(
+                "---\n"
+                "chunk_id: case-recording-cps-professional-materials-recording-001\n"
+                "rag_section: case-recording\n"
+                "---\n"
+                "\n"
+                "# Recording\nUse accurate records.\n",
+                encoding="utf-8",
+            )
+            retrieval_map_path = tmp_path / "retrieval-map.json"
+            retrieval_map_path.write_text(
+                json.dumps(
+                    {
+                        "workflows": {
+                            "workflow_4_case_conceptualization": {
+                                "intent_routes": [
+                                    {
+                                        "intent": "broken conceptualization route",
+                                        "priority_chunks": [
+                                            "case-recording-cps-professional-materials-recording-001"
+                                        ],
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            def should_not_call_model(*_args, **_kwargs):
+                raise AssertionError("model call should not run when retrieval coverage is invalid")
+
+            with self.assertRaisesRegex(AgentRunError, "theory-frameworks.*ethics-risk"):
+                run_agent_once(
+                    workflow_value="W4",
+                    inline_input="Use a CBT framework to conceptualize this de-identified case.",
+                    input_file=None,
+                    run_root=tmp_path / "agent-runs",
+                    retrieval_map_path=retrieval_map_path,
+                    rag_root=rag_root,
+                    config=DeepSeekConfig(api_key="key"),
+                    http_post_json=should_not_call_model,
+                )
 
     def test_build_prompt_package_includes_context_and_marker(self):
         workflow = normalize_workflow("W3")
@@ -959,7 +1085,11 @@ AGENT_DONE_W3
         self.assertEqual(metadata["status"], "dry_run")
         self.assertEqual(
             metadata["selected_rag_chunks"],
-            ["session-notes-risk-change-documentation-001"],
+            [
+                "session-notes-risk-change-documentation-001",
+                "case-recording-cps-professional-materials-recording-001",
+                "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+            ],
         )
         self.assertIn("来访者本次谈到很委屈。", prompt)
 

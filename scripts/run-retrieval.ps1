@@ -207,7 +207,9 @@ function Select-Workflow {
             "next-session\s*plan",
             "next session\s*plan",
             "session agenda",
-            "upcoming session",
+            "upcoming( counseling)? session",
+            "single upcoming( counseling)? session",
+            "plan for the single upcoming( counseling)? session",
             "risk check points",
             (U "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212"),
             (U "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212"),
@@ -326,7 +328,9 @@ function Select-Workflow {
             "next session\s*plan",
             "plan (only )?the next (counseling )?session",
             "session agenda",
-            "upcoming session",
+            "upcoming( counseling)? session",
+            "single upcoming( counseling)? session",
+            "plan for the single upcoming( counseling)? session",
             "immediate next session",
             "risk check points",
             "between-session task",
@@ -418,11 +422,11 @@ function Select-Intent {
         if ($involvesPsychiatry) {
             return (U "\u6d89\u53ca\u5c31\u533b\u6216\u7cbe\u795e\u79d1")
         }
+        if (Test-AnyPattern $Text @("confidentiality", "informed consent", "who can read", "record keeping", "documentation boundaries", "documentation boundary", (U "\u4fdd\u5bc6"), (U "\u8bb0\u5f55\u4fdd\u5b58"), (U "\u77e5\u60c5\u540c\u610f"))) {
+            return (U "\u6d89\u53ca\u4fdd\u5bc6\u6216\u8bb0\u5f55\u4fdd\u5b58")
+        }
         if ($hasRisk) {
             return (U "\u51fa\u73b0\u81ea\u6740\u6216\u81ea\u4f24\u98ce\u9669")
-        }
-        if (Test-AnyPattern $Text @((U "\u4fdd\u5bc6"), (U "\u8bb0\u5f55\u4fdd\u5b58"), (U "\u77e5\u60c5\u540c\u610f"))) {
-            return (U "\u6d89\u53ca\u4fdd\u5bc6\u6216\u8bb0\u5f55\u4fdd\u5b58")
         }
         return (U "\u666e\u901a session \u8bb0\u5f55")
     }
@@ -594,8 +598,9 @@ if ($selectedWorkflow -notin @("workflow_4_case_conceptualization", "workflow_5_
     $boundaryNotes.Add("The query mentions a modality preference; v0.1 does not use modality-specific chunks to alter the basic information capture structure.") | Out-Null
 }
 
-$queryHasRisk = Test-AnyPattern $Query @((U "\u98ce\u9669"), (U "\u81ea\u6740"), (U "\u81ea\u4f24"), (U "\u4e0d\u60f3\u6d3b"), (U "\u6d88\u5931"), (U "\u4ed6\u4f24"), (U "\u4f24\u5bb3"), (U "\u5371\u673a"), (U "\u4e0d\u9192\u6765"), (U "\u4e0d\u60f3\u9192\u6765"))
-$queryHasSuicideSignal = Test-AnyPattern $Query @((U "\u81ea\u6740"), (U "\u81ea\u6740\u610f\u5ff5"), (U "\u4e0d\u60f3\u6d3b"), (U "\u6d88\u5931"), (U "\u4e0d\u9192\u6765"), (U "\u4e0d\u60f3\u9192\u6765"))
+$queryHasRisk = Test-AnyPattern $Query @("risk", "suicid", "self-harm", "harm to others", "crisis", "disappear", (U "\u98ce\u9669"), (U "\u81ea\u6740"), (U "\u81ea\u4f24"), (U "\u4e0d\u60f3\u6d3b"), (U "\u6d88\u5931"), (U "\u4ed6\u4f24"), (U "\u4f24\u5bb3"), (U "\u5371\u673a"), (U "\u4e0d\u9192\u6765"), (U "\u4e0d\u60f3\u9192\u6765"))
+$queryHasSuicideSignal = Test-AnyPattern $Query @("suicid", "disappear", "don't want to live", "do not want to live", "not wake up", (U "\u81ea\u6740"), (U "\u81ea\u6740\u610f\u5ff5"), (U "\u4e0d\u60f3\u6d3b"), (U "\u6d88\u5931"), (U "\u4e0d\u9192\u6765"), (U "\u4e0d\u60f3\u9192\u6765"))
+$queryHasConfidentiality = Test-AnyPattern $Query @("confidentiality", "informed consent", "who can read", "record keeping", "documentation boundaries", "documentation boundary", (U "\u4fdd\u5bc6"), (U "\u77e5\u60c5\u540c\u610f"), (U "\u8bb0\u5f55\u4fdd\u5b58"))
 $queryRequestsDiagnosis = Test-AnyPattern $Query @((U "\u8bca\u65ad"), (U "\u662f\u4e0d\u662f.*\u75c7"), (U "\u6291\u90c1\u75c7"), (U "\u7cbe\u795e\u5206\u88c2"), (U "\u53cc\u76f8"), (U "\u7126\u8651\u75c7"))
 $queryInvolvesPsychiatry = Test-AnyPattern $Query @((U "\u7cbe\u795e\u79d1"), (U "\u5c31\u533b"), (U "\u5e7b\u542c"), (U "\u5984\u60f3"), (U "\u76d1\u89c6"), (U "\u73b0\u5b9e\u68c0\u9a8c"), (U "\u7cbe\u795e\u75c5"))
 
@@ -630,6 +635,16 @@ else {
     $chunkPlan = [System.Collections.Generic.List[string]]::new()
     foreach ($chunkId in @($route.priority_chunks)) {
         $chunkPlan.Add($chunkId) | Out-Null
+    }
+
+    if ($queryHasConfidentiality) {
+        if ($selectedWorkflow -eq "workflow_1_intake_form") {
+            $chunkPlan.Add("ethics-risk-cps-informed-consent-confidentiality-001") | Out-Null
+        }
+        elseif ($selectedWorkflow -eq "workflow_3_session_note") {
+            $chunkPlan.Add("session-notes-bacp-confidentiality-record-keeping-001") | Out-Null
+            $chunkPlan.Add("ethics-risk-cps-informed-consent-confidentiality-001") | Out-Null
+        }
     }
 
     if ($queryHasRisk) {

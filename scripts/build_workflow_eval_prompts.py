@@ -94,6 +94,12 @@ EVALS = [
         "expected": "Workflow 1: initial interview summary mode. The answer should use the fixed initial interview summary structure, separate known facts from unclear or missing facts and follow-up questions, keep risk material explicit but bounded, and avoid drifting into a counseling record, diagnosis, or treatment plan.",
     },
     {
+        "id": "W1-006",
+        "name": "intake-confidentiality-and-risk-boundary",
+        "query": "Before a first interview, build an intake question guide that covers confidentiality limits, informed consent, and how to follow up after the client said she sometimes thinks about disappearing.",
+        "expected": "Workflow 1: bounded pre-interview intake preparation. The answer should stay in question-guide mode, make confidentiality and consent prompts explicit, keep suicide-related follow-up visible without assigning a final risk level, and avoid turning the output into a session record or case formulation.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",
@@ -118,10 +124,22 @@ EVALS = [
         "expected": "Workflow 3: DAP counseling record generation with explicit risk-change documentation. The answer should keep a DAP structure, document the observed change from the earlier passive disappearance wording, include counselor-facing follow-up actions, avoid diagnosis, and stay within session-record scope.",
     },
     {
+        "id": "W3-006",
+        "name": "session-note-confidentiality-boundary",
+        "query": "Write a counseling record from today's session notes. The client asked who can read the record, the counselor reviewed confidentiality limits and documentation boundaries, and there was no current suicide plan but past passive disappearance thoughts were mentioned.",
+        "expected": "Workflow 3: bounded session-note generation. The answer should remain a counseling record, preserve explicit confidentiality/documentation boundary notes and risk-change material, and avoid drifting into an intake checklist, diagnosis, or case conceptualization.",
+    },
+    {
         "id": "W4-002",
         "name": "framework-hypothesis-not-plan",
         "query": "Use a psychodynamic framework to conceptualize this case, focusing on hypotheses and patterns rather than a session plan.",
         "expected": "Workflow 4: framework-based conceptualization. The answer should stay in psychodynamic case-conceptualization mode, separate hypotheses from facts, and avoid drifting into a next-session plan or roadmap.",
+    },
+    {
+        "id": "W4-003",
+        "name": "humanistic-conceptualization-boundary",
+        "query": "Use a humanistic framework to conceptualize this de-identified case, focusing on felt experience, self-concept, and relational conditions rather than planning the next session.",
+        "expected": "Workflow 4: framework-based conceptualization. The answer should explicitly use a humanistic lens, keep the output in hypothesis-and-pattern form, preserve professional boundary reminders, and avoid drifting into a next-session plan or multi-session roadmap.",
     },
     {
         "id": "W5-002",
@@ -130,10 +148,22 @@ EVALS = [
         "expected": "Workflow 5: single next-session planning. The answer should stay bounded to one next session, keep CBT consistency, and avoid expanding into a phased roadmap or a case summary.",
     },
     {
+        "id": "W5-003",
+        "name": "psychodynamic-next-session-boundary",
+        "query": "Using a psychodynamic lens, create only the plan for the single upcoming counseling session from this de-identified case, including risk monitoring and optional questions.",
+        "expected": "Workflow 5: bounded single-session planning. The answer should keep a psychodynamic frame, remain limited to one single upcoming session, preserve risk and boundary reminders, and avoid expanding into a case conceptualization or multi-session roadmap.",
+    },
+    {
         "id": "W6-002",
         "name": "mixed-next-session-and-roadmap",
         "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",
         "expected": "Workflow 6: multi-session roadmap. The answer should explicitly choose a phased roadmap structure, still mention the immediate next session inside that roadmap, and avoid collapsing into a single-session next-session plan.",
+    },
+    {
+        "id": "W6-003",
+        "name": "humanistic-roadmap-boundary",
+        "query": "Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints.",
+        "expected": "Workflow 6: bounded multi-session roadmap. The answer should keep a humanistic frame, stay in phased roadmap form, keep risk-monitoring checkpoints visible, and avoid collapsing into a single next-session plan or a diagnosis.",
     },
 ]
 

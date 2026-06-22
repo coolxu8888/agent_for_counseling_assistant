@@ -24,6 +24,37 @@ DEFAULT_RUN_ROOT = ROOT / "agent-runs"
 DEFAULT_RAG_ROOT = ROOT / "rag"
 LOCAL_TIMEZONE = timezone(timedelta(hours=8))
 
+RETRIEVAL_COVERAGE_RULES = {
+    "W1": {
+        "required_sections": ["intake-assessment", "ethics-risk", "forms-fields"],
+    },
+    "W2": {
+        "required_sections": ["case-recording", "ethics-risk", "intake-assessment"],
+    },
+    "W3": {
+        "required_sections": ["session-notes", "case-recording", "ethics-risk"],
+        "required_chunk_ids": ["session-notes-risk-change-documentation-001"],
+    },
+    "W4": {
+        "required_sections": ["theory-frameworks", "ethics-risk", "case-recording"],
+        "required_chunk_ids": ["ethics-risk-cps-professional-boundary-001"],
+    },
+    "W5": {
+        "required_sections": ["next-session-planning", "theory-frameworks", "ethics-risk"],
+        "required_chunk_ids": [
+            "next-session-planning-bounded-next-session-plan-001",
+            "ethics-risk-cps-professional-boundary-001",
+        ],
+    },
+    "W6": {
+        "required_sections": ["roadmap-planning", "theory-frameworks", "ethics-risk"],
+        "required_chunk_ids": [
+            "roadmap-planning-bounded-counseling-roadmap-001",
+            "ethics-risk-cps-professional-boundary-001",
+        ],
+    },
+}
+
 
 class AgentInputError(ValueError):
     pass
@@ -777,13 +808,23 @@ def _front_matter_chunk_id(text):
     return match.group(1) if match else None
 
 
+def _front_matter_scalar(text, key):
+    match = re.search(rf"(?m)^{re.escape(key)}:\s*([A-Za-z0-9_.-]+)\s*$", text)
+    return match.group(1) if match else None
+
+
 def _index_rag_chunks(rag_root):
     index = {}
     for path in Path(rag_root).rglob("*.md"):
         text = path.read_text(encoding="utf-8")
         chunk_id = _front_matter_chunk_id(text)
         if chunk_id:
-            index[chunk_id] = {"chunk_id": chunk_id, "path": path, "content": text}
+            index[chunk_id] = {
+                "chunk_id": chunk_id,
+                "path": path,
+                "content": text,
+                "rag_section": _front_matter_scalar(text, "rag_section"),
+            }
     return index
 
 
@@ -800,6 +841,32 @@ def load_rag_chunks(chunk_ids, rag_root=DEFAULT_RAG_ROOT):
     if missing:
         raise AgentRunError("Missing RAG chunks: " + ", ".join(missing))
     return chunks
+
+
+def validate_retrieval_coverage(workflow, chunks):
+    rule = RETRIEVAL_COVERAGE_RULES.get(workflow.workflow_id)
+    if not rule:
+        return
+
+    sections = {chunk.get("rag_section") for chunk in chunks if chunk.get("rag_section")}
+    missing_sections = [section for section in rule.get("required_sections", []) if section not in sections]
+
+    chunk_ids = {chunk.get("chunk_id") for chunk in chunks}
+    missing_chunk_ids = [
+        chunk_id for chunk_id in rule.get("required_chunk_ids", []) if chunk_id not in chunk_ids
+    ]
+
+    if not missing_sections and not missing_chunk_ids:
+        return
+
+    parts = []
+    if missing_sections:
+        parts.append("sections: " + ", ".join(missing_sections))
+    if missing_chunk_ids:
+        parts.append("chunk_ids: " + ", ".join(missing_chunk_ids))
+    raise AgentRunError(
+        f"Retrieval coverage for {workflow.workflow_id} is incomplete; missing " + "; ".join(parts) + "."
+    )
 
 
 def detect_w1_mode(user_input):
@@ -962,6 +1029,7 @@ def _metadata_rag_chunks(chunks):
         {
             "chunk_id": chunk["chunk_id"],
             "path": str(chunk["path"]),
+            "rag_section": chunk.get("rag_section"),
         }
         for chunk in chunks
     ]
@@ -1468,6 +1536,7 @@ def run_agent_once(
     retrieval_map = load_retrieval_map(retrieval_map_path)
     chunk_ids = selected_chunk_ids_for_workflow(workflow, retrieval_map)
     chunks = load_rag_chunks(chunk_ids, rag_root)
+    validate_retrieval_coverage(workflow, chunks)
     prompt_package = build_prompt_package(workflow, user_input, chunks, structured=structured)
 
     write_json(

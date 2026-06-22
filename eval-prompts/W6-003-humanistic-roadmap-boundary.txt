@@ -350,10 +350,10 @@ CPS/中国本地伦理与法律资料在本阶段作为伦理、风险、记录�
 ---
 
 EVAL_ID:
-W5-001
+W6-003
 
 EXPECTED_CHECKPOINTS:
-Workflow 5: bounded single-session next-session plan. The answer should explicitly stay within one upcoming session, name the selected framework, include session goal/focus/interventions/questions/risk monitoring/optional between-session task/do-not-do boundaries, and avoid diagnosis or multi-session treatment roadmap language.
+Workflow 6: bounded multi-session roadmap. The answer should keep a humanistic frame, stay in phased roadmap form, keep risk-monitoring checkpoints visible, and avoid collapsing into a single next-session plan or a diagnosis.
 
 EXTRA_CONSTRAINTS:
 - 无
@@ -362,49 +362,43 @@ EXTRA_CONSTRAINTS:
 
 PROMPT_PACKAGE:
 WORKFLOW:
-workflow_5_next_session_plan - Next-session plan
+workflow_6_counseling_roadmap - Counseling roadmap
 
 INTENT:
-CBT next-session plan
+Humanistic counseling roadmap
 
 QUERY_TOPICS:
-single_session_focus, cognitive_cycle, behavioral_patterns, risk_monitoring
+phased_planning, felt_experience, self_concept, risk_monitoring
 
 RAG_CONTEXT:
-### next-session-planning-bounded-next-session-plan-001
+### roadmap-planning-bounded-counseling-roadmap-001
 
-title: Bounded next-session planning frame
-source_id: local-next-session-planning-001
-source_type: product_framework_note
-rag_section: next-session-planning
+title: Bounded counseling roadmap frame
+source_id: counselor-assistant-internal-roadmap-planning
+source_type: internal_guidance
+rag_section: roadmap-planning
 risk_level: medium
 
-# Core rule
+Use this chunk in Workflow 6 when the counselor asks for a counseling roadmap, phased plan, or multi-session direction for a de-identified case.
 
-Generate a plan for one upcoming counseling session only. The plan should help the counselor decide what to review, explore, monitor, and possibly try in that single session, without implying a complete treatment sequence.
+Output frame:
 
-# Agent use
+- Start with a brief overview that names the selected framework and states that the roadmap is revisable.
+- Organize the roadmap into phases rather than promising a fixed number of sessions.
+- For each phase, describe the counselor's working focus, what hypotheses still need verification, and what markers should be monitored.
+- Offer session focus options rather than one mandatory sequence.
+- Keep risk monitoring checkpoints visible across phases.
+- Add collaboration or referral reminders only as conditional prompts for counselor judgment.
+- Add missing-information prompts when the case material does not support a fuller roadmap.
+- End with explicit do-not-do boundaries.
 
-Use this chunk in Workflow 5 when the counselor asks for a next-session plan, next meeting agenda, or immediate next-step focus. Keep the output practical and bounded: session goal, focus areas, suggested interventions, questions to ask, risk checks, and optional between-session tasks that still require counselor judgment.
-
-# Forbidden use
-
-Do not turn the answer into a multi-session roadmap, deterministic treatment plan, or full intervention protocol. Do not prescribe crisis handling, final risk grading, or homework that would be unsafe, unsupported by the material, or outside the counselor's judgment.
-
-# Scope
-
-Applies to counselor-facing planning support for de-identified case reflection, supervision preparation, and note-to-plan transitions.
-
-# Related chunks
-
-- `theory-frameworks-cbt-case-conceptualization-001`
-- `ethics-risk-cps-professional-boundary-001`
+Do not turn the roadmap into a diagnosis, guaranteed outcome, final risk judgment, crisis decision, or rigid treatment prescription. Do not promise a fixed 8-session or 12-session course unless the user explicitly provided a program structure.
 
 ---
 
-### theory-frameworks-cbt-case-conceptualization-001
+### theory-frameworks-humanistic-case-conceptualization-001
 
-title: CBT case conceptualization working frame
+title: Humanistic case conceptualization working frame
 source_id: local-theory-frameworks-001
 source_type: product_framework_note
 rag_section: theory-frameworks
@@ -412,15 +406,15 @@ risk_level: medium
 
 # Core rule
 
-Use CBT conceptualization as a structured working hypothesis about the relationship among triggering situations, automatic thoughts, meanings or beliefs, emotions, body reactions, and behaviors. Keep the output grounded in the counselor's material rather than filling missing steps with speculation.
+Use humanistic conceptualization as a tentative understanding of the client's lived experience, self-concept, unmet needs, values, and relational conditions that may support or constrain growth. Keep the language descriptive, respectful, and non-pathologizing.
 
 # Agent use
 
-Use this chunk only in Workflow 4 when the counselor explicitly asks for a CBT formulation or when CBT is the selected framework. Highlight maintaining cycles, avoidance, safety behaviors, and beliefs that may be relevant, then separate what is known from what still needs verification.
+Use this chunk only in Workflow 4 when the counselor explicitly requests a humanistic lens. Organize the formulation around felt experience, incongruence, relational conditions of worth, resources, and growth edges while distinguishing facts from reflective hypotheses.
 
 # Forbidden use
 
-Do not present the conceptualization as a diagnosis, final truth, or complete treatment plan. Do not invent schemas, childhood events, or cognitive distortions unless the material supports them. Do not turn a conceptualization into prescriptive homework unless the counselor explicitly asks for intervention design.
+Do not replace the client's words with vague inspirational language. Do not erase risk or ethics concerns in the name of warmth. Do not present a growth narrative as certainty when the material is limited.
 
 # Scope
 
@@ -494,7 +488,7 @@ risk_level: high
 - `session-notes-risk-change-documentation-001`
 
 USER_INPUT:
-Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Last session clarified a criticism-anxiety-avoidance cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only, including the session goal, focus areas, suggested questions, risk check points, and any optional between-session task that would still need counselor judgment.
+Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints.
 
 OUTPUT_CONSTRAINTS:
 - Use only USER_INPUT and RAG_CONTEXT.

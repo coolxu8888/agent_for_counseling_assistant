@@ -350,10 +350,10 @@ CPS/中国本地伦理与法律资料在本阶段作为伦理、风险、记录�
 ---
 
 EVAL_ID:
-W5-001
+W5-003
 
 EXPECTED_CHECKPOINTS:
-Workflow 5: bounded single-session next-session plan. The answer should explicitly stay within one upcoming session, name the selected framework, include session goal/focus/interventions/questions/risk monitoring/optional between-session task/do-not-do boundaries, and avoid diagnosis or multi-session treatment roadmap language.
+Workflow 5: bounded single-session planning. The answer should keep a psychodynamic frame, remain limited to one single upcoming session, preserve risk and boundary reminders, and avoid expanding into a case conceptualization or multi-session roadmap.
 
 EXTRA_CONSTRAINTS:
 - 无
@@ -365,10 +365,10 @@ WORKFLOW:
 workflow_5_next_session_plan - Next-session plan
 
 INTENT:
-CBT next-session plan
+Psychodynamic next-session plan
 
 QUERY_TOPICS:
-single_session_focus, cognitive_cycle, behavioral_patterns, risk_monitoring
+single_session_focus, relationship_patterns, conflict_defense, risk_monitoring
 
 RAG_CONTEXT:
 ### next-session-planning-bounded-next-session-plan-001
@@ -402,9 +402,9 @@ Applies to counselor-facing planning support for de-identified case reflection, 
 
 ---
 
-### theory-frameworks-cbt-case-conceptualization-001
+### theory-frameworks-psychodynamic-case-conceptualization-001
 
-title: CBT case conceptualization working frame
+title: Psychodynamic case conceptualization working frame
 source_id: local-theory-frameworks-001
 source_type: product_framework_note
 rag_section: theory-frameworks
@@ -412,19 +412,19 @@ risk_level: medium
 
 # Core rule
 
-Use CBT conceptualization as a structured working hypothesis about the relationship among triggering situations, automatic thoughts, meanings or beliefs, emotions, body reactions, and behaviors. Keep the output grounded in the counselor's material rather than filling missing steps with speculation.
+Use psychodynamic conceptualization as a tentative map of recurring relationship patterns, internal conflicts, defenses, affect regulation, and possible developmental context. Keep interpretations proportional to the evidence and clearly label them as hypotheses.
 
 # Agent use
 
-Use this chunk only in Workflow 4 when the counselor explicitly asks for a CBT formulation or when CBT is the selected framework. Highlight maintaining cycles, avoidance, safety behaviors, and beliefs that may be relevant, then separate what is known from what still needs verification.
+Use this chunk only in Workflow 4 when the counselor explicitly requests a psychodynamic lens. Surface repeating interpersonal themes, possible defenses, and relational expectations that may organize the case, then name what still needs verification.
 
 # Forbidden use
 
-Do not present the conceptualization as a diagnosis, final truth, or complete treatment plan. Do not invent schemas, childhood events, or cognitive distortions unless the material supports them. Do not turn a conceptualization into prescriptive homework unless the counselor explicitly asks for intervention design.
+Do not make deep-history claims, trauma claims, or unconscious explanations sound certain. Do not collapse the case into pathology language or use psychodynamic framing to imply diagnosis. Do not over-interpret transference or childhood meaning without supporting material.
 
 # Scope
 
-Applies to counselor-facing conceptualization support only. It is suitable for de-identified supervision and case reflection, not direct client advice.
+Applies to counselor-facing conceptualization support only. It is suitable for de-identified supervision and formulation discussion, not direct client advice.
 
 # Related chunks
 
@@ -494,7 +494,7 @@ risk_level: high
 - `session-notes-risk-change-documentation-001`
 
 USER_INPUT:
-Create a CBT next-session plan for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Last session clarified a criticism-anxiety-avoidance cycle, and she denied suicide plans. Generate one bounded plan for the next counseling session only, including the session goal, focus areas, suggested questions, risk check points, and any optional between-session task that would still need counselor judgment.
+Using a psychodynamic lens, create only the plan for the single upcoming counseling session from this de-identified case, including risk monitoring and optional questions.
 
 OUTPUT_CONSTRAINTS:
 - Use only USER_INPUT and RAG_CONTEXT.

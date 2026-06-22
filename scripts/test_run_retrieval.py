@@ -84,6 +84,39 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertEqual(payload["status"], "OK")
         self.assertEqual(payload["route"]["workflow"], "workflow_6_counseling_roadmap")
 
+    def test_humanistic_conceptualization_retrieval_includes_theory_and_boundary_chunks(self):
+        payload = self.run_retrieval(
+            "Use a humanistic framework to conceptualize this de-identified case, focusing on felt experience and relational conditions rather than planning the next session."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_4_case_conceptualization")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("theory-frameworks-humanistic-case-conceptualization-001", chunk_ids)
+        self.assertIn("ethics-risk-cps-professional-boundary-001", chunk_ids)
+
+    def test_session_note_confidentiality_retrieval_includes_documentation_boundary_chunks(self):
+        payload = self.run_retrieval(
+            "Write a counseling record from today's session notes. The client asked who can read the record, the counselor reviewed confidentiality limits and documentation boundaries, and there was no current suicide plan."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_3_session_note")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("session-notes-bacp-confidentiality-record-keeping-001", chunk_ids)
+        self.assertIn("ethics-risk-cps-informed-consent-confidentiality-001", chunk_ids)
+
+    def test_psychodynamic_single_session_plan_routes_to_w5(self):
+        payload = self.run_retrieval(
+            "Using a psychodynamic lens, create only the plan for the single upcoming counseling session from this de-identified case, including risk monitoring and optional questions."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
+        self.assertIn("theory-frameworks-psychodynamic-case-conceptualization-001", chunk_ids)
+
 
 if __name__ == "__main__":
     unittest.main()
