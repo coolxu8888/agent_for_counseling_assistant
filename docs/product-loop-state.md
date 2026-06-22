@@ -54,7 +54,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 |---|---|---|---|---|
 | P0 | Intent recognition across counselor tasks | partial | web workbench + Coze API now default to auto-routing, return route metadata, and cover mixed-intent eval cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | extend bilingual ambiguity coverage and verify the hosted deployment uses the new AUTO contract |
 | P0 | W1 initial interview preparation guide | partial | workflow/eval exists | ensure UX distinguishes pre-interview question guide from post-interview summary |
-| P0 | W1 initial interview summary into fixed template | partial | template filling prototype and W1 logic exist | strengthen raw-note-to-template mapping and missing-field prompts |
+| P0 | W1 initial interview summary into fixed template | shipped partial | W1 runner now detects intake-prep vs initial-interview-summary mode, switches the structured contract to the fixed summary template, persists `w1_mode`, and returns it through the web workbench with live eval `W1-005` passing | strengthen structured validation coverage and verify the hosted deployment uses the new summary-mode contract |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
 | P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
 | P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval | add more framework-specific eval cases and RAG cards |
@@ -188,6 +188,54 @@ Recommended scope:
 - Use the stronger template-mapping layer to turn raw initial interview notes into the fixed intake summary structure with explicit known facts, unclear/missing facts, and follow-up questions.
 - Add missing-field prompt behavior for incomplete intake notes instead of leaving generic blanks.
 - Add at least one live DeepSeek-backed eval for this fixed-template W1 summary path.
+
+## This Run: W1 Initial Interview Summary Into Fixed Template
+
+Capability worked on:
+
+- `W1 initial interview summary into fixed template`, specifically the productized summary-mode path for completed intake notes.
+
+What changed:
+
+- Added shared W1 mode detection in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py>) so the runner can distinguish `intake_prep` from `initial_interview_summary`.
+- Switched the structured W1 prompt contract to the fixed initial interview summary template when summary mode is detected, instead of always showing the generic intake-form contract first.
+- Tightened the W1 summary prompt so every section must explicitly separate `known_facts`, `unclear_or_missing`, and `follow_up_questions`, and so empty sections still record a concise missing-information item instead of collapsing to vague blanks.
+- Persisted `w1_mode` into runner metadata for dry runs, successful runs, and API-error runs so downstream product surfaces can distinguish the W1 mode safely.
+- Exposed `w1_mode` through the web workbench in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py>) so AUTO routing and `/api/run` responses keep the intake-summary interpretation visible to the user instead of silently flattening it into generic W1.
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent.RunAgentTest.test_detect_w1_mode_distinguishes_prep_vs_summary_requests scripts.test_run_agent.RunAgentTest.test_build_prompt_package_w1_summary_includes_section_specific_missing_field_guidance`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_details_marks_mixed_signal_when_initial_interview_summary_mentions_notes scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_returns_w1_summary_mode_metadata`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `$env:PYTHONPATH='scripts'; python scripts/run_model_eval.py --ids W1-005` initially timed out at the default 120-second DeepSeek limit but still produced partial output.
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-005`
+
+Outcome:
+
+- The shipped product now has a productized W1 summary mode rather than only a loosely implied prompt branch.
+- AUTO routing still lands on W1 for completed intake-note summary requests, but the runner and API now preserve the narrower `initial_interview_summary` mode so counselors can distinguish it from pre-interview preparation.
+- The live DeepSeek-backed eval `W1-005` passed after increasing the request timeout to 240 seconds for this longer prompt.
+
+Remaining gaps:
+
+- The W1 summary path still relies on prompt compliance rather than a dedicated post-run structural normalizer for raw-note mapping quality.
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 summary request.
+- The workbench currently exposes W1 mode via route metadata, but there is not yet a dedicated W1 summary-specific result card or export affordance beyond the standard run payload.
+
+## Next Recommended Capability
+
+Improve `RAG-backed ethics/risk/documentation retrieval` as the next P0 capability.
+
+Recommended scope:
+
+- Expand retrieval eval coverage around ethics, risk, and documentation failure cases across W1-W6.
+- Add explicit retrieval failure tests so missing or mismatched risk/ethics chunks are surfaced before model calls.
+- Verify theory-specific and risk-boundary retrieval still stays bounded when AUTO routing chooses adjacent workflows.
 
 ## Deployment Readiness Notes
 

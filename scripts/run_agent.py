@@ -802,7 +802,28 @@ def load_rag_chunks(chunk_ids, rag_root=DEFAULT_RAG_ROOT):
     return chunks
 
 
+def detect_w1_mode(user_input):
+    text = str(user_input or "").strip().lower()
+    summary_patterns = [
+        r"initial interview summary",
+        r"first interview summary",
+        r"summarize (these|this)? ?(initial|first) interview notes",
+        r"organize (these|this)? ?(initial|first) interview notes",
+        r"fixed intake template",
+        r"initial interview template",
+        r"\u521d\u8bbf\u603b\u7ed3",
+        r"\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3",
+        r"\u521d\u59cb\u8bbf\u8c08\u6a21\u677f",
+        r"\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f",
+    ]
+    for pattern in summary_patterns:
+        if re.search(pattern, text):
+            return "initial_interview_summary"
+    return "intake_prep"
+
+
 def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
+    w1_mode = detect_w1_mode(user_input) if workflow.workflow_id == "W1" else None
     rag_sections = []
     for chunk in rag_chunks:
         rag_sections.append(
@@ -834,7 +855,11 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
                 "JSON block 必须尽量贴合下面的字段结构；缺失信息用“未提供”“未提及”或空数组表示，不要编造。",
                 "```json\n"
                 + json.dumps(
-                    STRUCTURED_OUTPUT_CONTRACTS[workflow.workflow_id],
+                    (
+                        W1_INITIAL_SESSION_SUMMARY_CONTRACT
+                        if workflow.workflow_id == "W1" and w1_mode == "initial_interview_summary"
+                        else STRUCTURED_OUTPUT_CONTRACTS[workflow.workflow_id]
+                    ),
                     ensure_ascii=False,
                     indent=2,
                 )
@@ -865,6 +890,9 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
         if workflow.workflow_id == "W1":
             parts.append(
                 "For W1 initial_session_summary, every section must use known_facts, unclear_or_missing, and follow_up_questions. known_facts may contain only facts explicitly present in the source notes."
+            )
+            parts.append(
+                "If a section has no explicit facts, write at least one concise unclear_or_missing item and keep follow_up_questions counselor-facing."
             )
             parts.append(
                 "The risk_crisis section must separate observed risk clues, missing or unclear risk information, and counselor-facing safety follow-up questions. Do not output a final diagnosis or final risk rating."
@@ -1432,6 +1460,7 @@ def run_agent_once(
         structured = True
     workflow = normalize_workflow(workflow_value)
     input_source, user_input = read_user_input(inline_input, input_file)
+    w1_mode = detect_w1_mode(user_input) if workflow.workflow_id == "W1" else None
     created_at = now or datetime.now(LOCAL_TIMEZONE)
     output_dir = Path(run_dir) if run_dir else create_run_dir(run_root, workflow.workflow_id, created_at)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1463,6 +1492,7 @@ def run_agent_once(
                 "selected_rag_chunks": chunk_ids,
                 "rag_chunks": _metadata_rag_chunks(chunks),
                 "structured": structured,
+                "w1_mode": w1_mode,
                 "created_at": _isoformat(created_at),
             },
         )
@@ -1500,6 +1530,7 @@ def run_agent_once(
                 "model": api_config.model,
                 "selected_rag_chunks": chunk_ids,
                 "rag_chunks": _metadata_rag_chunks(chunks),
+                "w1_mode": w1_mode,
                 "created_at": _isoformat(created_at),
                 "latency_seconds": time.monotonic() - started,
             },
@@ -1540,6 +1571,7 @@ def run_agent_once(
         "selected_rag_chunks": chunk_ids,
         "rag_chunks": _metadata_rag_chunks(chunks),
         "structured": structured,
+        "w1_mode": w1_mode,
         "created_at": _isoformat(created_at),
         "latency_seconds": time.monotonic() - started,
     }

@@ -19,7 +19,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from run_agent import AgentInputError, AgentRunResult, create_run_dir, run_agent_once
+from run_agent import AgentInputError, AgentRunResult, create_run_dir, detect_w1_mode, run_agent_once
 from fill_docx_template import (
     extract_template_slots,
     fill_docx_template,
@@ -434,7 +434,7 @@ def detect_workflow_details(user_input):
         for workflow_id, score in sorted(positive_scores.items(), key=lambda item: item[1], reverse=True)[:3]
         if score > 0
     ]
-    return {
+    details = {
         "workflow": workflow,
         "score": scores.get(workflow, 0),
         "scores": scores,
@@ -443,6 +443,9 @@ def detect_workflow_details(user_input):
         "route_notice": route_notice_for(workflow, route_status, top_candidates),
         "top_candidates": top_candidates,
     }
+    if workflow == "W1":
+        details["w1_mode"] = detect_w1_mode(user_input)
+    return details
 
 
 def detect_workflow(user_input):
@@ -983,6 +986,10 @@ def handle_api_run(payload):
         response_payload["route_status"] = route_details.get("route_status")
         response_payload["route_notice"] = route_details.get("route_notice")
         response_payload["routing_candidates"] = route_details.get("top_candidates", [])
+        response_payload["w1_mode"] = (
+            (response_payload.get("metadata") or {}).get("w1_mode")
+            or route_details.get("w1_mode")
+        )
         return json_response(response_payload)
     except AgentInputError as exc:
         return error_response(400, str(exc))

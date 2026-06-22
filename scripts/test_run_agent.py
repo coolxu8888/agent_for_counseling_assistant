@@ -11,6 +11,7 @@ from run_agent import (
     AgentInputError,
     AgentRunError,
     build_prompt_package,
+    detect_w1_mode,
     extract_structured_json,
     load_rag_chunks,
     load_retrieval_map,
@@ -347,6 +348,39 @@ class RunAgentTest(unittest.TestCase):
             "Other notes",
         ]:
             self.assertIn(label, prompt)
+
+    def test_detect_w1_mode_distinguishes_prep_vs_summary_requests(self):
+        self.assertEqual(
+            detect_w1_mode("Before tomorrow's first interview, create an intake question guide."),
+            "intake_prep",
+        )
+        self.assertEqual(
+            detect_w1_mode(
+                "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template."
+            ),
+            "initial_interview_summary",
+        )
+
+    def test_build_prompt_package_w1_summary_includes_section_specific_missing_field_guidance(self):
+        prompt = build_prompt_package(
+            normalize_workflow("W1"),
+            "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template.",
+            [
+                {
+                    "chunk_id": "forms-fields-pipl-minimum-necessary-fields-001",
+                    "path": "rag/forms-fields/pipl-minimum-necessary-fields.md",
+                    "content": "# Form guidance\nUse the minimum necessary fields only.",
+                }
+            ],
+            structured=True,
+        )
+
+        self.assertIn("main_distress", prompt)
+        self.assertIn("basic_situation", prompt)
+        self.assertIn("risk_crisis", prompt)
+        self.assertIn("If a section has no explicit facts", prompt)
+        self.assertIn("write at least one concise unclear_or_missing item", prompt)
+        self.assertIn("follow_up_questions", prompt)
 
     def test_strip_agent_marker_removes_markdown_wrapped_marker(self):
         clean = strip_agent_marker("正文\n**AGENT_DONE_W3**\n", normalize_workflow("W3"))

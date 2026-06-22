@@ -309,6 +309,7 @@ class WebWorkbenchTest(unittest.TestCase):
         )
 
         self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "initial_interview_summary")
         self.assertEqual(details["route_status"], "mixed_signals")
         self.assertIn("fixed intake summary/template", details["route_notice"].lower())
 
@@ -353,6 +354,31 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(fake_run.call_args.args[0], "W3")
         self.assertEqual(payload["route_status"], "clear")
         self.assertIn("Session note", payload["route_notice"])
+
+    def test_handle_run_returns_w1_summary_mode_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("summary answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success","w1_mode":"initial_interview_summary"}', encoding="utf-8")
+            (
+                run_dir / "structured_output.json"
+            ).write_text('{"workflow":"W1","document_type":"initial_session_summary"}', encoding="utf-8")
+
+            fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+                status, _headers, body = web_workbench.handle_api_run(
+                    {
+                        "workflow": "AUTO",
+                        "input": "These are completed initial interview notes, not a session record. Organize them into the fixed initial interview summary template.",
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["detected_workflow"], "W1")
+        self.assertEqual(payload["w1_mode"], "initial_interview_summary")
+        self.assertIn("summary", payload["route_notice"].lower())
 
     def test_handle_login_sets_session_cookie(self):
         with tempfile.TemporaryDirectory() as tmp:
