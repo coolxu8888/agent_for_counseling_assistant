@@ -454,6 +454,9 @@ function Select-Intent {
         if (Test-AnyPattern $Text @("humanistic", (U "\u4eba\u672c"))) {
             return "Humanistic next-session plan"
         }
+        if (Test-AnyPattern $Text @("integrative", (U "\u6574\u5408\u53d6\u5411"))) {
+            return "Integrative next-session plan"
+        }
         return "Generic next-session plan"
     }
 

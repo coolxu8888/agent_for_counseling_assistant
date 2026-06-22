@@ -154,6 +154,12 @@ EVALS = [
         "expected": "Workflow 5: bounded single-session planning. The answer should keep a psychodynamic frame, remain limited to one single upcoming session, preserve risk and boundary reminders, and avoid expanding into a case conceptualization or multi-session roadmap.",
     },
     {
+        "id": "W5-004",
+        "name": "integrative-next-session-boundary",
+        "query": "Using an integrative framework, create only the plan for the single upcoming counseling session from this de-identified case, including collaboration reminders, risk monitoring, and optional between-session work that still requires counselor judgment.",
+        "expected": "Workflow 5: bounded single-session planning. The answer should keep an integrative frame, remain limited to one upcoming session, preserve collaboration and risk-monitoring boundaries, and keep any between-session work explicitly subject to counselor judgment rather than sounding mandatory.",
+    },
+    {
         "id": "W6-002",
         "name": "mixed-next-session-and-roadmap",
         "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",
@@ -164,6 +170,12 @@ EVALS = [
         "name": "humanistic-roadmap-boundary",
         "query": "Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints.",
         "expected": "Workflow 6: bounded multi-session roadmap. The answer should keep a humanistic frame, stay in phased roadmap form, keep risk-monitoring checkpoints visible, and avoid collapsing into a single next-session plan or a diagnosis.",
+    },
+    {
+        "id": "W6-004",
+        "name": "psychodynamic-roadmap-boundary",
+        "query": "Create a psychodynamic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap while preserving risk-monitoring checkpoints and reflective hypotheses to verify.",
+        "expected": "Workflow 6: bounded multi-session roadmap. The answer should keep a psychodynamic frame, remain in phased multi-session roadmap form, preserve risk-monitoring and boundary reminders, and avoid collapsing into a single next-session plan or presenting interpretations as diagnosis.",
     },
 ]
 

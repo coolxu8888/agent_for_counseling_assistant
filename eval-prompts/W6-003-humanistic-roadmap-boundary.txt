@@ -396,33 +396,34 @@ Do not turn the roadmap into a diagnosis, guaranteed outcome, final risk judgmen
 
 ---
 
-### theory-frameworks-humanistic-case-conceptualization-001
+### theory-frameworks-humanistic-counseling-roadmap-001
 
-title: Humanistic case conceptualization working frame
-source_id: local-theory-frameworks-001
+title: Humanistic counseling roadmap frame
+source_id: local-theory-frameworks-003
 source_type: product_framework_note
 rag_section: theory-frameworks
 risk_level: medium
 
 # Core rule
 
-Use humanistic conceptualization as a tentative understanding of the client's lived experience, self-concept, unmet needs, values, and relational conditions that may support or constrain growth. Keep the language descriptive, respectful, and non-pathologizing.
+Use a humanistic counseling roadmap to sketch a phased process that supports deeper contact with felt experience, self-concept, agency, and the therapeutic relationship over several sessions. Keep the roadmap concrete, non-pathologizing, and revisable.
 
 # Agent use
 
-Use this chunk only in Workflow 4 when the counselor explicitly requests a humanistic lens. Organize the formulation around felt experience, incongruence, relational conditions of worth, resources, and growth edges while distinguishing facts from reflective hypotheses.
+Use this chunk only in Workflow 6 when the counselor asks for a humanistic roadmap. Organize phases around engagement, deepening awareness, relational exploration, and review points while keeping risk-monitoring checkpoints visible.
 
 # Forbidden use
 
-Do not replace the client's words with vague inspirational language. Do not erase risk or ethics concerns in the name of warmth. Do not present a growth narrative as certainty when the material is limited.
+Do not replace planning with abstract growth language. Do not erase ethics or risk responsibilities in the name of empathy. Do not turn a roadmap into a rigid promise of transformation.
 
 # Scope
 
-Applies to counselor-facing conceptualization support only. It is suitable for de-identified supervision and case reflection, not direct client advice.
+Applies to counselor-facing multi-session planning support only. It is suitable for de-identified supervision and preparation, not direct client advice.
 
 # Related chunks
 
-- `theory-frameworks-integrative-case-conceptualization-001`
+- `roadmap-planning-bounded-counseling-roadmap-001`
+- `theory-frameworks-humanistic-case-conceptualization-001`
 - `ethics-risk-cps-professional-boundary-001`
 
 ---

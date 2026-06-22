@@ -115,7 +115,30 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
-        self.assertIn("theory-frameworks-psychodynamic-case-conceptualization-001", chunk_ids)
+        self.assertIn("theory-frameworks-psychodynamic-next-session-planning-001", chunk_ids)
+
+    def test_integrative_single_session_plan_uses_integrative_planning_chunk(self):
+        payload = self.run_retrieval(
+            "Using an integrative framework, create only the plan for the single upcoming counseling session from this de-identified case, including risk monitoring, collaboration reminders, and optional between-session work."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
+        self.assertEqual(payload["route"]["intent"], "Integrative next-session plan")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
+        self.assertIn("theory-frameworks-integrative-next-session-planning-001", chunk_ids)
+
+    def test_humanistic_roadmap_uses_framework_specific_roadmap_chunk(self):
+        payload = self.run_retrieval(
+            "Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_6_counseling_roadmap")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("roadmap-planning-bounded-counseling-roadmap-001", chunk_ids)
+        self.assertIn("theory-frameworks-humanistic-counseling-roadmap-001", chunk_ids)
 
 
 if __name__ == "__main__":

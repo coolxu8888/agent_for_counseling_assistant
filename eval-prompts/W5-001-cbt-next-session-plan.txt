@@ -402,33 +402,34 @@ Applies to counselor-facing planning support for de-identified case reflection, 
 
 ---
 
-### theory-frameworks-cbt-case-conceptualization-001
+### theory-frameworks-cbt-next-session-planning-001
 
-title: CBT case conceptualization working frame
-source_id: local-theory-frameworks-001
+title: CBT next-session planning frame
+source_id: local-theory-frameworks-002
 source_type: product_framework_note
 rag_section: theory-frameworks
 risk_level: medium
 
 # Core rule
 
-Use CBT conceptualization as a structured working hypothesis about the relationship among triggering situations, automatic thoughts, meanings or beliefs, emotions, body reactions, and behaviors. Keep the output grounded in the counselor's material rather than filling missing steps with speculation.
+Use CBT next-session planning to focus one upcoming counseling session on a clear, testable piece of the client's cognitive-emotional-behavioral cycle. Keep the plan bounded to one session and tie interventions to known material rather than speculative schema work.
 
 # Agent use
 
-Use this chunk only in Workflow 4 when the counselor explicitly asks for a CBT formulation or when CBT is the selected framework. Highlight maintaining cycles, avoidance, safety behaviors, and beliefs that may be relevant, then separate what is known from what still needs verification.
+Use this chunk only in Workflow 5 when the counselor asks for a CBT next-session plan. Prioritize one session goal, key cycle links to explore, candidate questions, and optional between-session tasks that remain subject to counselor judgment.
 
 # Forbidden use
 
-Do not present the conceptualization as a diagnosis, final truth, or complete treatment plan. Do not invent schemas, childhood events, or cognitive distortions unless the material supports them. Do not turn a conceptualization into prescriptive homework unless the counselor explicitly asks for intervention design.
+Do not turn the next session into a full treatment protocol, guaranteed homework assignment, or diagnosis. Do not prescribe exposure, restructuring, or behavioral experiments as mandatory when the counselor has not established readiness, safety, or fit.
 
 # Scope
 
-Applies to counselor-facing conceptualization support only. It is suitable for de-identified supervision and case reflection, not direct client advice.
+Applies to counselor-facing planning support for one upcoming session only. It is suitable for de-identified supervision and preparation, not direct client advice.
 
 # Related chunks
 
-- `theory-frameworks-integrative-case-conceptualization-001`
+- `next-session-planning-bounded-next-session-plan-001`
+- `theory-frameworks-cbt-case-conceptualization-001`
 - `ethics-risk-cps-professional-boundary-001`
 
 ---

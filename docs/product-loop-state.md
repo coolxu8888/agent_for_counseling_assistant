@@ -57,11 +57,11 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 runner now detects intake-prep vs initial-interview-summary mode, switches the structured contract to the fixed summary template, persists `w1_mode`, and returns it through the web workbench with live eval `W1-005` passing | strengthen structured validation coverage and verify the hosted deployment uses the new summary-mode contract |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
 | P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
-| P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic retrieval-backed boundary coverage (`W4-002`, `W4-003`) | add more framework-specific source cards and hosted verification |
-| P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval and now includes psychodynamic boundary coverage (`W5-003`) | verify hosted deployment and continue theory-specific source-card expansion |
-| P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval and now includes humanistic roadmap coverage (`W6-003`) | add more framework-specific roadmap source cards and hosted verification |
+| P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic retrieval-backed boundary coverage (`W4-002`, `W4-003`) plus dedicated W5/W6 sister framework cards to keep conceptualization separate from planning retrieval | add more per-framework subtopic cards and hosted verification |
+| P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval and now includes psychodynamic + integrative theory-specific planning retrieval coverage (`W5-003`, `W5-004`) with dedicated framework planning chunks | verify hosted deployment and extend more bilingual framework-routing coverage |
+| P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic roadmap retrieval coverage (`W6-003`, `W6-004`) with dedicated framework roadmap chunks | verify hosted deployment and extend more framework-specific roadmap source cards |
 | P0 | RAG-backed ethics/risk/documentation retrieval | shipped partial | runner now validates retrieval coverage before model calls, the retrieval selector locks confidentiality/risk/documentation chunk mixes, and eval coverage now includes `W1-006`, `W3-006`, `W4-003`, `W5-003`, and `W6-003` with live `W5-003` passing | expand theory-specific source cards and run hosted retrieval smoke tests |
-| P0 | Theory-specific RAG support | partial | initial W4 support exists | add CBT/humanistic/psychodynamic/integrative source cards and routing |
+| P0 | Theory-specific RAG support | shipped partial | dedicated CBT/humanistic/psychodynamic/integrative planning + roadmap source cards now back W5/W6 retrieval, and live DeepSeek evals `W5-004` + `W6-004` passed | add richer per-framework subtopics, bilingual route cues, and hosted retrieval verification |
 | P0 | Word template understanding and filling | partial | web workbench now supports guarded LLM-assisted structured template mapping, dedicated template-fill eval `TF-001` ships, and DeepSeek-backed structured-template mapping passes on a real fixture | expand W1/W2 template-label coverage and run hosted template smoke after deployment |
 | P0 | Eval automation across workflows | partial | eval builder and cleaners exist | broaden bilingual rubric coverage and generate failure-reason reports |
 | P1 | Case workspace/history | shipped partial | web workbench case history exists | verify privacy-safe deletion/export flows |
@@ -275,13 +275,60 @@ Remaining gaps:
 
 ## Next Recommended Capability
 
-Improve `Theory-specific RAG support` as the next P0 capability.
+Improve `W1 initial interview preparation guide` as the next P0 capability.
 
 Recommended scope:
 
-- Expand the theory-framework source cards and retrieval-map routes for CBT, humanistic, psychodynamic, and integrative work beyond the current single-card-per-framework baseline.
-- Add source-backed evals that distinguish conceptualization vs next-session planning vs roadmap language within each framework.
-- Run hosted retrieval smokes after deployment to confirm the public product is using the updated framework-aware retrieval set.
+- Give the workbench a clearer product distinction between pre-interview intake-question guidance and post-interview W1 summary results instead of relying mostly on route metadata.
+- Add one stronger eval or structured check for partially known intake clues so the prep guide consistently pre-fills known facts and only asks follow-up questions for missing material.
+- Run one hosted AUTO-routed smoke after deployment to confirm the public product still selects the prep-guide path correctly.
+
+## This Run: Theory-Specific RAG Support
+
+Capability worked on:
+
+- `Theory-specific RAG support`, specifically dedicated framework retrieval for W5 next-session planning and W6 counseling roadmaps so those workflows no longer reuse conceptualization-only theory cards.
+
+What changed:
+
+- Added eight new framework source cards under [`/Users/win/Documents/Codex/2026-05-15/agent/rag/theory-frameworks`](</Users/win/Documents/Codex/2026-05-15/agent/rag/theory-frameworks>) for:
+  - CBT next-session planning
+  - psychodynamic next-session planning
+  - humanistic next-session planning
+  - integrative next-session planning
+  - CBT counseling roadmap
+  - psychodynamic counseling roadmap
+  - humanistic counseling roadmap
+  - integrative counseling roadmap
+- Updated [`/Users/win/Documents/Codex/2026-05-15/agent/rag/retrieval-map.v0.1.json`](</Users/win/Documents/Codex/2026-05-15/agent/rag/retrieval-map.v0.1.json>) so W5 and W6 theory-specific routes now pull the new planning/roadmap chunks instead of reusing conceptualization-only chunks.
+- Extended [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run-retrieval.ps1`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run-retrieval.ps1>) so integrative W5 requests route to `Integrative next-session plan` instead of silently falling back to the generic route.
+- Expanded eval coverage in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py>) with:
+  - `W5-004` integrative next-session boundary
+  - `W6-004` psychodynamic roadmap boundary
+- Regenerated the committed eval assets in [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts>) so the manifest and prompt packages now point to the new theory-specific retrieval chunks.
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_retrieval.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_retrieval.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-rag.ps1 -Json`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W5-004,W6-004`
+
+Outcome:
+
+- W5 and W6 now retrieve framework-specific planning/roadmap guidance rather than relying on conceptualization cards that were too coarse for session-plan and roadmap generation.
+- Integrative next-session requests now route to an explicit integrative planning intent instead of generic fallback behavior.
+- The new live DeepSeek-backed evals `W5-004` and `W6-004` both passed, giving real-model coverage for the expanded framework retrieval set.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested on at least one W5 integrative request and one W6 psychodynamic roadmap request.
+- Theory-specific RAG coverage is still partial because the new cards are workflow-level guidance cards, not yet richer per-framework subtopics such as alliance ruptures, readiness/pace, referral thresholds, or framework-specific risk-monitoring nuances.
+- The bilingual routing matrix is stronger than before but still lighter for non-English framework phrasing beyond the current explicit keywords.
 
 ## Deployment Readiness Notes
 

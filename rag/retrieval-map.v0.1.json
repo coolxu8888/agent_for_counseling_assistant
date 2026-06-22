@@ -409,7 +409,7 @@
           ],
           "priority_chunks": [
             "next-session-planning-bounded-next-session-plan-001",
-            "theory-frameworks-cbt-case-conceptualization-001",
+            "theory-frameworks-cbt-next-session-planning-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         },
@@ -423,7 +423,7 @@
           ],
           "priority_chunks": [
             "next-session-planning-bounded-next-session-plan-001",
-            "theory-frameworks-psychodynamic-case-conceptualization-001",
+            "theory-frameworks-psychodynamic-next-session-planning-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         },
@@ -437,7 +437,7 @@
           ],
           "priority_chunks": [
             "next-session-planning-bounded-next-session-plan-001",
-            "theory-frameworks-humanistic-case-conceptualization-001",
+            "theory-frameworks-humanistic-next-session-planning-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         },
@@ -451,7 +451,7 @@
           ],
           "priority_chunks": [
             "next-session-planning-bounded-next-session-plan-001",
-            "theory-frameworks-integrative-case-conceptualization-001",
+            "theory-frameworks-integrative-next-session-planning-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         }
@@ -494,7 +494,7 @@
           ],
           "priority_chunks": [
             "roadmap-planning-bounded-counseling-roadmap-001",
-            "theory-frameworks-cbt-case-conceptualization-001",
+            "theory-frameworks-cbt-counseling-roadmap-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         },
@@ -508,7 +508,7 @@
           ],
           "priority_chunks": [
             "roadmap-planning-bounded-counseling-roadmap-001",
-            "theory-frameworks-psychodynamic-case-conceptualization-001",
+            "theory-frameworks-psychodynamic-counseling-roadmap-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         },
@@ -522,7 +522,7 @@
           ],
           "priority_chunks": [
             "roadmap-planning-bounded-counseling-roadmap-001",
-            "theory-frameworks-humanistic-case-conceptualization-001",
+            "theory-frameworks-humanistic-counseling-roadmap-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         },
@@ -536,7 +536,7 @@
           ],
           "priority_chunks": [
             "roadmap-planning-bounded-counseling-roadmap-001",
-            "theory-frameworks-integrative-case-conceptualization-001",
+            "theory-frameworks-integrative-counseling-roadmap-001",
             "ethics-risk-cps-professional-boundary-001"
           ]
         }

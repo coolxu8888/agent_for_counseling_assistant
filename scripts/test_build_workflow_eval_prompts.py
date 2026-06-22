@@ -43,6 +43,8 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W4-003", ids)
         self.assertIn("W5-003", ids)
         self.assertIn("W6-003", ids)
+        self.assertIn("W5-004", ids)
+        self.assertIn("W6-004", ids)
 
     def test_evals_include_w2_bps_background_organizer(self):
         w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-005")
@@ -57,6 +59,8 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         w4 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W4-003")
         w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-003")
         w6 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W6-003")
+        w5_integrative = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-004")
+        w6_psychodynamic = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W6-004")
 
         self.assertIn("confidentiality", w1["query"].lower())
         self.assertIn("risk", w1["expected"].lower())
@@ -67,6 +71,10 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("single upcoming session", w5["expected"].lower())
         self.assertIn("humanistic", w6["query"].lower())
         self.assertIn("phased roadmap", w6["expected"].lower())
+        self.assertIn("integrative", w5_integrative["query"].lower())
+        self.assertIn("counselor judgment", w5_integrative["expected"].lower())
+        self.assertIn("psychodynamic", w6_psychodynamic["query"].lower())
+        self.assertIn("multi-session roadmap", w6_psychodynamic["expected"].lower())
 
     def test_main_writes_manifest_including_w5(self):
         with tempfile.TemporaryDirectory() as tmp:

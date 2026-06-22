@@ -145,7 +145,7 @@
     "intent": "CBT next-session plan",
     "chunks": [
       "next-session-planning-bounded-next-session-plan-001",
-      "theory-frameworks-cbt-case-conceptualization-001",
+      "theory-frameworks-cbt-next-session-planning-001",
       "ethics-risk-cps-professional-boundary-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
@@ -161,7 +161,7 @@
     "intent": "Integrative counseling roadmap",
     "chunks": [
       "roadmap-planning-bounded-counseling-roadmap-001",
-      "theory-frameworks-integrative-case-conceptualization-001",
+      "theory-frameworks-integrative-counseling-roadmap-001",
       "ethics-risk-cps-professional-boundary-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
@@ -333,7 +333,7 @@
     "intent": "CBT next-session plan",
     "chunks": [
       "next-session-planning-bounded-next-session-plan-001",
-      "theory-frameworks-cbt-case-conceptualization-001",
+      "theory-frameworks-cbt-next-session-planning-001",
       "ethics-risk-cps-professional-boundary-001"
     ]
   },
@@ -348,7 +348,23 @@
     "intent": "Psychodynamic next-session plan",
     "chunks": [
       "next-session-planning-bounded-next-session-plan-001",
-      "theory-frameworks-psychodynamic-case-conceptualization-001",
+      "theory-frameworks-psychodynamic-next-session-planning-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
+    "id": "W5-004",
+    "name": "integrative-next-session-boundary",
+    "query": "Using an integrative framework, create only the plan for the single upcoming counseling session from this de-identified case, including collaboration reminders, risk monitoring, and optional between-session work that still requires counselor judgment.",
+    "expected": "Workflow 5: bounded single-session planning. The answer should keep an integrative frame, remain limited to one upcoming session, preserve collaboration and risk-monitoring boundaries, and keep any between-session work explicitly subject to counselor judgment rather than sounding mandatory.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W5-004-integrative-next-session-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_5_next_session_plan",
+    "intent": "Integrative next-session plan",
+    "chunks": [
+      "next-session-planning-bounded-next-session-plan-001",
+      "theory-frameworks-integrative-next-session-planning-001",
       "ethics-risk-cps-professional-boundary-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
@@ -379,7 +395,23 @@
     "intent": "Humanistic counseling roadmap",
     "chunks": [
       "roadmap-planning-bounded-counseling-roadmap-001",
-      "theory-frameworks-humanistic-case-conceptualization-001",
+      "theory-frameworks-humanistic-counseling-roadmap-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
+    "id": "W6-004",
+    "name": "psychodynamic-roadmap-boundary",
+    "query": "Create a psychodynamic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap while preserving risk-monitoring checkpoints and reflective hypotheses to verify.",
+    "expected": "Workflow 6: bounded multi-session roadmap. The answer should keep a psychodynamic frame, remain in phased multi-session roadmap form, preserve risk-monitoring and boundary reminders, and avoid collapsing into a single next-session plan or presenting interpretations as diagnosis.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W6-004-psychodynamic-roadmap-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_6_counseling_roadmap",
+    "intent": "Psychodynamic counseling roadmap",
+    "chunks": [
+      "roadmap-planning-bounded-counseling-roadmap-001",
+      "theory-frameworks-psychodynamic-counseling-roadmap-001",
       "ethics-risk-cps-professional-boundary-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
