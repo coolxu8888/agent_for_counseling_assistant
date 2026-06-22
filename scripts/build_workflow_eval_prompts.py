@@ -106,6 +106,12 @@ EVALS = [
         "expected": "Workflow 1: bounded pre-interview intake preparation with partial-clue prefill. The answer should stay in intake-guide mode, explicitly reuse the known sleep, academic-pressure, roommate-conflict, and passive-risk clues instead of reverting to a blank template, keep counselor-facing follow-up questions for what is still unclear, and avoid turning the output into a session record, diagnosis, or case formulation.",
     },
     {
+        "id": "W1-008",
+        "name": "bilingual-initial-interview-summary-route",
+        "query": "请把 first interview notes 整理成固定初访总结模板，不要写成 session note。Keep each section bounded to known facts, unclear information, and follow-up questions.",
+        "expected": "Workflow 1: bilingual initial interview summary routing. The answer should use the fixed initial interview summary structure, preserve the intake-summary mode despite mixed Chinese and English phrasing, separate known facts from unclear information and follow-up questions, and avoid drifting into a session record or treatment plan.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

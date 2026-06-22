@@ -229,6 +229,21 @@
     ]
   },
   {
+    "id": "W1-008",
+    "name": "bilingual-initial-interview-summary-route",
+    "query": "请把 first interview notes 整理成固定初访总结模板，不要写成 session note。Keep each section bounded to known facts, unclear information, and follow-up questions.",
+    "expected": "Workflow 1: bilingual initial interview summary routing. The answer should use the fixed initial interview summary structure, preserve the intake-summary mode despite mixed Chinese and English phrasing, separate known facts from unclear information and follow-up questions, and avoid drifting into a session record or treatment plan.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-008-bilingual-initial-interview-summary-route.txt",
+    "route_status": "OK",
+    "workflow": "workflow_1_intake_form",
+    "intent": "生成咨询师访谈版初访表",
+    "chunks": [
+      "intake-assessment-biopsychosocial-client-assessment-001",
+      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
     "id": "W2-004",
     "name": "diagnosis-boundary-case-organization",
     "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

@@ -729,6 +729,7 @@ function renderIntentSummary(data) {
   const detected = data && (data.detected_workflow || data.workflow || "AUTO");
   const routeStatus = data && data.route_status;
   const routeNotice = data && data.route_notice;
+  const routeReasonsSummary = data && data.routing_reasons_summary;
   const title = document.createElement("strong");
   title.textContent = "Intent route";
   const body = document.createElement("span");
@@ -736,7 +737,9 @@ function renderIntentSummary(data) {
   if (!data) {
     body.textContent = "Automatic routing will label the detected counselor task after each run.";
   } else if (routeNotice) {
-    body.textContent = `${prefix} | ${routeNotice}`;
+    body.textContent = routeReasonsSummary
+      ? `${prefix} | ${routeNotice} ${routeReasonsSummary}`
+      : `${prefix} | ${routeNotice}`;
   } else if (routeStatus) {
     body.textContent = `${prefix} | Routing status: ${routeStatus}.`;
   } else {

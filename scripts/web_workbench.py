@@ -202,6 +202,7 @@ ROUTING_RULES = {
     "W1": {
         "positive": [
             (r"before (the )?first (interview|session)", 5),
+            (r"first interview notes", 5),
             (r"intake question guide", 5),
             (r"intake guide", 4),
             (r"intake checklist", 4),
@@ -229,6 +230,7 @@ ROUTING_RULES = {
             (r"\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3", 6),
             (r"\u521d\u59cb\u8bbf\u8c08\u6a21\u677f", 5),
             (r"\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f", 5),
+            (r"\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f", 5),
         ],
         "negative": [
             (r"session note|progress note|counseling record|session record|soap|dap|birp", 4),
@@ -320,6 +322,8 @@ ROUTING_RULES = {
             (r"next-session plan", 5),
             (r"next session plan", 5),
             (r"plan (only )?the next (counseling )?session", 5),
+            (r"only (do|plan) (the )?next session", 5),
+            (r"just (do|plan) the next session", 5),
             (r"session agenda", 4),
             (r"upcoming session", 4),
             (r"focus for the next session", 4),
@@ -328,6 +332,8 @@ ROUTING_RULES = {
             (r"\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212", 5),
             (r"\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212", 5),
             (r"\u4e0b\u4e00\u6b21\u54a8\u8be2", 4),
+            (r"\u53ea\u89c4\u5212.*next session", 6),
+            (r"next session.*\u4e0d\u8981.*roadmap", 6),
             (r"\u4f1a\u8c08\u8bae\u7a0b", 4),
             (r"\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9", 4),
         ],
@@ -353,6 +359,9 @@ ROUTING_RULES = {
         ],
         "negative": [
             (r"plan (only )?the next (counseling )?session", 3),
+            (r"\u53ea\u89c4\u5212.*next session", 6),
+            (r"\u4e0d\u8981.*roadmap", 5),
+            (r"not a roadmap|don't do a roadmap|do not do a roadmap", 5),
         ],
     },
 }
@@ -421,6 +430,15 @@ def route_notice_for(workflow, route_status, top_candidates):
     return f"Automatic routing matched {label}."
 
 
+def summarize_routing_reasons(top_candidates):
+    if not top_candidates:
+        return ""
+    fragments = []
+    for item in top_candidates[:2]:
+        fragments.append(f"{item['workflow']} {item['label']} ({item['positive_score']})")
+    return "Top route cues: " + " > ".join(fragments)
+
+
 def detect_workflow_details(user_input):
     text = str(user_input or "").strip().lower()
     scores = {workflow: 0 for workflow in ROUTING_RULES}
@@ -473,6 +491,7 @@ def detect_workflow_details(user_input):
         "route_status": route_status,
         "route_notice": route_notice_for(workflow, route_status, top_candidates),
         "top_candidates": top_candidates,
+        "routing_reasons_summary": summarize_routing_reasons(top_candidates),
     }
     if workflow == "W1":
         details["w1_mode"] = detect_w1_mode(user_input)
@@ -956,6 +975,10 @@ def handle_api_run(payload):
         "score": None,
         "scores": {},
         "reasons": [],
+        "route_status": "manual",
+        "route_notice": f"Workflow manually selected: {workflow_label(requested_workflow)}.",
+        "top_candidates": [],
+        "routing_reasons_summary": "",
     }
     workflow = route_details["workflow"]
     user_input = apply_output_style(
@@ -995,6 +1018,7 @@ def handle_api_run(payload):
                     "workflow": workflow,
                     "requested_workflow": requested_workflow,
                     "routing_reasons": route_details.get("reasons", []),
+                    "routing_reasons_summary": route_details.get("routing_reasons_summary", ""),
                     "run_dir": path_for_ui(result.run_dir),
                 },
             )
@@ -1006,6 +1030,7 @@ def handle_api_run(payload):
                     "workflow": workflow,
                     "requested_workflow": requested_workflow,
                     "routing_reasons": route_details.get("reasons", []),
+                    "routing_reasons_summary": route_details.get("routing_reasons_summary", ""),
                     "status": result.status,
                     "run_dir": path_for_ui(result.run_dir),
                     "structured": structured or render_docx,
@@ -1017,6 +1042,7 @@ def handle_api_run(payload):
         response_payload["detected_workflow"] = workflow
         response_payload["requested_workflow"] = requested_workflow
         response_payload["routing_reasons"] = route_details.get("reasons", [])
+        response_payload["routing_reasons_summary"] = route_details.get("routing_reasons_summary", "")
         response_payload["routing_scores"] = route_details.get("scores", {})
         response_payload["route_status"] = route_details.get("route_status")
         response_payload["route_notice"] = route_details.get("route_notice")

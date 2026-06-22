@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | partial | web workbench + Coze API now default to auto-routing, return route metadata, and cover mixed-intent eval cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | extend bilingual ambiguity coverage and verify the hosted deployment uses the new AUTO contract |
+| P0 | Intent recognition across counselor tasks | shipped partial | web workbench auto-routing now covers mixed-language ambiguity for W1/W5 boundaries, returns `routing_reasons_summary` in product/API payloads, and passes live bilingual eval `W1-008` alongside mixed-intent cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | verify the hosted deployment uses the new AUTO contract and extend more bilingual W5/W6/W3 edge cases |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 runner now detects intake-prep vs initial-interview-summary mode, switches the structured contract to the fixed summary template, persists `w1_mode`, and returns it through the web workbench with live eval `W1-005` passing | strengthen structured validation coverage and verify the hosted deployment uses the new summary-mode contract |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
@@ -260,16 +260,6 @@ Remaining gaps:
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 prep request.
 - The W1 prep result is clearer in the workbench summary, but DOCX/template-fill alignment for intake-prep guides still needs broader label coverage.
 
-## Next Recommended Capability
-
-Improve `Intent recognition across counselor tasks` as the next P0 capability.
-
-Recommended scope:
-
-- Extend bilingual ambiguity coverage so mixed Chinese/English counselor prompts still cleanly separate W1 prep, W1 summary, W3 notes, W5 next-session planning, and W6 roadmap requests.
-- Run a hosted smoke after deployment to verify the AUTO route contract and product-facing route summary match local behavior.
-- Add failure-reason visibility for ambiguous routing cases so eval automation can show why a route was chosen, not just which route won.
-
 ## This Run: RAG-Backed Ethics/Risk/Documentation Retrieval
 
 Capability worked on:
@@ -372,6 +362,54 @@ Remaining gaps:
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested on at least one W5 integrative request and one W6 psychodynamic roadmap request.
 - Theory-specific RAG coverage is still partial because the new cards are workflow-level guidance cards, not yet richer per-framework subtopics such as alliance ruptures, readiness/pace, referral thresholds, or framework-specific risk-monitoring nuances.
 - The bilingual routing matrix is stronger than before but still lighter for non-English framework phrasing beyond the current explicit keywords.
+
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically mixed Chinese/English ambiguity handling plus product-facing route-explanation visibility for AUTO-routed requests.
+
+What changed:
+
+- Extended the weighted router in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py>) so bilingual boundary phrasing now better separates:
+  - W1 fixed initial-interview summary vs W3 session-note wording
+  - W5 single next-session planning vs W6 roadmap wording when the prompt explicitly says to plan only the next session and not a roadmap
+- Added a compact `routing_reasons_summary` field in the same backend so AUTO-routed responses now return a counselor-readable explanation string built from the top candidate workflows instead of only raw regex reasons.
+- Wired the explanation summary into the shipped workbench UI in [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js>) so the existing `Intent route` card now shows both the route notice and the top-candidate summary.
+- Expanded eval coverage in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py>) with new bilingual ambiguity case `W1-008` and regenerated the committed eval manifest/assets in [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts>).
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w1_for_bilingual_initial_interview_summary_prompt scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w5_for_bilingual_single_session_plan_prompt scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_returns_route_explanation_summary_for_auto_route`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_build_workflow_eval_prompts`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-008`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+
+Outcome:
+
+- AUTO routing is now less opaque in the shipped product because counselors can see a concise route explanation instead of only workflow labels or regex fragments.
+- Mixed-language W1 summary prompts and bilingual W5-vs-W6 prompts now route more reliably in the local product surface, with dedicated regression coverage.
+- The live DeepSeek-backed eval `W1-008` passed, giving real-model coverage for the new bilingual ambiguity case.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with a bilingual AUTO-routed request so the product-facing route summary can be confirmed end to end.
+- Bilingual ambiguity coverage is stronger for W1 and W5/W6, but still lighter for mixed-language W3/W4 prompts and more varied negation patterns.
+- Eval automation still reports route outcomes more clearly than before, but it does not yet produce dedicated failure-reason summaries across the whole bilingual routing matrix.
+
+## Next Recommended Capability
+
+Improve `W1 initial interview summary into fixed template` as the next P0 capability.
+
+Recommended scope:
+
+- Add a stronger post-run structural normalizer or validator so W1 summary mode depends less on pure prompt compliance when mapping raw intake notes into the fixed template.
+- Extend bilingual raw-note coverage for summary-mode inputs so mixed-language interview materials still preserve section-level `known_facts`, `unclear_or_missing`, and `follow_up_questions`.
+- Verify the hosted deployment with an AUTO-routed W1 summary request after the latest local commits are pushed.
 
 ## Deployment Readiness Notes
 

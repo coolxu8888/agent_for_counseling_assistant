@@ -313,6 +313,27 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["route_status"], "mixed_signals")
         self.assertIn("fixed intake summary/template", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w1_for_bilingual_initial_interview_summary_prompt(self):
+        details = web_workbench.detect_workflow_details(
+            "请把 first interview notes 整理成固定初访总结模板，不要写成 session note。"
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "initial_interview_summary")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
+    def test_detect_workflow_prefers_w5_for_bilingual_single_session_plan_prompt(self):
+        details = web_workbench.detect_workflow_details(
+            "用 CBT 做下次咨询计划，只规划 next session，不要做多阶段 roadmap。"
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W6")
+
     def test_detect_workflow_routes_diagnosis_requests_back_to_case_summary_boundaries(self):
         self.assertEqual(
             web_workbench.detect_workflow(
@@ -379,6 +400,28 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["detected_workflow"], "W1")
         self.assertEqual(payload["w1_mode"], "initial_interview_summary")
         self.assertIn("summary", payload["route_notice"].lower())
+
+    def test_handle_run_returns_route_explanation_summary_for_auto_route(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("summary answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success","w1_mode":"initial_interview_summary"}', encoding="utf-8")
+
+            fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+                status, _headers, body = web_workbench.handle_api_run(
+                    {
+                        "workflow": "AUTO",
+                        "input": "请把 first interview notes 整理成固定初访总结模板，不要写成 session note。",
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertIn("routing_reasons_summary", payload)
+        self.assertIn("W1", payload["routing_reasons_summary"])
+        self.assertIn("W3", payload["routing_reasons_summary"])
 
     def test_handle_run_returns_w1_prep_mode_summary_for_product_ui(self):
         with tempfile.TemporaryDirectory() as tmp:

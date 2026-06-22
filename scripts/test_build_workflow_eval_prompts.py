@@ -35,6 +35,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W1-004", ids)
         self.assertIn("W1-005", ids)
         self.assertIn("W1-007", ids)
+        self.assertIn("W1-008", ids)
         self.assertIn("W2-005", ids)
         self.assertIn("W3-004", ids)
         self.assertIn("W5-002", ids)
@@ -46,6 +47,16 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W6-003", ids)
         self.assertIn("W5-004", ids)
         self.assertIn("W6-004", ids)
+
+    def test_evals_include_bilingual_intent_routing_case(self):
+        w1_bilingual = next(
+            item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-008"
+        )
+
+        self.assertIn("first interview notes", w1_bilingual["query"].lower())
+        self.assertIn("session note", w1_bilingual["query"].lower())
+        self.assertIn("bilingual", w1_bilingual["expected"].lower())
+        self.assertIn("fixed initial interview summary structure", w1_bilingual["expected"].lower())
 
     def test_evals_include_w2_bps_background_organizer(self):
         w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-005")
