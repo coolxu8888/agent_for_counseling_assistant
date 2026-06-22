@@ -106,7 +106,13 @@ def build_run_workflow_response(handler, backend_payload):
     return {
         "status": backend_payload.get("status", "success"),
         "answer": answer,
-        "workflow": backend_payload.get("workflow"),
+        "workflow": backend_payload.get("detected_workflow") or backend_payload.get("workflow"),
+        "detected_workflow": backend_payload.get("detected_workflow") or backend_payload.get("workflow"),
+        "requested_workflow": backend_payload.get("requested_workflow"),
+        "route_status": backend_payload.get("route_status"),
+        "route_notice": backend_payload.get("route_notice"),
+        "routing_reasons": backend_payload.get("routing_reasons", []),
+        "routing_candidates": backend_payload.get("routing_candidates", []),
         "run_dir": backend_payload.get("run_dir"),
         "artifacts": artifacts,
         "structured_output": backend_payload.get("structured_output"),
@@ -144,7 +150,7 @@ def build_draft_template_response(handler, backend_payload):
 def handle_coze_run_workflow(payload, handler):
     backend_response = handle_api_run(
         {
-            "workflow": payload.get("workflow", "W3"),
+            "workflow": payload.get("workflow", "AUTO"),
             "input": payload.get("input") or payload.get("raw_input") or "",
             "structured": payload.get("structured", True),
             "render_docx": payload.get("render_docx", True),
@@ -305,6 +311,12 @@ def openapi_spec(base_url="https://your-domain.example"):
             "status": {"type": "string"},
             "answer": {"type": "string"},
             "workflow": {"type": "string"},
+            "detected_workflow": {"type": "string"},
+            "requested_workflow": {"type": "string"},
+            "route_status": {"type": "string"},
+            "route_notice": {"type": "string"},
+            "routing_reasons": {"type": "array", "items": {"type": "string"}},
+            "routing_candidates": {"type": "array", "items": {"type": "object"}},
             "run_dir": {"type": "string"},
             "artifacts": {"type": "array", "items": artifact_schema},
             "structured_output": {"type": "object"},
@@ -343,7 +355,12 @@ def openapi_spec(base_url="https://your-domain.example"):
                                     "type": "object",
                                     "required": ["input"],
                                     "properties": {
-                                        "workflow": {"type": "string", "enum": ["W1", "W2", "W3", "W4", "W5", "W6"], "default": "W3"},
+                                        "workflow": {
+                                            "type": "string",
+                                            "enum": ["AUTO", "W1", "W2", "W3", "W4", "W5", "W6"],
+                                            "default": "AUTO",
+                                            "description": "Use AUTO for normal plain-language requests. Explicit workflow ids are optional overrides.",
+                                        },
                                         "input": {"type": "string"},
                                         "output_style": {
                                             "type": "string",

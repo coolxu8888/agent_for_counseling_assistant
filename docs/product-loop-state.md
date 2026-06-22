@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | partial | API runner and web workbench auto-routing exist | improve mixed-intent routing evals and ambiguity handling |
+| P0 | Intent recognition across counselor tasks | partial | web workbench + Coze API now default to auto-routing, return route metadata, and cover mixed-intent eval cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | extend bilingual ambiguity coverage and verify the hosted deployment uses the new AUTO contract |
 | P0 | W1 initial interview preparation guide | partial | workflow/eval exists | ensure UX distinguishes pre-interview question guide from post-interview summary |
 | P0 | W1 initial interview summary into fixed template | partial | template filling prototype and W1 logic exist | strengthen raw-note-to-template mapping and missing-field prompts |
 | P0 | W2 case background organization with BPS | partial | docs/eval/RAG structure exists | productize dedicated structured output and front-end rendering |
@@ -72,6 +72,28 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P3 | Generic account settings | partial | password rotation exists | defer unless required for deployment validation |
 
 ## Recently Completed
+
+### Intent Recognition Across Counselor Tasks
+
+- Extended the product-facing router so the web workbench and Coze wrapper both use plain-language automatic routing instead of relying on explicit workflow ids.
+- Added route metadata to API responses:
+  - `detected_workflow`
+  - `requested_workflow`
+  - `route_status`
+  - `route_notice`
+  - `routing_candidates`
+- Added a visible `Intent route` summary card in the web workbench so pilot users can see how the agent interpreted a request without exposing internal workflow buttons as the primary UX.
+- Tightened mixed-intent handling for:
+  - W1 pre-interview guide vs W3 post-interview record language
+  - W5 single next-session planning vs W6 multi-session roadmap requests
+- Expanded retrieval-backed eval coverage with:
+  - `W1-004`
+  - `W2-004`
+  - `W3-004`
+  - `W4-002`
+  - `W5-002`
+  - `W6-002`
+- Regenerated `eval-prompts/manifest.json` so the new ambiguity cases are available to the DeepSeek eval runner.
 
 ### W4 Case Conceptualization
 
@@ -116,17 +138,11 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 This run successfully completed:
 
-- `python scripts/test_run_agent.py`
-- `python scripts/test_web_workbench.py`
-- `python scripts/test_render_docx.py`
-- `python scripts/test_run_retrieval.py`
-- `python scripts/test_build_workflow_eval_prompts.py`
-- `python scripts/test_clean_eval_outputs.py`
-- `python scripts/test_coze_api_server.py`
-- `python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs scripts.test_coze_api_server`
+- `python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_static_index_has_valid_title_markup scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_details_marks_mixed_signal_when_roadmap_request_mentions_next_session scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_auto_detects_workflow`
+- `python -m unittest scripts.test_coze_api_server.CozeApiServerTest.test_openapi_spec_contains_two_tool_operations scripts.test_coze_api_server.CozeApiServerTest.test_build_run_workflow_response_includes_answer_and_docx_artifact scripts.test_coze_api_server.CozeApiServerTest.test_handle_coze_run_workflow_defaults_to_auto_routing`
+- `python -m unittest scripts.test_web_workbench scripts.test_coze_api_server scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts`
 - `python scripts/build_workflow_eval_prompts.py`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/validate-rag.ps1 -Json`
-- `python scripts/run_model_eval.py --ids W6-001`
+- `python scripts/run_model_eval.py --ids W1-004,W2-004,W3-004,W4-002,W5-002,W6-002`
 - `python scripts/clean_eval_outputs.py --result-dir eval-results/api --clean-dir eval-results/api/clean`
 
 The earlier loop state had also recorded:
@@ -152,26 +168,24 @@ The bounded counseling roadmap capability now exists as `W6`, but it still needs
 
 Other important gaps:
 
-- The web UI should hide workflow codes from normal users and let intent routing do the work.
 - W1 needs clearer separation between:
   - pre-interview information collection guide
   - post-interview fixed-template summary
 - Word template filling still needs stronger model-assisted mapping and handling of prefilled content.
 - RAG coverage should be expanded for theory-specific conceptualization and roadmap planning.
-- Eval coverage should include mixed/ambiguous inputs and more per-framework outputs, especially for W4-W6.
+- Eval coverage should continue expanding bilingual mixed-intent and framework-specific cases, especially for hosted validation.
 - Latest local commits must be pushed and redeployed before online validation can be considered current.
 
 ## Next Recommended Capability
 
-Improve `Intent recognition across counselor tasks` as the next P0 capability.
+Improve `W1 initial interview summary into fixed template` as the next P0 capability.
 
 Recommended scope:
 
-- Keep workflow codes internal; route from plain counselor requests only.
-- Add mixed-intent and ambiguity eval cases across W1/W2/W3/W4/W5/W6.
-- Tighten disambiguation between W1 pre-interview guide, W1 post-interview summary, W5 next-session plan, and W6 roadmap requests.
-- Preserve boundary behavior when users ask for diagnosis, rigid treatment plans, or crisis decisions.
-- Add tests and eval fixtures that verify the router chooses the correct capability from realistic counselor phrasing.
+- Accept raw first-interview notes and reliably map them into the fixed W1 initial interview template.
+- Strengthen missing-field prompts so the output separates known facts, unclear facts, and follow-up questions.
+- Reuse the improved intent routing so plain-language requests for "first interview notes" land on the summary/template path instead of the pre-interview guide.
+- Add at least one automated regression test and one DeepSeek eval case focused on note-to-template transformation with risk/privacy boundaries intact.
 
 ## Deployment Readiness Notes
 

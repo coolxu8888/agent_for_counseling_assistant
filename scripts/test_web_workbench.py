@@ -66,6 +66,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("<title>Counselor Assistant</title>", html)
         self.assertNotIn("?/title>", html)
         self.assertIn("&lt;&lt;</button>", html)
+        self.assertIn('id="intentSummary"', html)
 
     def test_resolve_download_path_allows_agent_runs_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -243,6 +244,57 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(web_workbench.detect_workflow("Create a CBT next-session plan with risk check points"), "W5")
         self.assertEqual(web_workbench.detect_workflow("Build an integrative multi-session counseling roadmap with phases"), "W6")
 
+    def test_detect_workflow_prefers_w1_for_pre_interview_preparation_requests(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "Before the first interview tomorrow, create an intake question guide and checklist for what I still need to ask."
+            ),
+            "W1",
+        )
+
+    def test_detect_workflow_prefers_w3_for_post_session_note_requests(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."
+            ),
+            "W3",
+        )
+
+    def test_detect_workflow_prefers_w6_for_multi_session_planning_even_with_next_session_language(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases."
+            ),
+            "W6",
+        )
+
+    def test_detect_workflow_prefers_w5_for_single_next_session_requests_even_with_framework_language(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "Using CBT, plan only the next counseling session agenda from this case conceptualization."
+            ),
+            "W5",
+        )
+
+    def test_detect_workflow_details_marks_mixed_signal_when_roadmap_request_mentions_next_session(self):
+        details = web_workbench.detect_workflow_details(
+            "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases."
+        )
+
+        self.assertEqual(details["workflow"], "W6")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertIn("roadmap", details["route_notice"].lower())
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W6")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W5")
+
+    def test_detect_workflow_routes_diagnosis_requests_back_to_case_summary_boundaries(self):
+        self.assertEqual(
+            web_workbench.detect_workflow(
+                "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts."
+            ),
+            "W2",
+        )
+
     def test_apply_output_style_uses_clean_english_instruction_label(self):
         result = web_workbench.apply_output_style("Base prompt", style="professional_concise")
 
@@ -274,6 +326,8 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["detected_workflow"], "W3")
         self.assertEqual(fake_run.call_args.args[0], "W3")
+        self.assertEqual(payload["route_status"], "clear")
+        self.assertIn("Session note", payload["route_notice"])
 
     def test_handle_login_sets_session_cookie(self):
         with tempfile.TemporaryDirectory() as tmp:

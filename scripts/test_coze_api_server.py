@@ -33,8 +33,13 @@ class CozeApiServerTest(unittest.TestCase):
             "draft_template",
         )
         workflows = spec["paths"]["/run_workflow"]["post"]["requestBody"]["content"]["application/json"]["schema"]["properties"]["workflow"]["enum"]
+        self.assertIn("AUTO", workflows)
         self.assertIn("W5", workflows)
         self.assertIn("W6", workflows)
+        self.assertEqual(
+            spec["paths"]["/run_workflow"]["post"]["requestBody"]["content"]["application/json"]["schema"]["properties"]["workflow"]["default"],
+            "AUTO",
+        )
 
     def test_openapi_tool_responses_define_json_object_schema(self):
         spec = coze_api_server.openapi_spec("https://example.test")
@@ -80,6 +85,10 @@ class CozeApiServerTest(unittest.TestCase):
         payload = {
             "status": "success",
             "workflow": "W3",
+            "detected_workflow": "W3",
+            "requested_workflow": "AUTO",
+            "route_status": "clear",
+            "route_notice": "Automatic routing matched Session note.",
             "run_dir": r"C:\runs\run1",
             "clean_output": "咨询记录正文",
             "structured_output": {"workflow": "W3"},
@@ -91,6 +100,10 @@ class CozeApiServerTest(unittest.TestCase):
 
         self.assertEqual(result["answer"], "咨询记录正文")
         self.assertEqual(result["workflow"], "W3")
+        self.assertEqual(result["detected_workflow"], "W3")
+        self.assertEqual(result["requested_workflow"], "AUTO")
+        self.assertEqual(result["route_status"], "clear")
+        self.assertIn("Session note", result["route_notice"])
         self.assertEqual(result["artifacts"][0]["name"], "output.docx")
         self.assertIn("/files/", result["artifacts"][0]["url"])
 
@@ -121,6 +134,10 @@ class CozeApiServerTest(unittest.TestCase):
         backend_payload = {
             "status": "success",
             "workflow": "W3",
+            "detected_workflow": "W3",
+            "requested_workflow": "AUTO",
+            "route_status": "clear",
+            "route_notice": "Automatic routing matched Session note.",
             "run_dir": r"C:\runs\run1",
             "clean_output": "记录",
             "structured_output": {"workflow": "W3"},
@@ -137,7 +154,36 @@ class CozeApiServerTest(unittest.TestCase):
         result = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 200)
         self.assertEqual(result["answer"], "记录")
+        self.assertEqual(result["requested_workflow"], "AUTO")
         self.assertTrue(fake.call_args.args[0]["render_docx"])
+
+    def test_handle_coze_run_workflow_defaults_to_auto_routing(self):
+        handler = FakeHandler()
+        backend_payload = {
+            "status": "success",
+            "workflow": "W2",
+            "detected_workflow": "W2",
+            "requested_workflow": "AUTO",
+            "route_status": "fallback",
+            "route_notice": "No clear counselor task was detected; defaulted to Case summary.",
+            "run_dir": r"C:\runs\run2",
+            "clean_output": "整理结果",
+            "structured_output": {"workflow": "W2"},
+            "docx": {"path": r"C:\runs\run2\output.docx"},
+            "issues": [],
+        }
+
+        with patch.object(coze_api_server, "handle_api_run", return_value=coze_api_server.json_response(backend_payload)) as fake:
+            status, _headers, body = coze_api_server.handle_coze_run_workflow(
+                {"input": "Please organize this de-identified case."},
+                handler,
+            )
+
+        result = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(fake.call_args.args[0]["workflow"], "AUTO")
+        self.assertEqual(result["workflow"], "W2")
+        self.assertEqual(result["route_status"], "fallback")
 
     def test_handle_coze_draft_template_wraps_backend_success(self):
         handler = FakeHandler()

@@ -52,6 +52,30 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("roadmap-planning-bounded-counseling-roadmap-001", chunk_ids)
 
+    def test_routes_pre_interview_collection_query_to_w1(self):
+        payload = self.run_retrieval(
+            "Before tomorrow's first interview, create an intake question guide for what information still needs to be collected."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_1_intake_form")
+
+    def test_routes_post_session_note_query_to_w3_even_when_it_mentions_first_interview(self):
+        payload = self.run_retrieval(
+            "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_3_session_note")
+
+    def test_routes_mixed_next_session_and_roadmap_query_to_w6(self):
+        payload = self.run_retrieval(
+            "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_6_counseling_roadmap")
+
 
 if __name__ == "__main__":
     unittest.main()

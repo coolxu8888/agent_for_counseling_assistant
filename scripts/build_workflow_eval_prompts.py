@@ -81,6 +81,42 @@ EVALS = [
         "query": "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Earlier work has identified a likely criticism-anxiety-avoidance cycle, uneven sleep, and no reported suicide plan. Build a bounded multi-session roadmap with phases, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, and explicit do-not-do boundaries.",
         "expected": "Workflow 6: bounded multi-session counseling roadmap. The answer should explicitly name the selected framework, include a phased roadmap, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, missing-information prompts, and do-not-do boundaries while avoiding diagnosis, rigid timelines, or guaranteed treatment outcomes.",
     },
+    {
+        "id": "W1-004",
+        "name": "pre-interview-question-guide",
+        "query": "Before tomorrow's first interview, create an intake question guide and checklist for what I still need to ask.",
+        "expected": "Workflow 1: pre-interview intake preparation. The answer should generate an information collection guide or checklist for the first interview, highlight risk and consent follow-up items, and avoid turning the request into a case summary or session note.",
+    },
+    {
+        "id": "W2-004",
+        "name": "diagnosis-boundary-case-organization",
+        "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",
+        "expected": "Workflow 2: case background organization with diagnosis-boundary handling. The answer should organize known facts, risk signals, and information gaps, keep diagnosis language tentative and bounded, and avoid misrouting the request into intake preparation or session-note formatting.",
+    },
+    {
+        "id": "W3-004",
+        "name": "first-interview-notes-to-record",
+        "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",
+        "expected": "Workflow 3: post-session or post-interview counseling record generation. The answer should produce a session-style record with risk-change documentation and next-session focus, rather than a pre-interview checklist or a multi-session plan.",
+    },
+    {
+        "id": "W4-002",
+        "name": "framework-hypothesis-not-plan",
+        "query": "Use a psychodynamic framework to conceptualize this case, focusing on hypotheses and patterns rather than a session plan.",
+        "expected": "Workflow 4: framework-based conceptualization. The answer should stay in psychodynamic case-conceptualization mode, separate hypotheses from facts, and avoid drifting into a next-session plan or roadmap.",
+    },
+    {
+        "id": "W5-002",
+        "name": "single-next-session-not-roadmap",
+        "query": "Using CBT, plan only the next counseling session agenda from this case conceptualization.",
+        "expected": "Workflow 5: single next-session planning. The answer should stay bounded to one next session, keep CBT consistency, and avoid expanding into a phased roadmap or a case summary.",
+    },
+    {
+        "id": "W6-002",
+        "name": "mixed-next-session-and-roadmap",
+        "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",
+        "expected": "Workflow 6: multi-session roadmap. The answer should explicitly choose a phased roadmap structure, still mention the immediate next session inside that roadmap, and avoid collapsing into a single-session next-session plan.",
+    },
 ]
 
 

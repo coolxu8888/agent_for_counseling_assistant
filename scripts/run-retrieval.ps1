@@ -151,11 +151,39 @@ function Select-Workflow {
     param([string]$Text)
 
     if (Test-AnyPattern $Text @(
+            "before (the )?first (interview|session)",
+            "intake question guide",
+            "intake guide",
+            "intake checklist",
+            "information collection",
+            "information gathering",
+            "what .*still need to ask",
+            "still need to ask"
+        )) {
+        return "workflow_1_intake_form"
+    }
+
+    if (Test-AnyPattern $Text @(
+            "session note",
+            "progress note",
+            "counseling record",
+            "session record",
+            "risk update",
+            "next session focus",
+            "notes from today",
+            "first interview notes"
+        )) {
+        return "workflow_3_session_note"
+    }
+
+    if (Test-AnyPattern $Text @(
             "counseling\s*roadmap",
             "multi-session",
             "multi session",
             "phased roadmap",
             "phase plan",
+            "next several sessions",
+            "later phases",
             (U "\u54a8\u8be2\u8def\u7ebf\u56fe"),
             (U "\u591a\u8282\u54a8\u8be2"),
             (U "\u591a\u9636\u6bb5"),
@@ -182,6 +210,16 @@ function Select-Workflow {
 
     $workflowPatterns = @{
         workflow_1_intake_form = @(
+            "before (the )?first (interview|session)",
+            "intake question guide",
+            "intake guide",
+            "intake checklist",
+            "information collection",
+            "information gathering",
+            "what .*still need to ask",
+            "still need to ask",
+            "initial interview",
+            "\bintake\b",
             (U "\u521d\u8bbf"),
             (U "\u4fe1\u606f\u6536\u96c6\u8868"),
             (U "\u521d\u59cb\u8bbf\u8c08"),
@@ -197,6 +235,17 @@ function Select-Workflow {
             (U "\u7efc\u5408\u8bc4\u4f30")
         )
         workflow_2_case_summary = @(
+            "case summary",
+            "organi[sz]e the case",
+            "case background",
+            "biopsychosocial",
+            "\bbps\b",
+            "supervision summary",
+            "diagnosis questions",
+            "risk signals",
+            "missing facts",
+            "information gaps?",
+            "de-identified case",
             (U "\u4e2a\u6848"),
             (U "\u80cc\u666f"),
             (U "\u6574\u7406"),
@@ -212,6 +261,16 @@ function Select-Workflow {
             (U "\u7126\u8651\u75c7")
         )
         workflow_3_session_note = @(
+            "session note",
+            "progress note",
+            "counseling note",
+            "counselling note",
+            "counseling record",
+            "session record",
+            "risk update",
+            "next session focus",
+            "notes from today",
+            "first interview notes",
             "session",
             "Session",
             (U "\u54a8\u8be2\u8bb0\u5f55"),
@@ -242,8 +301,10 @@ function Select-Workflow {
         workflow_5_next_session_plan = @(
             "next-session\s*plan",
             "next session\s*plan",
+            "plan (only )?the next (counseling )?session",
             "session agenda",
             "upcoming session",
+            "immediate next session",
             "risk check points",
             "between-session task",
             (U "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212"),
@@ -258,6 +319,8 @@ function Select-Workflow {
             "multi session",
             "phased roadmap",
             "phase plan",
+            "next several sessions",
+            "later phases",
             "roadmap",
             (U "\u54a8\u8be2\u8def\u7ebf\u56fe"),
             (U "\u591a\u8282\u54a8\u8be2"),

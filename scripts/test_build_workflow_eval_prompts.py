@@ -1,10 +1,15 @@
 import json
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import build_workflow_eval_prompts
+MODULE_PATH = Path(__file__).resolve().parent / "build_workflow_eval_prompts.py"
+SPEC = importlib.util.spec_from_file_location("build_workflow_eval_prompts", MODULE_PATH)
+build_workflow_eval_prompts = importlib.util.module_from_spec(SPEC)
+assert SPEC and SPEC.loader
+SPEC.loader.exec_module(build_workflow_eval_prompts)
 
 
 class BuildWorkflowEvalPromptsTest(unittest.TestCase):
@@ -23,6 +28,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
 
         self.assertIn("counseling roadmap", w6["query"].lower())
         self.assertIn("multi-session", w6["expected"].lower())
+
+    def test_evals_include_ambiguity_and_mixed_intent_cases(self):
+        ids = {item["id"] for item in build_workflow_eval_prompts.EVALS}
+
+        self.assertIn("W1-004", ids)
+        self.assertIn("W3-004", ids)
+        self.assertIn("W5-002", ids)
+        self.assertIn("W6-002", ids)
 
     def test_main_writes_manifest_including_w5(self):
         with tempfile.TemporaryDirectory() as tmp:

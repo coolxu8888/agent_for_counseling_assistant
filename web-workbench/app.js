@@ -712,6 +712,31 @@ function renderDeploymentReadiness(readiness) {
   box.append(title, body);
 }
 
+function renderIntentSummary(data) {
+  const box = $("intentSummary");
+  if (!box) {
+    return;
+  }
+  const detected = data && (data.detected_workflow || data.workflow || "AUTO");
+  const routeStatus = data && data.route_status;
+  const routeNotice = data && data.route_notice;
+  const title = document.createElement("strong");
+  title.textContent = "Intent route";
+  const body = document.createElement("span");
+  const prefix = workflowLabel(detected);
+  if (!data) {
+    body.textContent = "Automatic routing will label the detected counselor task after each run.";
+  } else if (routeNotice) {
+    body.textContent = `${prefix} | ${routeNotice}`;
+  } else if (routeStatus) {
+    body.textContent = `${prefix} | Routing status: ${routeStatus}.`;
+  } else {
+    body.textContent = `${prefix} | Automatic routing completed.`;
+  }
+  box.innerHTML = "";
+  box.append(title, body);
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -728,6 +753,7 @@ function updateRunResult(data) {
   $("intentDisplay").textContent = workflowLabel(data.detected_workflow || data.workflow || "AUTO");
   setPathDisplay("runDir", data.run_dir, false);
   setPathDisplay("docxPath", data.docx && data.docx.path ? data.docx.path : null, true);
+  renderIntentSummary(data);
   updateTemplateAvailability();
 }
 

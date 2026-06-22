@@ -3,6 +3,7 @@ import base64
 import json
 import mimetypes
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -172,120 +173,243 @@ AGENT_STYLE_INSTRUCTIONS = {
     "custom": "",
 }
 
-WORKFLOW_KEYWORDS = {
-    "W1": [
-        "intake guide",
-        "intake form",
-        "intake checklist",
-        "initial interview",
-        "information gathering",
-        "intake",
-        "\u521d\u8bbf",
-        "\u521d\u59cb\u8bbf\u8c08",
-        "\u4fe1\u606f\u6536\u96c6",
-        "\u8bbf\u8c08\u8868",
-        "\u6536\u96c6\u8868",
-        "\u6765\u8bbf\u4fe1\u606f",
-    ],
-    "W2": [
-        "case summary",
-        "biopsychosocial",
-        "bps",
-        "supervision summary",
-        "supervision",
-        "de-identified case",
-        "\u4e2a\u6848\u6982\u5ff5\u5316",
-        "\u4e2a\u6848\u4fe1\u606f",
-        "\u4e2a\u6848\u80cc\u666f",
-        "\u7763\u5bfc",
-        "\u53bb\u8bc6\u522b",
-    ],
-    "W4": [
-        "case formulation",
-        "case conceptualization",
-        "conceptualize this case",
-        "conceptualization hypothesis",
-        "cbt",
-        "psychodynamic",
-        "humanistic",
-        "integrative",
-        "framework",
-        "\u4e2a\u6848\u6982\u5ff5\u5316",
-        "\u8ba4\u77e5\u884c\u4e3a",
-        "\u4eba\u672c",
-        "\u7cbe\u795e\u52a8\u529b",
-        "\u6574\u5408\u53d6\u5411",
-        "\u6d41\u6d3e",
-    ],
-    "W5": [
-        "next-session plan",
-        "next session plan",
-        "plan the next session",
-        "session agenda",
-        "upcoming session plan",
-        "focus for the next session",
-        "risk check points",
-        "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212",
-        "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212",
-        "\u4e0b\u4e00\u6b21\u54a8\u8be2",
-        "\u4f1a\u8c08\u8bae\u7a0b",
-        "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9",
-    ],
-    "W6": [
-        "counseling roadmap",
-        "multi-session",
-        "multi session",
-        "phased roadmap",
-        "phase plan",
-        "roadmap",
-        "\u54a8\u8be2\u8def\u7ebf\u56fe",
-        "\u591a\u8282\u54a8\u8be2",
-        "\u591a\u9636\u6bb5",
-        "\u5206\u9636\u6bb5",
-        "\u8def\u7ebf\u56fe",
-    ],
-    "W3": [
-        "soap",
-        "dap",
-        "birp",
-        "session note",
-        "progress note",
-        "counseling note",
-        "counselling note",
-        "risk update",
-        "follow-up session",
-        "session record",
-        "session",
-        "note",
-        "intervention",
-        "next session",
-        "\u672c\u6b21\u54a8\u8be2",
-        "\u4e0b\u6b21\u54a8\u8be2",
-        "\u54a8\u8be2\u8bb0\u5f55",
-        "\u98ce\u9669\u53d8\u5316",
-        "\u8bb0\u5f55",
-        "\u603b\u7ed3",
-        "\u5e72\u9884",
-        "\u6765\u8bbf\u8005\u53cd\u5e94",
-    ],
+WORKFLOW_LABELS = {
+    "AUTO": "Auto detect",
+    "W1": "Intake guide",
+    "W2": "Case summary",
+    "W3": "Session note",
+    "W4": "Conceptualization",
+    "W5": "Next-session plan",
+    "W6": "Counseling roadmap",
+}
+
+ROUTING_RULES = {
+    "W1": {
+        "positive": [
+            (r"before (the )?first (interview|session)", 5),
+            (r"intake question guide", 5),
+            (r"intake guide", 4),
+            (r"intake checklist", 4),
+            (r"intake form", 4),
+            (r"information collection", 4),
+            (r"information gathering", 3),
+            (r"what (i|we) still need to ask", 5),
+            (r"still need to ask", 4),
+            (r"initial interview", 3),
+            (r"\bintake\b", 2),
+            (r"\u521d\u8bbf", 4),
+            (r"\u521d\u59cb\u8bbf\u8c08", 4),
+            (r"\u4fe1\u606f\u6536\u96c6", 4),
+            (r"\u8bbf\u8c08\u8868", 3),
+            (r"\u6536\u96c6\u8868", 3),
+            (r"\u6765\u8bbf\u4fe1\u606f", 3),
+        ],
+        "negative": [
+            (r"session note|progress note|counseling record|session record|soap|dap|birp", 4),
+            (r"notes from today|first interview notes|risk update|next session focus", 3),
+            (r"roadmap|multi-session|multi session|phases?", 4),
+        ],
+    },
+    "W2": {
+        "positive": [
+            (r"case summary", 5),
+            (r"organi[sz]e the case", 5),
+            (r"case background", 4),
+            (r"biopsychosocial", 4),
+            (r"\bbps\b", 4),
+            (r"supervision summary", 4),
+            (r"diagnosis questions", 4),
+            (r"risk signals", 4),
+            (r"missing facts", 4),
+            (r"information gaps?", 4),
+            (r"de-identified case", 3),
+            (r"\u4e2a\u6848\u4fe1\u606f", 4),
+            (r"\u4e2a\u6848\u80cc\u666f", 4),
+            (r"\u7763\u5bfc", 3),
+            (r"\u53bb\u8bc6\u522b", 3),
+            (r"\u8bca\u65ad", 4),
+            (r"\u98ce\u9669\u4fe1\u53f7", 4),
+            (r"\u4fe1\u606f\u7f3a\u53e3", 4),
+        ],
+        "negative": [
+            (r"next-session plan|next session plan|session agenda", 4),
+            (r"roadmap|multi-session|multi session|phases?", 4),
+        ],
+    },
+    "W3": {
+        "positive": [
+            (r"session note", 5),
+            (r"progress note", 5),
+            (r"counseling note", 5),
+            (r"counselling note", 5),
+            (r"counseling record", 5),
+            (r"session record", 5),
+            (r"risk update", 4),
+            (r"next session focus", 4),
+            (r"notes from today", 4),
+            (r"first interview notes", 4),
+            (r"\bsoap\b|\bdap\b|\bbirp\b", 5),
+            (r"\u54a8\u8be2\u8bb0\u5f55", 5),
+            (r"\u98ce\u9669\u53d8\u5316", 4),
+            (r"\u603b\u7ed3", 2),
+            (r"\u5e72\u9884", 3),
+        ],
+        "negative": [
+            (r"before (the )?first (interview|session)", 4),
+            (r"intake guide|intake checklist", 4),
+            (r"roadmap|multi-session|multi session|phases?", 4),
+        ],
+    },
+    "W4": {
+        "positive": [
+            (r"case formulation", 5),
+            (r"case conceptualization", 5),
+            (r"conceptualize this case", 5),
+            (r"conceptualization hypothesis", 4),
+            (r"\bcbt\b", 3),
+            (r"psychodynamic", 3),
+            (r"humanistic", 3),
+            (r"integrative", 3),
+            (r"\bframework\b", 3),
+            (r"\u4e2a\u6848\u6982\u5ff5\u5316", 5),
+            (r"\u8ba4\u77e5\u884c\u4e3a", 3),
+            (r"\u4eba\u672c", 3),
+            (r"\u7cbe\u795e\u52a8\u529b", 3),
+            (r"\u6574\u5408\u53d6\u5411", 3),
+            (r"\u6d41\u6d3e", 3),
+        ],
+        "negative": [
+            (r"next-session plan|next session plan|session agenda", 3),
+            (r"roadmap|multi-session|multi session|phases?", 4),
+        ],
+    },
+    "W5": {
+        "positive": [
+            (r"next-session plan", 5),
+            (r"next session plan", 5),
+            (r"plan (only )?the next (counseling )?session", 5),
+            (r"session agenda", 4),
+            (r"upcoming session", 4),
+            (r"focus for the next session", 4),
+            (r"immediate next session", 4),
+            (r"risk check points", 3),
+            (r"\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212", 5),
+            (r"\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212", 5),
+            (r"\u4e0b\u4e00\u6b21\u54a8\u8be2", 4),
+            (r"\u4f1a\u8c08\u8bae\u7a0b", 4),
+            (r"\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9", 4),
+        ],
+        "negative": [
+            (r"roadmap|multi-session|multi session|phased roadmap|phase plan|next several sessions|later phases", 6),
+        ],
+    },
+    "W6": {
+        "positive": [
+            (r"counseling roadmap", 5),
+            (r"multi-session", 5),
+            (r"multi session", 5),
+            (r"phased roadmap", 5),
+            (r"phase plan", 4),
+            (r"next several sessions", 5),
+            (r"later phases", 4),
+            (r"\broadmap\b", 3),
+            (r"\u54a8\u8be2\u8def\u7ebf\u56fe", 5),
+            (r"\u591a\u8282\u54a8\u8be2", 5),
+            (r"\u591a\u9636\u6bb5", 4),
+            (r"\u5206\u9636\u6bb5", 4),
+            (r"\u8def\u7ebf\u56fe", 4),
+        ],
+        "negative": [
+            (r"plan (only )?the next (counseling )?session", 3),
+        ],
+    },
 }
 
 
+def workflow_label(workflow):
+    return WORKFLOW_LABELS.get(str(workflow or "").upper(), str(workflow or ""))
+
+
+def route_notice_for(workflow, route_status, top_candidates):
+    label = workflow_label(workflow)
+    if route_status == "fallback":
+        return (
+            "No clear counselor task was detected; defaulted to "
+            f"{label} to organize known facts, gaps, and boundaries safely."
+        )
+    if route_status == "mixed_signals":
+        candidate_ids = [item["workflow"] for item in top_candidates[:2]]
+        if candidate_ids == ["W6", "W5"]:
+            return (
+                "Detected both roadmap and next-session cues; routed to Counseling roadmap "
+                "because the request asked for several sessions or later phases."
+            )
+        if candidate_ids == ["W3", "W1"]:
+            return (
+                "Detected both intake-preparation and post-interview record cues; routed to "
+                "Session note because the request mentioned notes, record language, or follow-up from today."
+            )
+        return f"Detected overlapping counselor tasks; routed to {label} based on the strongest cues."
+    return f"Automatic routing matched {label}."
+
+
+def detect_workflow_details(user_input):
+    text = str(user_input or "").strip().lower()
+    scores = {workflow: 0 for workflow in ROUTING_RULES}
+    positive_scores = {workflow: 0 for workflow in ROUTING_RULES}
+    reasons = {workflow: [] for workflow in ROUTING_RULES}
+
+    for workflow, config in ROUTING_RULES.items():
+        for pattern, weight in config["positive"]:
+            if re.search(pattern, text):
+                scores[workflow] += weight
+                positive_scores[workflow] += weight
+                reasons[workflow].append(f"+{weight}:{pattern}")
+        for pattern, weight in config["negative"]:
+            if re.search(pattern, text):
+                scores[workflow] -= weight
+                reasons[workflow].append(f"-{weight}:{pattern}")
+
+    ranked = sorted(scores.items(), key=lambda item: (item[1], item[0] == "W2"), reverse=True)
+    winner = ranked[0]
+    runner_up = ranked[1] if len(ranked) > 1 else (None, 0)
+    workflow = winner[0] if winner[1] > 0 else "W2"
+    route_status = "clear"
+    if winner[1] <= 0:
+        route_status = "fallback"
+    elif runner_up[1] > 0 and abs(winner[1] - runner_up[1]) <= 2:
+        route_status = "mixed_signals"
+    elif workflow == "W6" and positive_scores.get("W5", 0) > 0:
+        route_status = "mixed_signals"
+    elif workflow == "W5" and positive_scores.get("W6", 0) > 0:
+        route_status = "mixed_signals"
+    elif workflow == "W3" and positive_scores.get("W1", 0) > 0:
+        route_status = "mixed_signals"
+    elif workflow == "W1" and positive_scores.get("W3", 0) > 0:
+        route_status = "mixed_signals"
+    top_candidates = [
+        {
+            "workflow": workflow_id,
+            "label": workflow_label(workflow_id),
+            "score": score,
+            "positive_score": positive_scores.get(workflow_id, 0),
+        }
+        for workflow_id, score in sorted(positive_scores.items(), key=lambda item: item[1], reverse=True)[:3]
+        if score > 0
+    ]
+    return {
+        "workflow": workflow,
+        "score": scores.get(workflow, 0),
+        "scores": scores,
+        "reasons": reasons.get(workflow, []),
+        "route_status": route_status,
+        "route_notice": route_notice_for(workflow, route_status, top_candidates),
+        "top_candidates": top_candidates,
+    }
+
+
 def detect_workflow(user_input):
-    text = str(user_input or "").lower()
-    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W1"]):
-        return "W1"
-    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W6"]):
-        return "W6"
-    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W5"]):
-        return "W5"
-    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W4"]):
-        return "W4"
-    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W2"]):
-        return "W2"
-    if any(keyword in text for keyword in WORKFLOW_KEYWORDS["W3"]):
-        return "W3"
-    return "W2"
+    return detect_workflow_details(user_input)["workflow"]
 
 
 def append_run_log(action, user_id=None, case_id=None, details=None):
@@ -752,7 +876,13 @@ def handle_api_run(payload):
     user_input = payload.get("input", "")
     if not str(user_input).strip():
         return error_response(400, "Input is required.")
-    workflow = detect_workflow(user_input) if requested_workflow == "AUTO" else requested_workflow
+    route_details = detect_workflow_details(user_input) if requested_workflow == "AUTO" else {
+        "workflow": requested_workflow,
+        "score": None,
+        "scores": {},
+        "reasons": [],
+    }
+    workflow = route_details["workflow"]
     user_input = apply_output_style(
         str(user_input),
         style=str(payload.get("output_style") or "default"),
@@ -789,6 +919,7 @@ def handle_api_run(payload):
                 {
                     "workflow": workflow,
                     "requested_workflow": requested_workflow,
+                    "routing_reasons": route_details.get("reasons", []),
                     "run_dir": path_for_ui(result.run_dir),
                 },
             )
@@ -799,6 +930,7 @@ def handle_api_run(payload):
                 details={
                     "workflow": workflow,
                     "requested_workflow": requested_workflow,
+                    "routing_reasons": route_details.get("reasons", []),
                     "status": result.status,
                     "run_dir": path_for_ui(result.run_dir),
                     "structured": structured or render_docx,
@@ -809,6 +941,11 @@ def handle_api_run(payload):
         response_payload = load_run_payload(result)
         response_payload["detected_workflow"] = workflow
         response_payload["requested_workflow"] = requested_workflow
+        response_payload["routing_reasons"] = route_details.get("reasons", [])
+        response_payload["routing_scores"] = route_details.get("scores", {})
+        response_payload["route_status"] = route_details.get("route_status")
+        response_payload["route_notice"] = route_details.get("route_notice")
+        response_payload["routing_candidates"] = route_details.get("top_candidates", [])
         return json_response(response_payload)
     except AgentInputError as exc:
         return error_response(400, str(exc))
