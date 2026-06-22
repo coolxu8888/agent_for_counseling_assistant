@@ -104,6 +104,35 @@ def render_initial_session_summary(data):
     return parts
 
 
+def render_session_note_v2(data):
+    parts = [paragraph(data.get("title") or "Session note", "Heading1")]
+    if data.get("record_format"):
+        parts.append(paragraph("Record format", "Heading2"))
+        parts.append(paragraph(data.get("record_format", "")))
+    for section in data.get("sections", []):
+        parts.append(paragraph(section.get("heading", "Unnamed section"), "Heading2"))
+        parts.append(paragraph(section.get("content", "")))
+    risk_change = data.get("risk_change")
+    if isinstance(risk_change, dict):
+        if risk_change.get("change_documentation"):
+            append_list(parts, "Risk change documentation", risk_change.get("change_documentation", []))
+        if risk_change.get("follow_up_actions"):
+            append_list(parts, "Risk follow-up actions", risk_change.get("follow_up_actions", []))
+    if data.get("next_session_focus"):
+        parts.append(paragraph("下次咨询重点", "Heading2"))
+        for item in data["next_session_focus"]:
+            parts.append(paragraph("- " + _text(item)))
+    if data.get("missing_information"):
+        parts.append(paragraph("待补充信息", "Heading2"))
+        for item in data["missing_information"]:
+            parts.append(paragraph("- " + _text(item)))
+    if data.get("boundary_notes"):
+        parts.append(paragraph("边界说明", "Heading2"))
+        for item in data["boundary_notes"]:
+            parts.append(paragraph("- " + _text(item)))
+    return parts
+
+
 def render_case_summary(data):
     parts = [paragraph(data.get("title") or "个案信息整理", "Heading1")]
     append_list(parts, "已知事实", data.get("known_facts", []))
@@ -263,7 +292,7 @@ def render_body(data):
     if document_type == "case_summary":
         return render_case_summary(data)
     if document_type == "session_note":
-        return render_session_note(data)
+        return render_session_note_v2(data)
     if document_type == "case_conceptualization":
         return render_case_conceptualization(data)
     if document_type == "next_session_plan":

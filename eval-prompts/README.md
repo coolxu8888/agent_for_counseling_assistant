@@ -47,6 +47,7 @@ eval-results/eval-clean-summary.v0.1.json
 | W2-003 | `W2-003-deidentified-supervision-summary.txt` | 外部分享/督导用去识别摘要 |
 | W3-001 | `W3-001-session-note-basic.txt` | 普通 session 记录 |
 | W3-003 | `W3-003-session-note-soap.txt` | SOAP 格式记录 |
+| W3-005 | `W3-005-dap-risk-change-record.txt` | DAP 风格风险变化记录 |
 
 ## 重新生成
 

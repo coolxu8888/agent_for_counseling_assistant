@@ -239,6 +239,21 @@
     ]
   },
   {
+    "id": "W3-005",
+    "name": "dap-risk-change-record",
+    "query": "Write a DAP counseling record from this de-identified session note. The client said her panic dropped from last week, but she still fears making mistakes in tomorrow's work presentation. She denied current suicide plan or intent, but last week she said she sometimes wished she could disappear. Today the counselor reviewed the change in risk, confirmed she would contact a friend tonight, and asked her to return if suicidal thoughts increase. Keep the risk-change documentation explicit and bounded.",
+    "expected": "Workflow 3: DAP counseling record generation with explicit risk-change documentation. The answer should keep a DAP structure, document the observed change from the earlier passive disappearance wording, include counselor-facing follow-up actions, avoid diagnosis, and stay within session-record scope.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W3-005-dap-risk-change-record.txt",
+    "route_status": "OK",
+    "workflow": "workflow_3_session_note",
+    "intent": "普通 session 记录",
+    "chunks": [
+      "session-notes-risk-change-documentation-001",
+      "case-recording-cps-professional-materials-recording-001",
+      "case-recording-apa-record-keeping-purpose-context-001"
+    ]
+  },
+  {
     "id": "W4-002",
     "name": "framework-hypothesis-not-plan",
     "query": "Use a psychodynamic framework to conceptualize this case, focusing on hypotheses and patterns rather than a session plan.",

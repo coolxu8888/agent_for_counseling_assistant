@@ -134,11 +134,24 @@ def build_source_map(data):
     document_type = data.get("document_type")
     if document_type == "session_note":
         risk_change = data.get("risk_change") or {}
+        _add_entry(entries, "record_format", data.get("record_format"), ["记录格式", "Record format", "SOAP", "DAP", "BIRP"])
         _add_entry(
             entries,
             "risk_change.content",
             risk_change.get("content"),
             ["风险变化", "风险评估", "自杀自伤风险", "危机风险"],
+        )
+        _add_entry(
+            entries,
+            "risk_change.change_documentation",
+            risk_change.get("change_documentation"),
+            ["风险变化说明", "Risk change documentation", "变化记录"],
+        )
+        _add_entry(
+            entries,
+            "risk_change.follow_up_actions",
+            risk_change.get("follow_up_actions"),
+            ["风险后续跟进", "Risk follow-up actions", "后续风险询问"],
         )
         _add_entry(entries, "next_session_focus", data.get("next_session_focus"), ["下次咨询重点", "后续计划"])
         _add_entry(entries, "missing_information", data.get("missing_information"), ["待补充信息", "信息缺口"])

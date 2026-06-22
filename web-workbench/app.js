@@ -45,6 +45,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "institutional_record",
     },
     {
+      id: "session-dap-risk-change",
+      title: "W3 Demo: DAP risk update",
+      workflow: "W3",
+      summary: "A de-identified DAP record request that emphasizes bounded risk-change documentation and counselor follow-up actions.",
+      input:
+        "请根据以下去识别化会谈笔记写一份 DAP 咨询记录：来访者说与上周相比惊恐下降了一些，但仍担心明天的工作汇报会出错。她否认当前有自杀计划或意图，但上周提过“有时想消失一下”。本次咨询中，咨询师回顾了风险变化，确认她今晚会联系一位朋友，并说明如果自杀想法加重需要及时回访。请把风险变化记录写清楚，但保持边界和谨慎表达。",
+      output_style: "institutional_record",
+    },
+    {
       id: "conceptualization-criticism-cycle",
       title: "W4 Demo: CBT conceptualization",
       workflow: "W4",

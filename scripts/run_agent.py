@@ -155,6 +155,13 @@ OUTPUT_CONTRACTS = {
     ],
 }
 
+OUTPUT_CONTRACTS["W3"].extend(
+    [
+        "If the user asks for SOAP, DAP, or BIRP, keep that counselor record format and still preserve a distinct risk-change section plus next-session focus.",
+        "For stronger risk documentation, structured W3 output should include risk_change.content, risk_change.change_documentation, and risk_change.follow_up_actions whenever possible.",
+    ]
+)
+
 OUTPUT_CONTRACTS["W4"] = [
     "Title: case conceptualization",
     "The output must name the selected framework and separate known facts, working hypotheses, and open questions.",
@@ -236,6 +243,13 @@ STRUCTURED_OUTPUT_CONTRACTS = {
         "missing_information": [],
         "boundary_notes": ["本记录不替代咨询师专业判断。"],
     },
+}
+
+STRUCTURED_OUTPUT_CONTRACTS["W3"]["record_format"] = "generic"
+STRUCTURED_OUTPUT_CONTRACTS["W3"]["risk_change"] = {
+    "content": "",
+    "change_documentation": [],
+    "follow_up_actions": [],
 }
 
 STRUCTURED_OUTPUT_CONTRACTS["W4"] = {
@@ -872,6 +886,15 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
             f"回答末尾单独输出一行：{workflow.completion_marker}",
         ]
     )
+    if structured and workflow.workflow_id == "W3":
+        parts.insert(
+            len(parts) - 5,
+            "For W3, set record_format to generic, SOAP, DAP, or BIRP based on the user's request. Keep sections aligned with that record format while also preserving a separate risk-change section.",
+        )
+        parts.insert(
+            len(parts) - 5,
+            "For W3 risk_change, include content, change_documentation, and follow_up_actions. change_documentation should describe only observed changes or explicitly missing change data; follow_up_actions should stay counselor-facing and bounded.",
+        )
     return "\n\n".join(parts)
 
 
@@ -1022,6 +1045,44 @@ def _validate_w2_dimension(issues, bps, dimension_name):
         _validate_list_field(issues, {"bio_psycho_social": bps}, f"bio_psycho_social.{dimension_name}.{key}")
 
 
+def _normalize_w3_record_format(value):
+    text = str(value or "generic").strip().lower()
+    aliases = {
+        "generic": "generic",
+        "default": "generic",
+        "standard": "generic",
+        "soap": "SOAP",
+        "dap": "DAP",
+        "birp": "BIRP",
+    }
+    return aliases.get(text)
+
+
+def _w3_required_heading_groups(record_format):
+    groups = {
+        "generic": [["鏈涓婚"], ["鏉ヨ鑰呯姸鎬?"], ["鍜ㄨ甯堝共棰?"], ["椋庨櫓鍙樺寲"], ["涓嬫鍜ㄨ閲嶇偣"]],
+        "SOAP": [["s", "subjective"], ["o", "objective"], ["a", "assessment"], ["p", "plan"], ["risk change", "risk update", "椋庨櫓鍙樺寲"]],
+        "DAP": [["data"], ["assessment"], ["plan"], ["risk change", "risk update", "椋庨櫓鍙樺寲"]],
+        "BIRP": [["behavior"], ["intervention"], ["response"], ["plan"], ["risk change", "risk update", "椋庨櫓鍙樺寲"]],
+    }
+    return groups.get(record_format or "generic", groups["generic"])
+
+
+def _heading_matches_group(heading, aliases):
+    normalized = str(heading or "").strip().lower()
+    compact = re.sub(r"[^a-z]", "", normalized)
+    for alias in aliases:
+        alias_normalized = str(alias).strip().lower()
+        alias_compact = re.sub(r"[^a-z]", "", alias_normalized)
+        if alias_normalized and alias_normalized in normalized:
+            return True
+        if alias_compact and alias_compact == compact:
+            return True
+        if alias_compact and compact.startswith(alias_compact) and len(alias_compact) == 1:
+            return True
+    return False
+
+
 def _contains_forbidden_scope(text, forbidden_terms, allowed_negated_phrases=()):
     lowered = text.lower()
     for phrase in allowed_negated_phrases:
@@ -1169,6 +1230,48 @@ def _validate_w3(workflow, data):
     return issues
 
 
+def _validate_w3_v2(workflow, data):
+    record_format = _normalize_w3_record_format(data.get("record_format"))
+    if data.get("record_format") is not None and record_format is None:
+        issues = _check_common(workflow, data, "session_note")
+        issues.append(_structured_issue("record_format", "Unsupported record_format."))
+        record_format = "generic"
+    elif record_format in (None, "generic"):
+        issues = _validate_w3(workflow, data)
+        risk_change = data.get("risk_change")
+        if data.get("record_format") is not None and isinstance(risk_change, dict):
+            _validate_list_field(issues, {"risk_change": risk_change}, "risk_change.change_documentation")
+            _validate_list_field(issues, {"risk_change": risk_change}, "risk_change.follow_up_actions")
+        return issues
+    else:
+        issues = _check_common(workflow, data, "session_note")
+    sections = data.get("sections")
+    if not isinstance(sections, list) or not sections:
+        issues.append(_structured_issue("sections", "sections must be a non-empty list."))
+        headings = []
+    else:
+        headings = [str(section.get("heading", "")) for section in sections]
+    for aliases in _w3_required_heading_groups(record_format):
+        if not any(_heading_matches_group(heading, aliases) for heading in headings):
+            issues.append(_structured_issue("sections", f"Missing required section for {record_format}: {aliases[0]}"))
+    for key in ["risk_change", "next_session_focus", "missing_information"]:
+        if key not in data:
+            issues.append(_structured_issue(key, f"{key} is required."))
+    risk_change = data.get("risk_change")
+    if isinstance(risk_change, dict):
+        if not _has_non_empty(risk_change, "content"):
+            issues.append(_structured_issue("risk_change.content", "risk_change.content is required."))
+        require_extended_fields = data.get("record_format") is not None or any(
+            key in risk_change for key in ["change_documentation", "follow_up_actions"]
+        )
+        if require_extended_fields:
+            _validate_list_field(issues, {"risk_change": risk_change}, "risk_change.change_documentation")
+            _validate_list_field(issues, {"risk_change": risk_change}, "risk_change.follow_up_actions")
+    elif "risk_change" in data:
+        issues.append(_structured_issue("risk_change", "risk_change must be an object."))
+    return issues
+
+
 def _validate_w4(workflow, data):
     issues = _check_common(workflow, data, "case_conceptualization")
     required_keys = [
@@ -1295,7 +1398,7 @@ def validate_structured_output(workflow, data):
     validators = {
         "W1": _validate_w1,
         "W2": _validate_w2,
-        "W3": _validate_w3,
+        "W3": _validate_w3_v2,
         "W4": _validate_w4,
         "W5": _validate_w5,
         "W6": _validate_w6,

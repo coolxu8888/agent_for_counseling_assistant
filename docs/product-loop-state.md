@@ -56,7 +56,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | W1 initial interview preparation guide | partial | workflow/eval exists | ensure UX distinguishes pre-interview question guide from post-interview summary |
 | P0 | W1 initial interview summary into fixed template | partial | template filling prototype and W1 logic exist | strengthen raw-note-to-template mapping and missing-field prompts |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
-| P0 | W3 session summary and counseling record | partial | eval exists; risk-change section supported | strengthen crisis/risk-change handling and SOAP/DAP/BIRP variants |
+| P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
 | P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval | add more framework-specific eval cases and RAG cards |
 | P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval | add framework-specific evals and hosted verification |
 | P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval | add more framework-specific roadmap evals and hosted verification |
@@ -134,66 +134,59 @@ A capability is not complete just because a prompt exists. It is considered prod
 - Added bilingual W6 clean/rubric checks.
 - Regenerated `eval-prompts/manifest.json` so retrieval-backed eval assets now include W6.
 
-## This Run: W2 Case Background Organization With BPS
+## This Run: W3 Session Summary And Counseling Record
 
 Capability worked on:
 
-- `W2` case background organization from raw counselor materials into a dedicated biopsychosocial structure.
+- `W3` session summary and counseling record generation, with stronger risk-change documentation and an explicit DAP record path.
 
 What changed:
 
-- Productized a dedicated `W2` structured output in `scripts/run_agent.py` for case background organization:
-  - `presenting_concerns`
-  - `case_overview`
-  - `bio_psycho_social`
-  - `protective_factors`
-  - `risk_formulation`
-  - `recommended_focus`
-  - `boundary_notes`
-- Tightened the `W2` prompt contract so each biopsychosocial dimension must separate:
-  - `known_facts`
-  - `working_hypotheses`
-  - `information_gaps`
-  - `follow_up_questions`
-  and so risk content stays bounded to observed clues, unclear or missing information, and counselor-facing follow-up questions without producing a final diagnosis or risk rating.
-- Extended `W2` structured-output validation to accept the new dedicated BPS schema while still recognizing the older legacy shape during transition.
-- Added dedicated `W2` DOCX rendering in `scripts/render_docx.py` for the new case-background structure, including presenting concerns, case overview, dimension-level BPS splits, risk formulation, protective factors, recommended focus, and boundary notes.
-- Updated template-fill support in `scripts/fill_docx_template.py` so the BPS dimension entries can be mapped from the richer `W2` structure into uploaded Word templates.
-- Strengthened AUTO routing and workbench copy in:
-  - `scripts/run-retrieval.ps1`
-  - `scripts/web_workbench.py`
-  - `web-workbench/app.js`
-  - `web-workbench/index.html`
-  so plain-language requests for a biopsychosocial case background, protective factors, and risk follow-up route to `W2`, and the user-facing product now labels the capability as `Case background (BPS)` instead of a generic case summary.
-- Added eval coverage with `W2-005 bps-background-organization`, updated cleaner/rubric logic in `scripts/clean_eval_outputs.py`, and regenerated `eval-prompts/manifest.json`.
+- Extended the `W3` structured-output contract in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py>) so session-note outputs can carry:
+  - `record_format`
+  - `risk_change.content`
+  - `risk_change.change_documentation`
+  - `risk_change.follow_up_actions`
+- Added format-aware `W3` validation so explicit `SOAP`, `DAP`, and `BIRP` requests can be checked against their expected section families, while legacy generic session-note outputs still pass during the migration window.
+- Tightened the `W3` prompt instructions so model outputs are told to preserve the requested counselor record format while still documenting bounded risk change and counselor-facing follow-up actions.
+- Updated Word export in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/render_docx.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/render_docx.py>) so session-note documents can display the record format plus dedicated risk-change documentation and risk follow-up sections.
+- Updated template-fill source mapping in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py>) so uploaded Word templates can target:
+  - `record_format`
+  - `risk_change.change_documentation`
+  - `risk_change.follow_up_actions`
+- Added a product-facing DAP risk-update sample in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js>)
+  so pilot users can exercise the richer `W3` flow directly from the workbench.
+- Added eval coverage with `W3-005 dap-risk-change-record`, updated cleaner/rubric logic in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/clean_eval_outputs.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/clean_eval_outputs.py>), regenerated [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/manifest.json`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/manifest.json>), and wrote the new prompt file [`/Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/W3-005-dap-risk-change-record.txt`](</Users/win/Documents/Codex/2026-05-15/agent/eval-prompts/W3-005-dap-risk-change-record.txt>).
 
 Tests and evals run:
 
 - `python -m unittest discover -s scripts -p "test_*.py"`
 - `python scripts/build_workflow_eval_prompts.py`
-- `python scripts/run_model_eval.py --ids W2-005 --manifest eval-prompts/manifest.json`
+- `python scripts/run_model_eval.py --ids 'W3-005' --manifest eval-prompts/manifest.json`
 
 Outcome:
 
-- The new `W2` BPS route, schema, renderer, template-fill bridge, and eval fixture are implemented end to end.
-- The live DeepSeek-backed eval for `W2-005` executed successfully, satisfying the real integration requirement for this model-behavior change.
+- The `W3` session-record flow now supports a richer risk-change contract end to end across validation, DOCX export, template mapping, workbench entry, and eval assets.
+- A live DeepSeek-backed eval for `W3-005` executed successfully, satisfying the real integration requirement for this model-behavior change.
 
 Remaining gaps:
 
-- Uploaded-template mapping is still partial beyond the fixed internal DOCX renderer; the richer `W2` structure now maps more cleanly, but model-assisted section matching and merge policy are still not strong enough to mark the broader template-filling capability complete.
+- `W3` still lacks dedicated `BIRP` eval coverage and broader hosted verification after the latest commits are pushed and deployed.
+- Uploaded-template mapping is still partial beyond the fixed internal DOCX renderer; the richer `W3` structure now maps more cleanly, but model-assisted section matching and merge policy are still not strong enough to mark the broader template-filling capability complete.
 - Hosted deployment verification is stale until the latest local commits are pushed and Render smoke tests are rerun.
-- Retrieval/eval automation is still broader than this single capability: failure-matrix coverage and more bilingual `W2` rubric checks remain under the separate eval-automation backlog item.
+- Retrieval/eval automation is still broader than this single capability: failure-matrix coverage and more bilingual `W3` rubric checks remain under the separate eval-automation backlog item.
 
 ## Next Recommended Capability
 
-Improve `W3 session summary and counseling record` as the next P0 capability.
+Improve `Word template understanding and filling` as the next P0 capability.
 
 Recommended scope:
 
-- Strengthen crisis and risk-change handling inside session-note generation.
-- Add clearer structure support for at least one counselor-facing record format beyond the current baseline, such as SOAP, DAP, or BIRP.
-- Ensure the workbench/export path makes the record artifact explicit and distinct from `W1` interview summary and `W2` case background outputs.
-- Add at least one regression test and one DeepSeek eval focused on bounded session-record generation with risk-change documentation.
+- Make model-assisted template section matching reliable for the richer `W2` and `W3` structured outputs.
+- Define a safer merge/replace policy for prefilled DOCX templates so counselors can trust the generated draft.
+- Add at least one regression test and one DeepSeek-backed template-drafting eval that uses raw notes plus an uploaded template shape.
 
 ## Deployment Readiness Notes
 

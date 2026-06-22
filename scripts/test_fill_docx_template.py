@@ -78,6 +78,34 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(match["source_path"], "risk_change.content")
         self.assertEqual(match["value"], "出现被动自杀意念，无具体计划。")
 
+    def test_build_source_map_exposes_w3_risk_follow_up_fields(self):
+        source_map = build_source_map(
+            {
+                "workflow": "W3",
+                "document_type": "session_note",
+                "title": "DAP counseling record",
+                "record_format": "DAP",
+                "sections": [
+                    {"heading": "Data", "content": "Client reported lower anxiety but ongoing presentation worry."},
+                    {"heading": "Assessment", "content": "Performance-threat thinking may still be active."},
+                    {"heading": "Plan", "content": "Review coping rehearsal next time."},
+                ],
+                "risk_change": {
+                    "content": "No new self-harm or suicide escalation was documented.",
+                    "change_documentation": ["The note does not describe a new escalation in self-harm, suicide, violence, or substance risk."],
+                    "follow_up_actions": ["Re-check ideation, access to means, and environmental safety if concern rises."],
+                },
+                "next_session_focus": ["Review the presentation outcome and coping follow-through."],
+                "missing_information": ["No direct counselor observation was documented in the source note."],
+                "boundary_notes": ["This is a counselor-facing record, not a diagnosis or final risk judgment."],
+            }
+        )
+
+        paths = {entry["source_path"] for entry in source_map}
+
+        self.assertIn("risk_change.change_documentation", paths)
+        self.assertIn("risk_change.follow_up_actions", paths)
+
     def test_find_source_match_supports_medium_contains_match(self):
         source_map = build_source_map(self.sample_w3())
 

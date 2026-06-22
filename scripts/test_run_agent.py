@@ -711,6 +711,58 @@ AGENT_DONE_W3
         self.assertEqual(check["status"], "FAIL")
         self.assertTrue(any("确诊为" in issue["message"] for issue in check["issues"]))
 
+    def test_validate_structured_output_w3_accepts_dap_record_with_risk_change_fields(self):
+        data = {
+            "workflow": "W3",
+            "document_type": "session_note",
+            "title": "DAP counseling record",
+            "record_format": "DAP",
+            "sections": [
+                {"id": "data", "heading": "Data", "content": "Client reported less anxiety this week but still feared making mistakes in a work presentation."},
+                {"id": "assessment", "heading": "Assessment", "content": "Performance-threat thinking may still be active even though acute distress appears somewhat lower."},
+                {"id": "plan", "heading": "Plan", "content": "Review coping rehearsal, monitor anxiety around the next presentation, and revisit follow-through."},
+                {"id": "risk_change", "heading": "Risk change", "content": "No new self-harm or suicide escalation was documented in the source note."},
+            ],
+            "risk_change": {
+                "content": "No new self-harm or suicide escalation was documented in the source note.",
+                "change_documentation": ["Compared with the prior session, the material does not describe a new escalation in self-harm, suicide, violence, or substance risk."],
+                "follow_up_actions": ["Re-check ideation, access to means, and environmental safety if concern rises or the history is unclear."],
+            },
+            "next_session_focus": ["Review the presentation outcome and coping follow-through."],
+            "missing_information": ["No direct counselor observation was documented in the source note."],
+            "boundary_notes": ["This is a counselor-facing record, not a diagnosis or final risk judgment."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W3"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w3_requires_risk_change_documentation_lists(self):
+        data = {
+            "workflow": "W3",
+            "document_type": "session_note",
+            "title": "Incomplete session note",
+            "record_format": "SOAP",
+            "sections": [
+                {"id": "subjective", "heading": "S", "content": "Client reported lower anxiety."},
+                {"id": "objective", "heading": "O", "content": "The source material does not include counselor observation details."},
+                {"id": "assessment", "heading": "A", "content": "Anxiety may still be linked to performance concerns."},
+                {"id": "plan", "heading": "P", "content": "Review coping rehearsal next time."},
+                {"id": "risk_change", "heading": "Risk change", "content": "No new risk material provided."},
+            ],
+            "risk_change": {"content": "No new risk material provided."},
+            "next_session_focus": ["Review coping follow-through."],
+            "missing_information": ["No direct counselor observation was documented."],
+            "boundary_notes": ["This is a counselor-facing record, not a diagnosis or final risk judgment."],
+        }
+
+        check = validate_structured_output(normalize_workflow("W3"), data)
+
+        self.assertEqual(check["status"], "FAIL")
+        issue_paths = {issue["path"] for issue in check["issues"]}
+        self.assertIn("risk_change.change_documentation", issue_paths)
+        self.assertIn("risk_change.follow_up_actions", issue_paths)
+
     def test_validate_structured_output_w4_accepts_framework_specific_conceptualization(self):
         data = {
             "workflow": "W4",

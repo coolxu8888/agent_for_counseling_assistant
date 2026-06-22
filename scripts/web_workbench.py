@@ -102,6 +102,20 @@ DEMO_SCENARIOS = [
         "output_style": "institutional_record",
     },
     {
+        "id": "session-dap-risk-change",
+        "title": "W3 Demo: DAP risk update",
+        "workflow": "W3",
+        "summary": "A de-identified DAP record request that emphasizes bounded risk-change documentation and counselor follow-up actions.",
+        "input": (
+            "Write a DAP counseling record from this de-identified session note. The client said her panic dropped from last week,"
+            " but she still fears making mistakes in tomorrow's work presentation. She denied current suicide plan or intent,"
+            " but last week she said she sometimes wished she could disappear. Today the counselor reviewed the change in risk,"
+            " confirmed she would contact a friend tonight, and asked her to return if suicidal thoughts increase. Keep the risk-change"
+            " documentation explicit and bounded."
+        ),
+        "output_style": "institutional_record",
+    },
+    {
         "id": "conceptualization-criticism-cycle",
         "title": "W4 Demo: CBT conceptualization",
         "workflow": "W4",

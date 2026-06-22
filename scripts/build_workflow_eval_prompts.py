@@ -112,6 +112,12 @@ EVALS = [
         "expected": "Workflow 3: post-session or post-interview counseling record generation. The answer should produce a session-style record with risk-change documentation and next-session focus, rather than a pre-interview checklist or a multi-session plan.",
     },
     {
+        "id": "W3-005",
+        "name": "dap-risk-change-record",
+        "query": "Write a DAP counseling record from this de-identified session note. The client said her panic dropped from last week, but she still fears making mistakes in tomorrow's work presentation. She denied current suicide plan or intent, but last week she said she sometimes wished she could disappear. Today the counselor reviewed the change in risk, confirmed she would contact a friend tonight, and asked her to return if suicidal thoughts increase. Keep the risk-change documentation explicit and bounded.",
+        "expected": "Workflow 3: DAP counseling record generation with explicit risk-change documentation. The answer should keep a DAP structure, document the observed change from the earlier passive disappearance wording, include counselor-facing follow-up actions, avoid diagnosis, and stay within session-record scope.",
+    },
+    {
         "id": "W4-002",
         "name": "framework-hypothesis-not-plan",
         "query": "Use a psychodynamic framework to conceptualize this case, focusing on hypotheses and patterns rather than a session plan.",
