@@ -112,6 +112,12 @@ EVALS = [
         "expected": "Workflow 1: bilingual initial interview summary routing. The answer should use the fixed initial interview summary structure, preserve the intake-summary mode despite mixed Chinese and English phrasing, separate known facts from unclear information and follow-up questions, and avoid drifting into a session record or treatment plan.",
     },
     {
+        "id": "W1-009",
+        "name": "mixed-language-initial-interview-summary-notes",
+        "query": "These are completed first interview notes, not a session record. 来访者 said sleep has been worse for two weeks after a breakup, she is still going to class, and she sometimes says she wants to disappear but denied a current plan. 请按固定初访总结模板整理，每个 section 分成 known facts, unclear or missing facts, and follow-up questions.",
+        "expected": "Workflow 1: mixed-language initial interview summary normalization. The answer should stay in the fixed initial interview summary structure, preserve the known-facts vs unclear-or-missing vs follow-up-question split even with mixed Chinese and English raw-note phrasing, keep risk clues and missing risk data explicit, and avoid drifting into a session record, diagnosis, or treatment plan.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

@@ -768,6 +768,159 @@ W1_INITIAL_SESSION_SUMMARY_CONTRACT = {
 }
 
 
+W1_SUMMARY_SECTION_ALIASES = {
+    "main_distress": ["main distress", "main complaint", "presenting concern", "主要困扰", "主要问题"],
+    "basic_situation": ["basic situation", "background", "current situation", "基本情况", "生活事件", "家庭情况"],
+    "functioning": ["functioning", "emotion and functioning", "认知", "情绪", "功能"],
+    "support_coping": ["support and coping", "support", "coping", "社会支持", "应对方式"],
+    "history": ["history", "prior help-seeking and treatment history", "既往", "治疗史", "咨询史"],
+    "psychological_tests": ["psychological tests", "tests", "assessment", "心理测验", "测评"],
+    "risk_crisis": ["risk and crisis information", "risk", "crisis", "风险", "危机"],
+    "handling_suggestion": ["handling suggestions", "handling", "suggestion", "处理建议", "建议"],
+    "other_notes": ["other notes", "other", "其他备注", "备注"],
+}
+
+W1_SUMMARY_DEFAULT_MISSING = "Not documented in the provided initial interview notes."
+
+
+def _normalize_text_token(value):
+    lowered = str(value or "").strip().lower()
+    return re.sub(r"[\s_\-/():：，、,.]+", "", lowered)
+
+
+def _normalize_string_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        items = value
+    else:
+        items = [value]
+    normalized = []
+    seen = set()
+    for item in items:
+        text = str(item or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        normalized.append(text)
+    return normalized
+
+
+def _strip_w1_summary_label(text):
+    cleaned = str(text or "").strip()
+    for pattern in [
+        r"^(known facts?|known|facts?)\s*[:：\-]\s*",
+        r"^(unclear(?: or missing)?|missing|gaps?)\s*[:：\-]\s*",
+        r"^(follow[\s-]?up(?: questions?)?|questions?)\s*[:：\-]\s*",
+        r"^(已知(?:事实)?|缺失|未明|不清楚|追问|后续问题)\s*[:：\-]\s*",
+    ]:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip(" -:：;；")
+
+
+def _parse_w1_summary_content(content):
+    buckets = {
+        "known_facts": [],
+        "unclear_or_missing": [],
+        "follow_up_questions": [],
+    }
+    if not content:
+        return buckets
+    lines = [line.strip(" -*\t") for line in str(content).replace("\r", "\n").split("\n")]
+    lines = [line for line in lines if line]
+    pending_bucket = None
+    for line in lines:
+        normalized = _normalize_text_token(line)
+        bucket = None
+        if re.match(r"^(knownfacts?|known|已知事实?|facts?)", normalized):
+            bucket = "known_facts"
+        elif re.match(r"^(unclearormissing|unclear|missing|gaps?|缺失|未明|不清楚)", normalized):
+            bucket = "unclear_or_missing"
+        elif re.match(r"^(followupquestions?|followup|questions?|追问|后续问题)", normalized):
+            bucket = "follow_up_questions"
+        payload = _strip_w1_summary_label(line)
+        if bucket and payload == line and re.search(r"[:：\-]", line):
+            payload = line.split("：", 1)[1] if "：" in line else re.split(r"[:\-]", line, maxsplit=1)[1]
+            payload = payload.strip()
+        if bucket:
+            pending_bucket = bucket
+            if payload:
+                buckets[bucket].append(payload)
+            continue
+        if pending_bucket:
+            buckets[pending_bucket].append(line.strip())
+        else:
+            buckets["known_facts"].append(line.strip())
+    for key in list(buckets):
+        buckets[key] = _normalize_string_list(buckets[key])
+    return buckets
+
+
+def _match_w1_summary_section_id(section):
+    direct_id = str(section.get("id") or "").strip()
+    if direct_id in W1_SUMMARY_SECTION_ALIASES:
+        return direct_id
+    heading_token = _normalize_text_token(section.get("heading"))
+    for section_id, aliases in W1_SUMMARY_SECTION_ALIASES.items():
+        if any(_normalize_text_token(alias) == heading_token for alias in aliases):
+            return section_id
+    heading_text = str(section.get("heading") or "").strip().lower()
+    for section_id, aliases in W1_SUMMARY_SECTION_ALIASES.items():
+        for alias in aliases:
+            alias_text = str(alias).strip().lower()
+            if alias_text and alias_text in heading_text:
+                return section_id
+    return None
+
+
+def _normalize_w1_summary_section(section, template_section):
+    parsed = _parse_w1_summary_content(section.get("content"))
+    normalized = {
+        "id": template_section["id"],
+        "heading": template_section["heading"],
+        "known_facts": _normalize_string_list(section.get("known_facts")) or parsed["known_facts"],
+        "unclear_or_missing": _normalize_string_list(section.get("unclear_or_missing")) or parsed["unclear_or_missing"],
+        "follow_up_questions": _normalize_string_list(section.get("follow_up_questions")) or parsed["follow_up_questions"],
+    }
+    if not normalized["known_facts"] and not normalized["unclear_or_missing"]:
+        normalized["unclear_or_missing"] = [W1_SUMMARY_DEFAULT_MISSING]
+    return normalized
+
+
+def _normalize_w1_initial_session_summary(data):
+    normalized = json.loads(json.dumps(data, ensure_ascii=False))
+    source_sections = normalized.get("sections") if isinstance(normalized.get("sections"), list) else []
+    matched_sections = {}
+    for section in source_sections:
+        if not isinstance(section, dict):
+            continue
+        section_id = _match_w1_summary_section_id(section)
+        if section_id and section_id not in matched_sections:
+            matched_sections[section_id] = section
+
+    normalized_sections = []
+    for template_section in W1_INITIAL_SESSION_SUMMARY_CONTRACT["sections"]:
+        source_section = matched_sections.get(template_section["id"], {})
+        normalized_sections.append(_normalize_w1_summary_section(source_section, template_section))
+
+    normalized["workflow"] = "W1"
+    normalized["document_type"] = "initial_session_summary"
+    normalized["title"] = normalized.get("title") or W1_INITIAL_SESSION_SUMMARY_CONTRACT["title"]
+    normalized["sections"] = normalized_sections
+    normalized["summary_guidance"] = _normalize_string_list(normalized.get("summary_guidance")) or list(
+        W1_INITIAL_SESSION_SUMMARY_CONTRACT["summary_guidance"]
+    )
+    return normalized
+
+
+def normalize_structured_output(workflow, data):
+    if not isinstance(data, dict):
+        return data
+    if workflow.workflow_id == "W1" and data.get("document_type") == "initial_session_summary":
+        return _normalize_w1_initial_session_summary(data)
+    return data
+
+
 def normalize_workflow(value):
     alias = (value or "").strip().lower()
     workflow_id = WORKFLOW_ALIASES.get(alias)
@@ -1018,6 +1171,9 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
             )
             parts.append(
                 "If a section has no explicit facts, write at least one concise unclear_or_missing item and keep follow_up_questions counselor-facing."
+            )
+            parts.append(
+                "Use the canonical W1 section ids from the JSON schema. Do not collapse a whole section into one content string or rename risk_crisis into a generic note."
             )
             parts.append(
                 "The risk_crisis section must separate observed risk clues, missing or unclear risk information, and counselor-facing safety follow-up questions. Do not output a final diagnosis or final risk rating."
@@ -1702,6 +1858,7 @@ def run_agent_once(
         if structured_data is None:
             structured_check = extraction_check
         else:
+            structured_data = normalize_structured_output(workflow, structured_data)
             write_json(output_dir / "structured_output.json", structured_data)
             structured_check = validate_structured_output(workflow, structured_data)
         write_json(output_dir / "structured_check.json", structured_check)

@@ -54,7 +54,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 |---|---|---|---|---|
 | P0 | Intent recognition across counselor tasks | shipped partial | web workbench auto-routing now covers mixed-language ambiguity for W1/W5 boundaries, returns `routing_reasons_summary` in product/API payloads, and passes live bilingual eval `W1-008` alongside mixed-intent cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | verify the hosted deployment uses the new AUTO contract and extend more bilingual W5/W6/W3 edge cases |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
-| P0 | W1 initial interview summary into fixed template | shipped partial | W1 runner now detects intake-prep vs initial-interview-summary mode, switches the structured contract to the fixed summary template, persists `w1_mode`, and returns it through the web workbench with live eval `W1-005` passing | strengthen structured validation coverage and verify the hosted deployment uses the new summary-mode contract |
+| P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
 | P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
 | P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic retrieval-backed boundary coverage (`W4-002`, `W4-003`) plus dedicated W5/W6 sister framework cards to keep conceptualization separate from planning retrieval | add more per-framework subtopic cards and hosted verification |
@@ -401,15 +401,61 @@ Remaining gaps:
 - Bilingual ambiguity coverage is stronger for W1 and W5/W6, but still lighter for mixed-language W3/W4 prompts and more varied negation patterns.
 - Eval automation still reports route outcomes more clearly than before, but it does not yet produce dedicated failure-reason summaries across the whole bilingual routing matrix.
 
+## This Run: W1 Initial Interview Summary Into Fixed Template
+
+Capability worked on:
+
+- `W1 initial interview summary into fixed template`, specifically the post-run normalization path for mixed-language intake notes that do not cleanly follow the fixed structured contract.
+
+What changed:
+
+- Added W1 summary normalization in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run_agent.py>) so structured W1 summary outputs now:
+  - map heading aliases such as `Main complaint` and Chinese risk headings back to canonical W1 section ids
+  - recover `known_facts`, `unclear_or_missing`, and `follow_up_questions` from collapsed `content` blocks before validation
+  - fill missing sections with bounded missing-information placeholders instead of failing because the model omitted split fields
+- Tightened the W1 summary prompt in the same runner so the model is explicitly told to keep canonical section ids and not collapse a whole summary section into one content string.
+- Normalized structured W1 summary JSON before validation and persistence, which means `structured_output.json` now stores the repaired fixed-template shape rather than only the raw model JSON.
+- Added a dedicated workbench-facing W1 summary brief in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/index.html`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/index.html>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js`](</Users/win/Documents/Codex/2026-05-15/agent/web-workbench/app.js>)
+  so counselors can immediately review the main distress, risk highlight, priority follow-up, and biggest gap for W1 summary runs without opening raw JSON.
+- Expanded eval coverage in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py>) with new mixed-language summary case `W1-009`, then regenerated the committed eval prompt assets.
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_agent.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_web_workbench.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent.RunAgentTest.test_normalize_structured_output_w1_summary_recovers_sections_from_content_and_aliases scripts.test_run_agent.RunAgentTest.test_run_agent_once_structured_w1_summary_normalizes_before_validation scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_returns_w1_summary_mode_metadata`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_build_workflow_eval_prompts`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-009`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_agent.py --workflow W1 --structured --input "<mixed-language completed first-interview notes>"`
+
+Outcome:
+
+- W1 summary mode no longer depends purely on prompt compliance for fixed-template section splits. Common collapsed-summary outputs are repaired before validation, which makes the structured contract materially more reliable for market validation.
+- The shipped workbench now has a dedicated W1 summary brief, which closes the earlier product gap where counselors had to infer summary value from route metadata or open the raw JSON pane.
+- Live DeepSeek validation passed on the new mixed-language case `W1-009`, and a real W1 structured run succeeded with `structured_status=PASS` in [`/Users/win/Documents/Codex/2026-05-15/agent/agent-runs/2026-06-23-073017-W1`](</Users/win/Documents/Codex/2026-05-15/agent/agent-runs/2026-06-23-073017-W1>).
+
+Remaining gaps:
+
+- The W1 normalizer currently covers canonical ids plus a narrow set of English/Chinese heading aliases; broader counselor shorthand variants still need to be mapped.
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 summary request that exercises the new brief.
+- The live run passed structural validation, but the rubric layer still returned `WARN`, so W1 summary quality checks remain less granular than the fixed-template shape checks.
+
 ## Next Recommended Capability
 
-Improve `W1 initial interview summary into fixed template` as the next P0 capability.
+Improve `W2 case background organization with BPS` as the next P0 capability.
 
 Recommended scope:
 
-- Add a stronger post-run structural normalizer or validator so W1 summary mode depends less on pure prompt compliance when mapping raw intake notes into the fixed template.
-- Extend bilingual raw-note coverage for summary-mode inputs so mixed-language interview materials still preserve section-level `known_facts`, `unclear_or_missing`, and `follow_up_questions`.
-- Verify the hosted deployment with an AUTO-routed W1 summary request after the latest local commits are pushed.
+- Strengthen W2 uploaded-template alignment so structured biopsychosocial outputs map more reliably into common counselor background templates.
+- Add one stronger bilingual W2 eval covering mixed raw notes plus bounded risk follow-up fields.
+- Verify the hosted deployment with a W2 run and template-fill smoke after the latest local commits are pushed.
 
 ## Deployment Readiness Notes
 

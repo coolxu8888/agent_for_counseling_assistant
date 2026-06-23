@@ -766,6 +766,37 @@ function renderWorkflowModeSummary(data) {
   box.append(title, body);
 }
 
+function renderW1SummaryBrief(data) {
+  const box = $("w1SummaryBrief");
+  if (!box) {
+    return;
+  }
+  const title = document.createElement("strong");
+  title.textContent = "W1 summary brief";
+  const body = document.createElement("span");
+  const brief = data && data.w1_summary_brief;
+  if (!brief) {
+    body.textContent = "Completed initial interview highlights will appear here after a W1 summary run.";
+  } else {
+    const parts = [];
+    if (brief.main_distress) {
+      parts.push(`Main distress: ${brief.main_distress}`);
+    }
+    if (brief.risk_highlight) {
+      parts.push(`Risk highlight: ${brief.risk_highlight}`);
+    }
+    if (brief.follow_up_priority) {
+      parts.push(`Priority follow-up: ${brief.follow_up_priority}`);
+    }
+    if (brief.biggest_gap) {
+      parts.push(`Biggest gap: ${brief.biggest_gap}`);
+    }
+    body.textContent = parts.join(" | ") || "Completed initial interview highlights will appear here after a W1 summary run.";
+  }
+  box.innerHTML = "";
+  box.append(title, body);
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -784,6 +815,7 @@ function updateRunResult(data) {
   setPathDisplay("docxPath", data.docx && data.docx.path ? data.docx.path : null, true);
   renderIntentSummary(data);
   renderWorkflowModeSummary(data);
+  renderW1SummaryBrief(data);
   updateTemplateAvailability();
 }
 

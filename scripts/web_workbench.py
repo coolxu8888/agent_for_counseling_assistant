@@ -402,6 +402,48 @@ def describe_workflow_mode(payload):
     }
 
 
+def describe_w1_summary_brief(payload):
+    workflow = str(payload.get("detected_workflow") or payload.get("workflow") or "").upper()
+    if workflow != "W1":
+        return None
+    w1_mode = (
+        payload.get("w1_mode")
+        or ((payload.get("metadata") or {}).get("w1_mode") if isinstance(payload.get("metadata"), dict) else None)
+    )
+    if w1_mode != "initial_interview_summary":
+        return None
+    structured_output = payload.get("structured_output")
+    if not isinstance(structured_output, dict):
+        return None
+    sections = structured_output.get("sections")
+    if not isinstance(sections, list):
+        return None
+
+    by_id = {
+        str(section.get("id")): section
+        for section in sections
+        if isinstance(section, dict) and section.get("id")
+    }
+    main_distress = by_id.get("main_distress", {})
+    risk_crisis = by_id.get("risk_crisis", {})
+    biggest_gap = next(
+        (
+            item
+            for item in (main_distress.get("unclear_or_missing") or []) + (risk_crisis.get("unclear_or_missing") or [])
+            if str(item).strip()
+        ),
+        "",
+    )
+    return {
+        "w1_summary_brief": {
+            "main_distress": next((item for item in main_distress.get("known_facts", []) if str(item).strip()), ""),
+            "risk_highlight": next((item for item in risk_crisis.get("known_facts", []) if str(item).strip()), ""),
+            "follow_up_priority": next((item for item in risk_crisis.get("follow_up_questions", []) if str(item).strip()), ""),
+            "biggest_gap": biggest_gap,
+        }
+    }
+
+
 def route_notice_for(workflow, route_status, top_candidates):
     label = workflow_label(workflow)
     if route_status == "fallback":
@@ -931,6 +973,9 @@ def load_run_payload(result):
     mode_summary = describe_workflow_mode(payload)
     if mode_summary:
         payload.update(mode_summary)
+    summary_brief = describe_w1_summary_brief(payload)
+    if summary_brief:
+        payload.update(summary_brief)
     return payload
 
 
@@ -1054,6 +1099,9 @@ def handle_api_run(payload):
         mode_summary = describe_workflow_mode(response_payload)
         if mode_summary:
             response_payload.update(mode_summary)
+        summary_brief = describe_w1_summary_brief(response_payload)
+        if summary_brief:
+            response_payload.update(summary_brief)
         return json_response(response_payload)
     except AgentInputError as exc:
         return error_response(400, str(exc))

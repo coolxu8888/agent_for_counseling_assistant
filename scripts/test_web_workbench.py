@@ -384,7 +384,33 @@ class WebWorkbenchTest(unittest.TestCase):
             (run_dir / "metadata.json").write_text('{"status":"success","w1_mode":"initial_interview_summary"}', encoding="utf-8")
             (
                 run_dir / "structured_output.json"
-            ).write_text('{"workflow":"W1","document_type":"initial_session_summary"}', encoding="utf-8")
+            ).write_text(
+                json.dumps(
+                    {
+                        "workflow": "W1",
+                        "document_type": "initial_session_summary",
+                        "sections": [
+                            {
+                                "id": "main_distress",
+                                "heading": "Main distress",
+                                "known_facts": ["Sleep worsened after the breakup."],
+                                "unclear_or_missing": ["Duration of the low mood was not documented."],
+                                "follow_up_questions": ["Ask when the sleep change started."],
+                            },
+                            {
+                                "id": "risk_crisis",
+                                "heading": "Risk and crisis information",
+                                "known_facts": ["Notes mention passive disappearance language without a plan."],
+                                "unclear_or_missing": ["Access to means and prior attempts were not documented."],
+                                "follow_up_questions": ["Ask about self-harm history, plan, means, and protective factors."],
+                            },
+                        ],
+                        "summary_guidance": ["Separate known facts, unclear or missing facts, and follow-up questions."],
+                        "boundary_notes": ["Organize only provided material."],
+                    }
+                ),
+                encoding="utf-8",
+            )
 
             fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
             with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
@@ -400,6 +426,8 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["detected_workflow"], "W1")
         self.assertEqual(payload["w1_mode"], "initial_interview_summary")
         self.assertIn("summary", payload["route_notice"].lower())
+        self.assertEqual(payload["w1_summary_brief"]["main_distress"], "Sleep worsened after the breakup.")
+        self.assertIn("passive disappearance language", payload["w1_summary_brief"]["risk_highlight"].lower())
 
     def test_handle_run_returns_route_explanation_summary_for_auto_route(self):
         with tempfile.TemporaryDirectory() as tmp:

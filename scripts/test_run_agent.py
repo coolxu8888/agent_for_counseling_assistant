@@ -16,6 +16,7 @@ from run_agent import (
     extract_structured_json,
     load_rag_chunks,
     load_retrieval_map,
+    normalize_structured_output,
     normalize_workflow,
     main,
     parse_args,
@@ -87,6 +88,73 @@ class RunAgentTest(unittest.TestCase):
                         }
                     }
                 }
+            ),
+            encoding="utf-8",
+        )
+        return rag_root, retrieval_map_path
+
+    def make_w1_rag_fixture(self, tmp_path):
+        rag_root = tmp_path / "rag"
+        chunk_specs = [
+            (
+                rag_root / "intake-assessment" / "intake-structure.md",
+                "intake-assessment-cps-initial-interview-structure-001",
+                "intake-assessment",
+                "# Intake structure\nUse a bounded initial interview structure.\n",
+            ),
+            (
+                rag_root / "forms-fields" / "intake-fields.md",
+                "forms-fields-cps-initial-interview-fields-001",
+                "forms-fields",
+                "# Intake fields\nKeep intake fields explicit and counselor-facing.\n",
+            ),
+            (
+                rag_root / "ethics-risk" / "risk-boundary.md",
+                "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+                "ethics-risk",
+                "# Risk boundary\nKeep suicide, self-harm, and harm-to-others boundaries explicit.\n",
+            ),
+            (
+                rag_root / "case-recording" / "professional-materials-recording.md",
+                "case-recording-cps-professional-materials-recording-001",
+                "case-recording",
+                "# Recording\nUse accurate, relevant professional records.\n",
+            ),
+        ]
+        for chunk_path, chunk_id, rag_section, body in chunk_specs:
+            chunk_path.parent.mkdir(parents=True, exist_ok=True)
+            chunk_path.write_text(
+                (
+                    "---\n"
+                    f"chunk_id: {chunk_id}\n"
+                    f"rag_section: {rag_section}\n"
+                    "---\n\n"
+                    f"{body}"
+                ),
+                encoding="utf-8",
+            )
+        retrieval_map_path = tmp_path / "retrieval-map.json"
+        retrieval_map_path.write_text(
+            json.dumps(
+                {
+                    "workflows": {
+                        "workflow_1_intake_form": {
+                            "intent_routes": [
+                                {
+                                    "intent": "initial interview summary",
+                                    "priority_chunks": [
+                                        "intake-assessment-cps-initial-interview-structure-001",
+                                        "forms-fields-cps-initial-interview-fields-001",
+                                        "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
+                                        "case-recording-cps-professional-materials-recording-001",
+                                    ],
+                                }
+                            ]
+                        }
+                    }
+                },
+                ensure_ascii=False,
+                indent=2,
             ),
             encoding="utf-8",
         )
@@ -775,6 +843,89 @@ AGENT_DONE_W3
         self.assertIn("sections[0].unclear_or_missing", issue_paths)
         self.assertIn("sections[0].follow_up_questions", issue_paths)
         self.assertIn("summary_guidance", issue_paths)
+
+    def test_normalize_structured_output_w1_summary_recovers_sections_from_content_and_aliases(self):
+        workflow = normalize_workflow("W1")
+        data = {
+            "workflow": "W1",
+            "document_type": "initial_session_summary",
+            "title": "Initial interview summary",
+            "sections": [
+                {
+                    "heading": "Main complaint",
+                    "content": "Known facts: Sleep worsened after the breakup.\nMissing: Duration of the low mood was not documented.\nFollow-up: Ask when the sleep change started.",
+                },
+                {
+                    "heading": "风险与危机情况",
+                    "content": "Known facts: Notes mention passive disappearance language without a plan.\nMissing: Access to means and prior attempts were not documented.\nFollow-up: Ask about self-harm history, plan, means, and protective factors.",
+                },
+            ],
+            "boundary_notes": ["Organize only provided material."],
+        }
+
+        normalized = normalize_structured_output(workflow, data)
+
+        self.assertEqual(normalized["document_type"], "initial_session_summary")
+        self.assertEqual(normalized["sections"][0]["id"], "main_distress")
+        self.assertEqual(normalized["sections"][0]["known_facts"], ["Sleep worsened after the breakup."])
+        self.assertEqual(normalized["sections"][0]["unclear_or_missing"], ["Duration of the low mood was not documented."])
+        self.assertEqual(normalized["sections"][0]["follow_up_questions"], ["Ask when the sleep change started."])
+        risk_section = next(section for section in normalized["sections"] if section["id"] == "risk_crisis")
+        self.assertIn("Notes mention passive disappearance language without a plan.", risk_section["known_facts"])
+        self.assertIn("Access to means and prior attempts were not documented.", risk_section["unclear_or_missing"])
+        self.assertIn("Ask about self-harm history, plan, means, and protective factors.", risk_section["follow_up_questions"])
+        self.assertTrue(normalized["summary_guidance"])
+
+    def test_run_agent_once_structured_w1_summary_normalizes_before_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            rag_root, retrieval_map_path = self.make_w1_rag_fixture(tmp_path)
+
+            def fake_post_json(_url, _headers, _payload, _timeout):
+                return {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": (
+                                    "Initial interview summary\n"
+                                    "```json\n"
+                                    "{\n"
+                                    '  "workflow": "W1",\n'
+                                    '  "document_type": "initial_session_summary",\n'
+                                    '  "title": "Initial interview summary",\n'
+                                    '  "sections": [\n'
+                                    '    {"heading": "Main complaint", "content": "Known facts: Sleep worsened after the breakup.\\nMissing: Duration of the low mood was not documented.\\nFollow-up: Ask when the sleep change started."},\n'
+                                    '    {"heading": "风险与危机情况", "content": "Known facts: Notes mention passive disappearance language without a plan.\\nMissing: Access to means and prior attempts were not documented.\\nFollow-up: Ask about self-harm history, plan, means, and protective factors."}\n'
+                                    "  ],\n"
+                                    '  "boundary_notes": ["Organize only provided material."]\n'
+                                    "}\n"
+                                    "```\n"
+                                    "AGENT_DONE_W1\n"
+                                )
+                            }
+                        }
+                    ]
+                }
+
+            result = run_agent_once(
+                workflow_value="W1",
+                inline_input="These are completed initial interview notes. Organize them into the fixed initial interview summary template.",
+                input_file=None,
+                run_root=tmp_path / "agent-runs",
+                retrieval_map_path=retrieval_map_path,
+                rag_root=rag_root,
+                structured=True,
+                config=DeepSeekConfig(api_key="secret-key", model="deepseek-test"),
+                http_post_json=fake_post_json,
+            )
+
+            structured = json.loads((result.run_dir / "structured_output.json").read_text(encoding="utf-8"))
+            structured_check = json.loads((result.run_dir / "structured_check.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(structured_check["status"], "PASS")
+        self.assertEqual(structured["sections"][0]["id"], "main_distress")
+        risk_section = next(section for section in structured["sections"] if section["id"] == "risk_crisis")
+        self.assertTrue(risk_section["follow_up_questions"])
 
     def test_validate_structured_output_w2_requires_core_fields(self):
         data = {
