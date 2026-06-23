@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | web workbench AUTO routing now also catches stronger Chinese/English W5-vs-W3 negated-record phrasing, retrieval/eval prompt generation stays aligned for the new live-evaluated `W5-005` boundary case, and the route regression matrix covers W1-008/W2-006/W2-007/W3-004/W4-002/W5-002/W5-005/W6-002 | verify the hosted deployment uses the new AUTO contract and extend more Chinese-heavy `not X, do Y` route fixtures plus hosted smoke coverage |
+| P0 | Intent recognition across counselor tasks | shipped partial | web workbench AUTO routing now also catches stronger Chinese/English W5-vs-W3 negated-record phrasing, retrieval now exposes a dedicated W1 `初始访谈材料总结` intent for Chinese-first completed-intake summary prompts, eval prompt generation/scoring include `W1-010`, and live DeepSeek evals `W5-005` plus `W1-010` passed | verify the hosted deployment uses the new AUTO contract, confirm the W1 summary route metadata end to end, and extend more Chinese-heavy `not X, do Y` route fixtures plus hosted smoke coverage |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -601,15 +601,53 @@ Remaining gaps:
 - The retrieval route for Chinese-first W1 summary prompts still falls back to the generic W1 intake route rather than exposing a narrower W1 summary-mode route, so intent recognition is still partial overall.
 - Broader Chinese-heavy `not X, do Y` variants across W3-vs-W5 and W1-vs-W3 still need additional explicit fixtures before routing can be considered deployment-ready.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically retrieval-side disambiguation for Chinese-first completed initial-interview summary prompts that were still collapsing into the generic W1 intake intent.
+
+What changed:
+
+- Added a dedicated W1 retrieval intent branch in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1) so completed initial-interview summary prompts now resolve to `初始访谈材料总结` instead of the generic `生成咨询师访谈版初访表` intent when the wording signals an already-finished intake record plus fixed-summary-template organization.
+- Added a dedicated W1 summary intent route in [`C:\Users\win\Documents\Codex\2026-05-15\agent\rag\retrieval-map.v0.1.json`](C:\Users\win\Documents\Codex\2026-05-15\agent\rag\retrieval-map.v0.1.json) and documented it in [`C:\Users\win\Documents\Codex\2026-05-15\agent\rag\RAG_RETRIEVAL_MAP.md`](C:\Users\win\Documents\Codex\2026-05-15\agent\rag\RAG_RETRIEVAL_MAP.md), using summary-appropriate chunk priorities: biopsychosocial intake structure, professional-recording boundaries, and bounded risk documentation.
+- Expanded eval coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py) with `W1-010`, a Chinese-first completed-intake summary boundary case that explicitly negates `session note` / `counseling record` wording.
+- Added scorer coverage for `W1-010` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) by mapping it to the existing W1 summary rule/rubric contract, so the new route case is evaluated as fixed-template intake summarization rather than generic W1 intake prep.
+- Added regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+- Regenerated committed eval assets in [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts), including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-010-chinese-first-initial-interview-summary-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-010-chinese-first-initial-interview-summary-boundary.txt) and the updated manifest entries showing the new W1 summary intent and chunk selection.
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_retrieval.RunRetrievalTest.test_routes_chinese_first_completed_initial_interview_summary_to_summary_intent scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_chinese_first_w1_summary_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w1_010_chinese_first_summary_rubric_accepts_bounded_summary_output`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` -> 316 tests passed.
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-010` -> success.
+
+Outcome:
+
+- Retrieval no longer flattens Chinese-first completed-intake summary prompts into generic W1 intake-form prep; it now preserves the narrower W1 summary intent and retrieves summary-appropriate support chunks.
+- The eval matrix and scorer now treat this boundary case as a first-class agent-core capability rather than leaving it hidden inside broader W1 coverage.
+- This closes the specific retrieval-side gap called out in the prior loop state and adds real DeepSeek evidence for the new route case.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with a Chinese-first W1 summary request that exercises the current AUTO route metadata plus retrieval-backed generation path.
+- The product-facing web router already exposes `w1_mode`, but there is still no hosted proof in this run that the deployed endpoint returns the latest W1 summary route metadata and brief for this new boundary case.
+- Broader Chinese-heavy `not X, do Y` phrasing across W1-vs-W3 and W3-vs-W5 still needs more explicit fixtures before intent recognition can be considered deployment-ready.
+
 ## Next Recommended Capability
 
 Improve `intent recognition across counselor tasks` again as the next P0 capability.
 
 Recommended scope:
 
-- Verify the hosted deployment shows the new W5/W3 mixed-signal route notice end to end for `W5-005`-style prompts.
-- Tighten retrieval-side W1 intake-summary disambiguation so bilingual completed-interview summary prompts do not collapse into generic intake-form retrieval.
-- Add another Chinese-first `not X, do Y` route fixture on the W1-vs-W3 or W3-vs-W5 boundary after the hosted smoke confirms the current AUTO contract.
+- Verify the hosted deployment shows the current W1 summary route metadata and brief end to end for a `W1-010`-style Chinese-first prompt.
+- Add another Chinese-first `not X, do Y` route fixture on the W1-vs-W3 boundary after the hosted smoke confirms the current AUTO contract.
+- If hosted verification is blocked, continue expanding intent-recognition coverage with another retrieval-backed mixed-signal case before moving to lower-priority polish.
 
 ## Deployment Readiness Notes
 

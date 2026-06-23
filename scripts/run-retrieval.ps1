@@ -446,6 +446,22 @@ function Select-Intent {
     $involvesPsychiatry = Test-AnyPattern $Text @((U "\u7cbe\u795e\u79d1"), (U "\u5c31\u533b"), (U "\u5e7b\u542c"), (U "\u5984\u60f3"), (U "\u76d1\u89c6"), (U "\u73b0\u5b9e\u68c0\u9a8c"), (U "\u7cbe\u795e\u75c5"))
 
     if ($WorkflowName -eq "workflow_1_intake_form") {
+        if (Test-AnyPattern $Text @(
+                "completed (initial|first) interview notes",
+                "completed (initial|first) interview record",
+                "initial interview summary",
+                "first interview summary",
+                "fixed intake template",
+                "initial interview template",
+                (U "\u5df2\u7ecf\u5b8c\u6210\u7684\u521d\u8bbf\u8bb0\u5f55"),
+                (U "\u5df2\u5b8c\u6210\u521d\u8bbf"),
+                (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
+                (U "\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
+                (U "\u521d\u8bbf\u603b\u7ed3"),
+                (U "\u521d\u8bbf\u8bb0\u5f55")
+            )) {
+            return (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3")
+        }
         if ($isStudent) {
             return (U "\u5b66\u751f\u573a\u666f")
         }

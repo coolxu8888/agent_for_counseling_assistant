@@ -37,6 +37,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W1-007", ids)
         self.assertIn("W1-008", ids)
         self.assertIn("W1-009", ids)
+        self.assertIn("W1-010", ids)
         self.assertIn("W2-005", ids)
         self.assertIn("W2-006", ids)
         self.assertIn("W2-007", ids)
@@ -72,6 +73,16 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("sleep has been worse", w1_mixed["query"].lower())
         self.assertIn("mixed-language", w1_mixed["expected"].lower())
         self.assertIn("risk clues", w1_mixed["expected"].lower())
+
+    def test_evals_include_chinese_first_w1_summary_boundary_case(self):
+        w1_chinese_first = next(
+            item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-010"
+        )
+
+        self.assertIn("初访记录", w1_chinese_first["query"])
+        self.assertIn("session note", w1_chinese_first["query"].lower())
+        self.assertIn("chinese-first", w1_chinese_first["expected"].lower())
+        self.assertIn("fixed initial interview summary structure", w1_chinese_first["expected"].lower())
 
     def test_evals_include_w2_bps_background_organizer(self):
         w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-005")

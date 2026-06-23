@@ -471,6 +471,29 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
 
+    def test_w1_010_chinese_first_summary_rubric_accepts_bounded_summary_output(self):
+        answer = """
+Initial interview summary
+Known facts
+- The de-identified completed first interview record describes poor sleep after academic pressure and roommate conflict.
+Unclear or missing
+- The material does not state the duration of the roommate conflict or whether there were prior counseling episodes.
+follow_up_questions
+- Ask what support the client has been using and whether the passive disappearance wording has changed in frequency or intensity.
+Risk
+- The provided material mentions passive disappearance wording but no current suicide plan is documented in the source material.
+Boundary note
+- This is a bounded fixed initial interview summary structure. Do not output a final diagnosis or a final risk judgment.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W1-010", clean_answer)
+        rubric_result = run_dimension_rubric("W1-010", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Route correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
     def test_w3_007_birp_rubric_accepts_bounded_record(self):
         answer = """
 BIRP

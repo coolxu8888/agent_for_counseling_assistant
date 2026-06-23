@@ -71,6 +71,20 @@
           ]
         },
         {
+          "intent": "初始访谈材料总结",
+          "topics": [
+            "fact_vs_missing_info",
+            "biopsychosocial_assessment",
+            "risk_screening",
+            "intake_gap_check"
+          ],
+          "priority_chunks": [
+            "intake-assessment-biopsychosocial-client-assessment-001",
+            "case-recording-cps-professional-materials-recording-001",
+            "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+          ]
+        },
+        {
           "intent": "生成来访者预填写版",
           "topics": [
             "client_facing_language",

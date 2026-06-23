@@ -118,6 +118,12 @@ EVALS = [
         "expected": "Workflow 1: mixed-language initial interview summary normalization. The answer should stay in the fixed initial interview summary structure, preserve the known-facts vs unclear-or-missing vs follow-up-question split even with mixed Chinese and English raw-note phrasing, keep risk clues and missing risk data explicit, and avoid drifting into a session record, diagnosis, or treatment plan.",
     },
     {
+        "id": "W1-010",
+        "name": "chinese-first-initial-interview-summary-boundary",
+        "query": "这是一份已经完成的初访记录，不是 session note 或 counseling record。请按固定初访总结模板整理，分开 known facts、unclear or missing facts、follow-up questions，并把风险线索单独保留但不要下最终风险等级。",
+        "expected": "Workflow 1: Chinese-first completed initial interview summary routing. The answer should preserve the fixed initial interview summary structure despite Chinese-first mixed-language wording and record-format negation, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk documentation, and avoid drifting into a session note, diagnosis, or treatment plan.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

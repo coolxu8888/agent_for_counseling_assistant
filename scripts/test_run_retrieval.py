@@ -99,6 +99,20 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertEqual(payload["status"], "OK")
         self.assertEqual(payload["route"]["workflow"], "workflow_3_session_note")
 
+    def test_routes_chinese_first_completed_initial_interview_summary_to_summary_intent(self):
+        payload = self.run_retrieval(
+            "这是一份已经完成的初访记录，不是 session note 或 counseling record。"
+            "请按固定初访总结模板整理，分开 known facts、unclear or missing facts、follow-up questions，"
+            "并把风险线索单独保留但不要下最终风险等级。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_1_intake_form")
+        self.assertEqual(payload["route"]["intent"], "初始访谈材料总结")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+        self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
+
     def test_routes_mixed_next_session_and_roadmap_query_to_w6(self):
         payload = self.run_retrieval(
             "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases."

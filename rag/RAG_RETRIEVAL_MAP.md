@@ -26,6 +26,7 @@
 | 用户意图 | topic |
 |---|---|
 | 生成咨询师访谈版初访表 | `intake_basic_info`, `presenting_concern`, `current_functioning`, `biopsychosocial_assessment`, `risk_screening`, `informed_consent` |
+| 初始访谈材料总结 | `fact_vs_missing_info`, `biopsychosocial_assessment`, `risk_screening`, `intake_gap_check` |
 | 生成来访者预填写版 | `client_facing_language`, `informed_consent`, `risk_screening`, `optional_disclosure` |
 | 生成系统字段版 | `form_schema`, `sensitive_field`, `risk_signal_field`, `required_field` |
 | 基于笔记生成补充表 | `intake_gap_check`, `biopsychosocial_assessment`, `risk_screening`, `fact_vs_missing_info` |
@@ -49,6 +50,7 @@ query_topics = [
 | 场景 | 优先 chunk |
 |---|---|
 | 默认初访表 | `intake-assessment-biopsychosocial-client-assessment-001`, `ethics-risk-cps-informed-consent-confidentiality-001`, `ethics-risk-china-risk-boundary-self-harm-harm-to-others-001` |
+| 初始访谈材料总结 | `intake-assessment-biopsychosocial-client-assessment-001`, `case-recording-cps-professional-materials-recording-001`, `ethics-risk-china-risk-boundary-self-harm-harm-to-others-001` |
 | 来访者预填写版 | `ethics-risk-cps-informed-consent-confidentiality-001`, `forms-fields-pipl-sensitive-field-rules-001`, `forms-fields-pipl-minimum-necessary-001` |
 | 系统字段版 | `forms-fields-pipl-sensitive-field-rules-001`, `forms-fields-pipl-minimum-necessary-001` |
 | 基于笔记生成补充表 | `intake-assessment-biopsychosocial-client-assessment-001`, `ethics-risk-china-risk-boundary-self-harm-harm-to-others-001`, `ethics-risk-suicide-risk-inquiry-topics-001` |

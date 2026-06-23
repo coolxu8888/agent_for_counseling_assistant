@@ -189,10 +189,10 @@
     "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-005-initial-interview-summary-template.txt",
     "route_status": "OK",
     "workflow": "workflow_1_intake_form",
-    "intent": "生成咨询师访谈版初访表",
+    "intent": "初始访谈材料总结",
     "chunks": [
       "intake-assessment-biopsychosocial-client-assessment-001",
-      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "case-recording-cps-professional-materials-recording-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
@@ -236,10 +236,10 @@
     "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-008-bilingual-initial-interview-summary-route.txt",
     "route_status": "OK",
     "workflow": "workflow_1_intake_form",
-    "intent": "生成咨询师访谈版初访表",
+    "intent": "初始访谈材料总结",
     "chunks": [
       "intake-assessment-biopsychosocial-client-assessment-001",
-      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "case-recording-cps-professional-materials-recording-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
@@ -251,12 +251,27 @@
     "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-009-mixed-language-initial-interview-summary-notes.txt",
     "route_status": "OK",
     "workflow": "workflow_1_intake_form",
-    "intent": "生成咨询师访谈版初访表",
+    "intent": "初始访谈材料总结",
     "chunks": [
       "intake-assessment-biopsychosocial-client-assessment-001",
-      "ethics-risk-cps-informed-consent-confidentiality-001",
+      "case-recording-cps-professional-materials-recording-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001",
       "ethics-risk-suicide-risk-inquiry-topics-001"
+    ]
+  },
+  {
+    "id": "W1-010",
+    "name": "chinese-first-initial-interview-summary-boundary",
+    "query": "这是一份已经完成的初访记录，不是 session note 或 counseling record。请按固定初访总结模板整理，分开 known facts、unclear or missing facts、follow-up questions，并把风险线索单独保留但不要下最终风险等级。",
+    "expected": "Workflow 1: Chinese-first completed initial interview summary routing. The answer should preserve the fixed initial interview summary structure despite Chinese-first mixed-language wording and record-format negation, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk documentation, and avoid drifting into a session note, diagnosis, or treatment plan.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W1-010-chinese-first-initial-interview-summary-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_1_intake_form",
+    "intent": "初始访谈材料总结",
+    "chunks": [
+      "intake-assessment-biopsychosocial-client-assessment-001",
+      "case-recording-cps-professional-materials-recording-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
   },
   {
