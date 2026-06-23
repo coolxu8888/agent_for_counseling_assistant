@@ -590,6 +590,30 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
 
+    def test_w1_013_chinese_first_dap_boundary_rubric_accepts_bounded_summary_output(self):
+        answer = """
+Initial interview summary
+known_facts
+- The provided material came from de-identified first-interview raw notes rather than a DAP note.
+- The client described worse sleep and a recent rise in conflict-related distress.
+unclear_or_missing
+- The material does not confirm frequency, duration, or current functional impairment in detail.
+follow_up_questions
+- What changed around the recent risk cue, and what protective supports were active at that point?
+risk_crisis
+- Keep the reported risk-change clue visible and clarify missing current-plan data without assigning a fixed risk rating.
+Boundary notes
+- Organize this as a fixed intake summary template, not output a final diagnosis or final risk, and do not convert it into DAP format.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W1-013", clean_answer)
+        rubric_result = run_dimension_rubric("W1-013", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
+
     def test_w1_012_chinese_first_soap_boundary_rubric_accepts_bounded_summary_output(self):
         answer = """
 Initial interview summary

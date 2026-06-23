@@ -1,4 +1,4 @@
-import json
+﻿import json
 import sys
 import tempfile
 import unittest
@@ -2116,6 +2116,17 @@ class WebWorkbenchTest(unittest.TestCase):
         payload = json.loads(body.decode("utf-8"))
         self.assertEqual(status, 404)
         self.assertEqual(payload["message"], "Run not found.")
+
+    def test_detect_workflow_prefers_w1_for_chinese_first_summary_prompt_that_negates_dap(self):
+        details = web_workbench.detect_workflow_details(
+            "\u8bf7\u6839\u636e\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55\u6574\u7406\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3\uff0c\u4fdd\u7559\u98ce\u9669\u53d8\u5316\u7ebf\u7d22\uff0c\u4e0d\u8981\u5199\u6210DAP\u6216session note\u3002"
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "initial_interview_summary")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
 
 
 if __name__ == "__main__":

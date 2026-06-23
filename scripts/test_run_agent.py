@@ -1,4 +1,4 @@
-import tempfile
+﻿import tempfile
 import unittest
 import json
 import contextlib
@@ -562,6 +562,12 @@ class RunAgentTest(unittest.TestCase):
 
         self.assertEqual(
             detect_w1_mode("请根据首访原始记录整理固定模板总结，保留风险变化线索，不要写成SOAP或session note。"),
+            "initial_interview_summary",
+        )
+        self.assertEqual(
+            detect_w1_mode(
+                "\u8bf7\u6839\u636e\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55\u6574\u7406\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3\uff0c\u4fdd\u7559\u98ce\u9669\u53d8\u5316\u7ebf\u7d22\uff0c\u4e0d\u8981\u5199\u6210DAP\u6216session note\u3002"
+            ),
             "initial_interview_summary",
         )
 

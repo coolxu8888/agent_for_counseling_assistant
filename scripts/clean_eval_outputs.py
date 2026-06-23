@@ -59,6 +59,7 @@ RULES["W1-005"] = {
 RULES["W1-010"] = RULES["W1-005"]
 RULES["W1-011"] = RULES["W1-005"]
 RULES["W1-012"] = RULES["W1-005"]
+RULES["W1-013"] = RULES["W1-005"]
 
 RULES["W2-005"] = {
     "required_any": [
@@ -251,6 +252,7 @@ DIMENSION_RUBRICS["W1-005"] = {
 DIMENSION_RUBRICS["W1-010"] = DIMENSION_RUBRICS["W1-005"]
 DIMENSION_RUBRICS["W1-011"] = DIMENSION_RUBRICS["W1-005"]
 DIMENSION_RUBRICS["W1-012"] = DIMENSION_RUBRICS["W1-005"]
+DIMENSION_RUBRICS["W1-013"] = DIMENSION_RUBRICS["W1-005"]
 
 DIMENSION_RUBRICS["W2-005"] = {
     "Route correct": {"required_any": [["biopsychosocial", "case background", "Case background organization"]]},

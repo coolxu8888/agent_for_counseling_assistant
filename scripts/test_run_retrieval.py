@@ -1,4 +1,4 @@
-import json
+﻿import json
 import subprocess
 import unittest
 from pathlib import Path
@@ -214,6 +214,18 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("roadmap-planning-bounded-counseling-roadmap-001", chunk_ids)
         self.assertIn("theory-frameworks-humanistic-counseling-roadmap-001", chunk_ids)
+
+    def test_routes_chinese_first_summary_request_that_negates_dap_to_w1_summary_intent(self):
+        payload = self.run_retrieval(
+            "\u8bf7\u6839\u636e\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55\u6574\u7406\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3\uff0c\u4fdd\u7559\u98ce\u9669\u53d8\u5316\u7ebf\u7d22\uff0c\u4e0d\u8981\u5199\u6210DAP\u6216session note\u3002"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_1_intake_form")
+        self.assertEqual(payload["route"]["intent"], "初始访谈材料总结")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+        self.assertIn("ethics-risk-china-risk-boundary-self-harm-harm-to-others-001", chunk_ids)
 
 
 if __name__ == "__main__":

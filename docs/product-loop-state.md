@@ -725,15 +725,49 @@ Remaining gaps:
 - There is still no live DeepSeek evidence for `W1-011` in this environment because model credentials were missing.
 - Broader Chinese-heavy W1-vs-W3 phrasing around `SOAP`, `DAP`, and looser `固定模板` wording still needs more explicit route fixtures before intent recognition can be considered deployment-ready.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the Chinese-first W1-vs-W3 boundary where counselors ask for a fixed initial-interview summary while explicitly negating `DAP` or `session note`.
+
+What changed:
+
+- Added DAP-specific W1 summary regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_agent.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_agent.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  so the shipped runner, product-side AUTO router, and retrieval selector all have an explicit durable check for `首访原始记录 + 固定模板总结 + 不要写成DAP或session note`.
+- Expanded eval coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py) with `W1-013`, then regenerated committed eval assets including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-013-chinese-first-initial-interview-summary-dap-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-013-chinese-first-initial-interview-summary-dap-boundary.txt) and the updated manifest.
+- Added scorer/rubric coverage for `W1-013` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) by mapping it to the same bounded W1 summary contract already used for `W1-005`, `W1-010`, `W1-011`, and `W1-012`.
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_chinese_first_w1_summary_dap_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w1_013_chinese_first_dap_boundary_rubric_accepts_bounded_summary_output scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w1_for_chinese_first_summary_prompt_that_negates_dap scripts.test_run_retrieval.RunRetrievalTest.test_routes_chinese_first_summary_request_that_negates_dap_to_w1_summary_intent scripts.test_run_agent.RunAgentTest.test_detect_w1_mode_distinguishes_prep_vs_summary_requests`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 211 tests passed.
+- Live DeepSeek eval for `W1-013` was blocked on 2026-06-24 because `DEEPSEEK_API_KEY` was missing in the environment.
+
+Outcome:
+
+- The DAP variant of the Chinese-first W1 summary vs W3 record boundary is now durable across runner mode detection, product-side AUTO routing, retrieval selection, eval-prompt generation, and answer scoring.
+- This closes the remaining explicit `DAP` fixture gap called out in the prior loop state without drifting into lower-priority product work.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with a `W1-013`-style prompt that exercises AUTO route metadata plus retrieval-backed generation.
+- There is still no live DeepSeek evidence for `W1-013` in this environment because model credentials were missing.
+- Broader Chinese-heavy W1-vs-W3 phrasing around looser `固定模板` wording and hosted route-proof still remains before this P0 capability can be considered deployment-ready.
+
 ## Next Recommended Capability
 
 Improve `intent recognition across counselor tasks` again as the next P0 capability.
 
 Recommended scope:
 
-- Verify the hosted deployment shows the current W1 summary route metadata and brief end to end for a `W1-011`-style Chinese-first prompt.
-- Add another Chinese-first `not X, do Y` route fixture on the W1-vs-W3 boundary for `SOAP` or `DAP` negation after the hosted smoke confirms the current AUTO contract.
-- If hosted verification is blocked again, continue expanding retrieval-backed intent coverage for Chinese-heavy record-negation phrasing before moving to lower-priority polish.
+- Verify the hosted deployment shows the current W1 summary route metadata and brief end to end for a `W1-013`-style Chinese-first prompt.
+- If hosted verification is blocked again, extend another Chinese-heavy W1-vs-W3 boundary fixture around looser `固定模板` phrasing rather than record-format keywords.
+- Only move to a different P0 capability after the hosted AUTO-route proof for the current W1 summary boundary family exists or is concretely blocked outside the repo.
 
 ## Deployment Readiness Notes
 
