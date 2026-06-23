@@ -54,6 +54,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "institutional_record",
     },
     {
+      id: "session-birp-risk-change",
+      title: "W3 Demo: BIRP record",
+      workflow: "W3",
+      summary: "A de-identified BIRP record request with mixed-language note fragments, confidentiality boundary reminders, and explicit risk-change follow-up.",
+      input:
+        "Write a BIRP counseling record from today's de-identified session note. The client described crying after a roommate conflict, sleep worse for three nights, and said 'sometimes I just want to disappear for a bit,' but denied a current suicide plan or intent. 咨询师回顾了保密边界，示范了 grounding steps，并确认如果今晚情绪明显升级，她会联系一位朋友。Keep the BIRP structure clear, document the risk change cautiously, and preserve counselor-facing follow-up actions only.",
+      output_style: "institutional_record",
+    },
+    {
       id: "conceptualization-criticism-cycle",
       title: "W4 Demo: CBT conceptualization",
       workflow: "W4",
@@ -797,6 +806,40 @@ function renderW1SummaryBrief(data) {
   box.append(title, body);
 }
 
+function renderW3RecordBrief(data) {
+  const box = $("w3RecordBrief");
+  if (!box) {
+    return;
+  }
+  const title = document.createElement("strong");
+  title.textContent = "W3 record brief";
+  const body = document.createElement("span");
+  const brief = data && data.w3_record_brief;
+  if (!brief) {
+    body.textContent = "Session-record highlights will appear here after a W3 counseling-record run.";
+  } else {
+    const parts = [];
+    if (brief.record_format) {
+      parts.push(`Format: ${brief.record_format}`);
+    }
+    if (brief.behavior_highlight) {
+      parts.push(`Behavior/data: ${brief.behavior_highlight}`);
+    }
+    if (brief.intervention_highlight) {
+      parts.push(`Intervention: ${brief.intervention_highlight}`);
+    }
+    if (brief.risk_highlight) {
+      parts.push(`Risk highlight: ${brief.risk_highlight}`);
+    }
+    if (brief.next_focus) {
+      parts.push(`Next focus: ${brief.next_focus}`);
+    }
+    body.textContent = parts.join(" | ") || "Session-record highlights will appear here after a W3 counseling-record run.";
+  }
+  box.innerHTML = "";
+  box.append(title, body);
+}
+
 function updateRunResult(data) {
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
@@ -816,6 +859,7 @@ function updateRunResult(data) {
   renderIntentSummary(data);
   renderWorkflowModeSummary(data);
   renderW1SummaryBrief(data);
+  renderW3RecordBrief(data);
   updateTemplateAvailability();
 }
 

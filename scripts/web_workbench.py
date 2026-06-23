@@ -117,6 +117,19 @@ DEMO_SCENARIOS = [
         "output_style": "institutional_record",
     },
     {
+        "id": "session-birp-risk-change",
+        "title": "W3 Demo: BIRP record",
+        "workflow": "W3",
+        "summary": "A de-identified BIRP record request with mixed-language note fragments, confidentiality boundary reminders, and explicit risk-change follow-up.",
+        "input": (
+            "Write a BIRP counseling record from today's de-identified session note. The client described crying after a roommate conflict,"
+            " sleep worse for three nights, and said 'sometimes I just want to disappear for a bit,' but denied a current suicide plan or intent."
+            " 咨询师回顾了保密边界，示范了 grounding steps，并确认如果今晚情绪明显升级，她会联系一位朋友。"
+            " Keep the BIRP structure clear, document the risk change cautiously, and preserve counselor-facing follow-up actions only."
+        ),
+        "output_style": "institutional_record",
+    },
+    {
         "id": "conceptualization-criticism-cycle",
         "title": "W4 Demo: CBT conceptualization",
         "workflow": "W4",
@@ -440,6 +453,49 @@ def describe_w1_summary_brief(payload):
             "risk_highlight": next((item for item in risk_crisis.get("known_facts", []) if str(item).strip()), ""),
             "follow_up_priority": next((item for item in risk_crisis.get("follow_up_questions", []) if str(item).strip()), ""),
             "biggest_gap": biggest_gap,
+        }
+    }
+
+
+def describe_w3_record_brief(payload):
+    workflow = str(payload.get("detected_workflow") or payload.get("workflow") or "").upper()
+    if workflow != "W3":
+        return None
+    structured_output = payload.get("structured_output")
+    if not isinstance(structured_output, dict):
+        return None
+    sections = structured_output.get("sections")
+    if not isinstance(sections, list):
+        return None
+
+    by_id = {
+        str(section.get("id") or "").strip().lower(): section
+        for section in sections
+        if isinstance(section, dict)
+    }
+    risk_change = structured_output.get("risk_change") if isinstance(structured_output.get("risk_change"), dict) else {}
+    next_focus = structured_output.get("next_session_focus")
+    if not isinstance(next_focus, list):
+        next_focus = []
+
+    def first_text(*section_ids):
+        for section_id in section_ids:
+            section = by_id.get(section_id)
+            if not isinstance(section, dict):
+                continue
+            text = str(section.get("content") or "").strip()
+            if text:
+                return text
+        return ""
+
+    record_format = str(structured_output.get("record_format") or "generic").strip() or "generic"
+    return {
+        "w3_record_brief": {
+            "record_format": record_format,
+            "behavior_highlight": first_text("behavior", "data", "subjective", "theme", "client_status"),
+            "intervention_highlight": first_text("intervention", "objective"),
+            "risk_highlight": str(risk_change.get("content") or first_text("risk_change")).strip(),
+            "next_focus": next((item for item in next_focus if str(item).strip()), ""),
         }
     }
 
@@ -976,6 +1032,9 @@ def load_run_payload(result):
     summary_brief = describe_w1_summary_brief(payload)
     if summary_brief:
         payload.update(summary_brief)
+    w3_record_brief = describe_w3_record_brief(payload)
+    if w3_record_brief:
+        payload.update(w3_record_brief)
     return payload
 
 
@@ -1102,6 +1161,9 @@ def handle_api_run(payload):
         summary_brief = describe_w1_summary_brief(response_payload)
         if summary_brief:
             response_payload.update(summary_brief)
+        w3_record_brief = describe_w3_record_brief(response_payload)
+        if w3_record_brief:
+            response_payload.update(w3_record_brief)
         return json_response(response_payload)
     except AgentInputError as exc:
         return error_response(400, str(exc))

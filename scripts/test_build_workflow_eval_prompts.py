@@ -40,6 +40,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W2-005", ids)
         self.assertIn("W2-006", ids)
         self.assertIn("W3-004", ids)
+        self.assertIn("W3-007", ids)
         self.assertIn("W5-002", ids)
         self.assertIn("W6-002", ids)
         self.assertIn("W1-006", ids)
@@ -110,6 +111,13 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("counselor judgment", w5_integrative["expected"].lower())
         self.assertIn("psychodynamic", w6_psychodynamic["query"].lower())
         self.assertIn("multi-session roadmap", w6_psychodynamic["expected"].lower())
+
+    def test_evals_include_w3_birp_risk_change_case(self):
+        w3 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W3-007")
+
+        self.assertIn("birp", w3["query"].lower())
+        self.assertIn("mixed-language", w3["expected"].lower())
+        self.assertIn("risk-change", w3["expected"].lower())
 
     def test_main_writes_manifest_including_w5(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -448,6 +448,25 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
 
+    def test_w3_007_birp_rubric_accepts_bounded_record(self):
+        answer = """
+BIRP
+Behavior: de-identified client described crying after a roommate conflict and sleeping poorly for three nights.
+Intervention: Counselor reviewed grounding and clarified confidentiality limits for the counseling record.
+Response: Client said the grounding steps felt usable and agreed to contact a friend if distress rises tonight.
+Plan: Revisit the roommate conflict, sleep disruption, and coping follow-through next session.
+risk update: Compared with the earlier passive disappearance wording, there is no current suicide plan or intent in the source material.
+Boundary note: This is a bounded, counselor-facing record, not a diagnosis and not a final risk judgment.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W3-007", clean_answer)
+        rubric_result = run_dimension_rubric("W3-007", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Route correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
+
     def test_w5_001_rubric_flags_multi_session_roadmap_scope(self):
         answer = """
 Next-session plan

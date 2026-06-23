@@ -154,6 +154,12 @@ EVALS = [
         "expected": "Workflow 3: bounded session-note generation. The answer should remain a counseling record, preserve explicit confidentiality/documentation boundary notes and risk-change material, and avoid drifting into an intake checklist, diagnosis, or case conceptualization.",
     },
     {
+        "id": "W3-007",
+        "name": "birp-mixed-language-risk-change-record",
+        "query": "Write a BIRP counseling record from today's de-identified mixed-language session note. The client described crying after a roommate conflict, sleep worse for three nights, and said 'sometimes I just want to disappear for a bit,' but denied a current suicide plan or intent. 咨询师回顾了保密边界，示范了 grounding steps，并确认如果今晚情绪明显升级，她会联系一位朋友。Keep the BIRP structure clear, document the risk change cautiously, and preserve counselor-facing follow-up actions only.",
+        "expected": "Workflow 3: mixed-language BIRP counseling record generation with explicit risk-change documentation. The answer should keep a BIRP structure, preserve the confidentiality-boundary note, document the observed risk-change material cautiously, keep follow-up actions counselor-facing and bounded, and avoid drifting into intake preparation, diagnosis, or a multi-session plan.",
+    },
+    {
         "id": "W4-002",
         "name": "framework-hypothesis-not-plan",
         "query": "Use a psychodynamic framework to conceptualize this case, focusing on hypotheses and patterns rather than a session plan.",

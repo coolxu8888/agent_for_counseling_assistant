@@ -451,6 +451,81 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("W1", payload["routing_reasons_summary"])
         self.assertIn("W3", payload["routing_reasons_summary"])
 
+    def test_handle_run_returns_w3_birp_brief_for_product_ui(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("birp answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success"}', encoding="utf-8")
+            (run_dir / "structured_output.json").write_text(
+                json.dumps(
+                    {
+                        "workflow": "W3",
+                        "document_type": "session_note",
+                        "title": "BIRP counseling record",
+                        "record_format": "BIRP",
+                        "sections": [
+                            {
+                                "id": "behavior",
+                                "heading": "Behavior",
+                                "content": "Client described crying after a conflict with her roommate and sleeping poorly for three nights.",
+                            },
+                            {
+                                "id": "intervention",
+                                "heading": "Intervention",
+                                "content": "Counselor reviewed grounding steps and clarified confidentiality limits for shared notes.",
+                            },
+                            {
+                                "id": "response",
+                                "heading": "Response",
+                                "content": "Client said the grounding review felt usable and agreed to text a friend tonight if distress rises.",
+                            },
+                            {
+                                "id": "plan",
+                                "heading": "Plan",
+                                "content": "Revisit the roommate conflict, sleep disruption, and coping follow-through next session.",
+                            },
+                            {
+                                "id": "risk_change",
+                                "heading": "Risk change",
+                                "content": "No current suicide plan or intent was reported; earlier passive disappearance wording remained relevant to monitor.",
+                            },
+                        ],
+                        "risk_change": {
+                            "content": "No current suicide plan or intent was reported; earlier passive disappearance wording remained relevant to monitor.",
+                            "change_documentation": [
+                                "Compared with the earlier passive disappearance wording, the current note documents no new escalation to plan or intent."
+                            ],
+                            "follow_up_actions": [
+                                "Re-check ideation, supports, and access to means if distress rises or details stay unclear."
+                            ],
+                        },
+                        "next_session_focus": ["Review coping follow-through and the roommate conflict trigger."],
+                        "missing_information": ["The source note did not include direct counselor observation beyond the described intervention."],
+                        "boundary_notes": ["This is a counselor-facing record, not a diagnosis or final risk judgment."],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            fake_result = web_workbench.AgentRunResult("W3", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+                status, _headers, body = web_workbench.handle_api_run(
+                    {
+                        "workflow": "AUTO",
+                        "input": "Write a BIRP counseling record from today's de-identified session note with a risk update.",
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["detected_workflow"], "W3")
+        self.assertIn("w3_record_brief", payload)
+        self.assertEqual(payload["w3_record_brief"]["record_format"], "BIRP")
+        self.assertIn("crying after a conflict", payload["w3_record_brief"]["behavior_highlight"].lower())
+        self.assertIn("no current suicide plan", payload["w3_record_brief"]["risk_highlight"].lower())
+        self.assertIn("coping follow-through", payload["w3_record_brief"]["next_focus"].lower())
+
     def test_handle_run_returns_w1_prep_mode_summary_for_product_ui(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp) / "agent-runs" / "run-1"

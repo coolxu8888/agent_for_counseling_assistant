@@ -56,7 +56,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
-| P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
+| P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths now also include product-facing BIRP record summaries, a dedicated BIRP demo, cleaner/eval coverage through `W3-007`, and existing risk-change documentation plus DOCX/template mapping | run a live DeepSeek `W3-007` eval when credentials are available and verify the hosted deployment |
 | P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic retrieval-backed boundary coverage (`W4-002`, `W4-003`) plus dedicated W5/W6 sister framework cards to keep conceptualization separate from planning retrieval | add more per-framework subtopic cards and hosted verification |
 | P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval and now includes psychodynamic + integrative theory-specific planning retrieval coverage (`W5-003`, `W5-004`) with dedicated framework planning chunks | verify hosted deployment and extend more bilingual framework-routing coverage |
 | P0 | Counseling roadmap / multi-session plan | shipped partial | `W6` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic roadmap retrieval coverage (`W6-003`, `W6-004`) with dedicated framework roadmap chunks | verify hosted deployment and extend more framework-specific roadmap source cards |
@@ -484,15 +484,52 @@ Remaining gaps:
 - Template alignment is stronger for split BPS/risk/focus labels, but it still needs more real counselor template synonyms beyond the current deterministic alias set.
 - The shipped workbench template-fill UX is unchanged this run; counselors can use the stronger mapping path now, but the UI still does not explain W2-specific alias coverage or unresolved slot reasons as clearly as it could.
 
+## This Run: W3 Session Summary And Counseling Record
+
+Capability worked on:
+
+- `W3 session summary and counseling record`, specifically productizing BIRP-specific record handling instead of leaving W3 as generic/SOAP/DAP-only in the shipped product surface and eval matrix.
+
+What changed:
+
+- Added a dedicated product-facing W3 record brief in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\index.html`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\index.html), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js) so W3 runs now expose record-format, behavior/data highlight, intervention highlight, risk highlight, and next-session focus directly in the workbench without opening raw JSON.
+- Added a dedicated `W3 Demo: BIRP record` scenario in the backend and frontend demo catalogs so counselors can trigger a mixed-language BIRP counseling-record flow from the shipped product instead of relying on ad hoc prompts.
+- Expanded eval coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py) with `W3-007`, a mixed-language BIRP record case that requires bounded risk-change documentation plus confidentiality-boundary handling.
+- Updated eval cleaning/rubric coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) so `W3-007` is now recognized, scored, and checked for BIRP structure, risk handling, privacy minimization, and scope boundaries.
+- Added regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_handle_run_returns_w3_birp_brief_for_product_ui scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w3_birp_risk_change_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w3_007_birp_rubric_accepts_bounded_record`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- DeepSeek live eval attempt blocked in this environment because `DEEPSEEK_API_KEY` was missing on 2026-06-23.
+
+Outcome:
+
+- W3 now treats BIRP as a first-class counseling-record mode in the shipped product rather than as a runner-only hidden format.
+- Counselors can see the key BIRP record highlights directly in the workbench, which makes W3 materially easier to validate in pilot-style usage.
+- The eval pipeline now has dedicated fixture and cleaner coverage for mixed-language BIRP risk-change records, preventing future regressions from being hidden inside generic W3 coverage.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with one BIRP record request that exercises the new W3 record brief end to end.
+- Live DeepSeek validation for `W3-007` is still missing because API credentials were not present in this run environment.
+- Mixed-language W3 routing is stronger through the new BIRP eval case, but negated/boundary-heavy W3-vs-W2/W5 prompts still need broader explicit route coverage.
+
 ## Next Recommended Capability
 
-Improve `W3 session summary and counseling record` as the next P0 capability.
+Improve `intent recognition across counselor tasks` as the next P0 capability.
 
 Recommended scope:
 
-- Add BIRP-specific structured coverage alongside the existing generic/SOAP/DAP paths.
-- Expand mixed-language W3 routing/eval coverage so negated and boundary-heavy prompts do not drift across W1/W2/W5.
-- Verify the hosted deployment with one W3 record-generation smoke after the latest local commits are pushed.
+- Extend mixed-language W3-vs-W2/W5 boundary detection, especially negated prompts that mention session-note wording while asking for case organization or next-session planning.
+- Add dedicated AUTO-routing evals for those W3 boundary cases and verify the hosted deployment uses the new route explanations.
+- Re-run a live DeepSeek eval once credentials are available so routing and W3 BIRP coverage both have current real-model confirmation.
 
 ## Deployment Readiness Notes
 
