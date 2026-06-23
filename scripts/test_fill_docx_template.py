@@ -67,6 +67,47 @@ class FillDocxTemplateTest(unittest.TestCase):
             "boundary_notes": [],
         }
 
+    def sample_w2_structured(self):
+        return {
+            "workflow": "W2",
+            "document_type": "case_summary",
+            "title": "Case background organization",
+            "presenting_concerns": ["Sleep disruption, family pressure, and social withdrawal."],
+            "case_overview": {
+                "known_facts": ["Graduate student with worsening sleep after family conflict."],
+                "working_hypotheses": ["Stress overload may be contributing to mood instability."],
+                "information_gaps": ["Exact duration of social withdrawal is unclear."],
+            },
+            "bio_psycho_social": {
+                "biological": {
+                    "known_facts": ["Sleep has worsened for two weeks."],
+                    "working_hypotheses": ["Fatigue may be intensifying irritability."],
+                    "information_gaps": ["Caffeine and appetite changes were not documented."],
+                    "follow_up_questions": ["How many hours is the client sleeping most nights?"],
+                },
+                "psychological": {
+                    "known_facts": ["Feels overwhelmed and ashamed after family arguments."],
+                    "working_hypotheses": ["Self-criticism may be amplifying distress."],
+                    "information_gaps": ["Automatic thoughts were not clearly documented."],
+                    "follow_up_questions": ["What thoughts usually appear right after conflict?"],
+                },
+                "social": {
+                    "known_facts": ["Family pressure and lower peer contact are both active."],
+                    "working_hypotheses": ["Reduced support may be maintaining the current strain."],
+                    "information_gaps": ["Current living arrangement stability is unclear."],
+                    "follow_up_questions": ["Who is currently available for practical support?"],
+                },
+            },
+            "protective_factors": ["Still attending classes and willing to seek help."],
+            "risk_formulation": {
+                "observed_clues": ["Passive disappearance language was mentioned without a reported plan."],
+                "missing_or_unclear": ["No direct inquiry about means or recent escalation was documented."],
+                "follow_up_questions": ["Ask directly about ideation intensity, means access, and recent escalation."],
+            },
+            "recommended_focus": ["Clarify the stress timeline, support network, and risk follow-up."],
+            "boundary_notes": ["This is a counselor-facing case background organizer, not a diagnosis or final risk rating."],
+        }
+
     def test_normalize_label_removes_punctuation_and_placeholders(self):
         self.assertEqual(normalize_label(" 风险变化：____ "), "风险变化")
 
@@ -164,6 +205,30 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(mapping["mappings"][0]["source_path"], "unmapped")
         self.assertEqual(mapping["mappings"][0]["confidence"], "none")
         self.assertEqual(mapping["mappings"][0]["fill_status"], "skipped")
+
+    def test_build_template_mapping_matches_split_w2_bps_labels(self):
+        slots = extract_template_slots_from_xml(self.w2_split_bps_placeholder_xml())
+        source_paths = build_source_paths(self.sample_w2_structured())
+
+        mapping = build_template_mapping(slots, source_paths)
+
+        mapped_paths = {item["template_label"]: item["source_path"] for item in mapping["mappings"]}
+        self.assertEqual(
+            mapped_paths["Biological dimension known facts"],
+            "bio_psycho_social.biological.known_facts",
+        )
+        self.assertEqual(
+            mapped_paths["Social dimension follow-up questions"],
+            "bio_psycho_social.social.follow_up_questions",
+        )
+        self.assertEqual(
+            mapped_paths["Risk follow-up questions"],
+            "risk_formulation.follow_up_questions",
+        )
+        self.assertEqual(
+            mapped_paths["Recommended focus"],
+            "recommended_focus",
+        )
 
     def test_build_llm_mapping_prompt_constrains_model_to_json_and_source_paths(self):
         slots = extract_template_slots_from_xml(self.unknown_placeholder_xml())
@@ -719,6 +784,21 @@ class FillDocxTemplateTest(unittest.TestCase):
             f'<w:document xmlns:w="{WORD_NS}">'
             "<w:body>"
             "<w:p><w:r><w:t>咨询目标：____</w:t></w:r></w:p>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
+    def w2_split_bps_placeholder_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:p><w:r><w:t>Biological dimension known facts: ____</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>Psychological dimension working hypotheses: ____</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>Social dimension follow-up questions: ____</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>Risk follow-up questions: ____</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>Recommended focus: ____</w:t></w:r></w:p>"
             "<w:sectPr/>"
             "</w:body>"
             "</w:document>"

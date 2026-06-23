@@ -130,6 +130,12 @@ EVALS = [
         "expected": "Workflow 2: dedicated biopsychosocial case background organization. The answer should separate presenting concerns, known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up without drifting into diagnosis, intake preparation, or a session note.",
     },
     {
+        "id": "W2-006",
+        "name": "mixed-language-bps-background",
+        "query": "Please organize these mixed-language intake notes into a BPS case background, not a session note. 来访者近两周 sleep worse after family conflict, still attending class, and sometimes says she wants to disappear, but there is no reported plan. Separate known facts, working hypotheses, information gaps, protective factors, and risk follow-up questions.",
+        "expected": "Workflow 2: mixed-language biopsychosocial case background organization. The answer should preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions even when the raw notes mix Chinese and English, and it should avoid drifting into diagnosis, intake preparation, or a session note.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",

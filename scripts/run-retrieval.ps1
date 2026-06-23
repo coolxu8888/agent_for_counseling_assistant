@@ -150,6 +150,15 @@ function Get-WorkflowScore {
 function Select-Workflow {
     param([string]$Text)
 
+    $negatedSessionNote = Test-AnyPattern $Text @(
+        "not a session note",
+        "not the session note",
+        "do not write.*session note",
+        "don't write.*session note",
+        "不要写成.*session note",
+        "不要写成.*咨询记录"
+    )
+
     if (Test-AnyPattern $Text @(
             "before (the )?first (interview|session)",
             "intake question guide",
@@ -174,7 +183,7 @@ function Select-Workflow {
         return "workflow_1_intake_form"
     }
 
-    if (Test-AnyPattern $Text @(
+    if ((-not $negatedSessionNote) -and (Test-AnyPattern $Text @(
             "session note",
             "progress note",
             "counseling record",
@@ -182,7 +191,7 @@ function Select-Workflow {
             "risk update",
             "next session focus",
             "notes from today"
-        )) {
+        ))) {
         return "workflow_3_session_note"
     }
 
@@ -360,6 +369,10 @@ function Select-Workflow {
     $scores = @{}
     foreach ($name in $workflowPatterns.Keys) {
         $scores[$name] = Get-WorkflowScore $Text $workflowPatterns[$name]
+    }
+
+    if ($negatedSessionNote) {
+        $scores["workflow_3_session_note"] = 0
     }
 
     $winner = $scores.GetEnumerator() | Sort-Object -Property Value -Descending | Select-Object -First 1

@@ -208,6 +208,51 @@ def build_source_map(data):
     return entries
 
 
+_CASE_SUMMARY_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_case_summary_split_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "case_summary":
+        return entries
+
+    overview = data.get("case_overview") or {}
+    bps = data.get("bio_psycho_social") or {}
+    risk_formulation = data.get("risk_formulation") or {}
+
+    _add_entry(entries, "presenting_concerns", data.get("presenting_concerns"), ["????????????????", "?????????", "Primary concerns"])
+    _add_entry(entries, "case_overview.known_facts", overview.get("known_facts"), ["?????????", "??????????????????", "Case overview known facts"])
+    _add_entry(entries, "case_overview.working_hypotheses", overview.get("working_hypotheses"), ["??????????????????", "Case overview working hypotheses"])
+    _add_entry(entries, "case_overview.information_gaps", overview.get("information_gaps"), ["??????????????????", "Case overview information gaps"])
+
+    dimension_labels = {
+        "biological": "?????????",
+        "psychological": "?????????",
+        "social": "??????????",
+    }
+    for dimension_key, chinese_label in dimension_labels.items():
+        dimension = bps.get(dimension_key) or {}
+        if not isinstance(dimension, dict):
+            continue
+        english_label = dimension_key.title()
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.known_facts", dimension.get("known_facts"), [f"{chinese_label}?????????", f"{chinese_label}?????????", f"{english_label} known facts", f"{english_label} dimension known facts"])
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.working_hypotheses", dimension.get("working_hypotheses"), [f"{chinese_label}?????????", f"{chinese_label}?????????", f"{english_label} working hypotheses", f"{english_label} dimension working hypotheses"])
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.information_gaps", dimension.get("information_gaps"), [f"{chinese_label}?????????", f"{chinese_label}???????????", f"{english_label} information gaps", f"{english_label} dimension information gaps"])
+        _add_entry(entries, f"bio_psycho_social.{dimension_key}.follow_up_questions", dimension.get("follow_up_questions"), [f"{chinese_label}?????????", f"{chinese_label}????????????????", f"{english_label} follow-up questions", f"{english_label} dimension follow-up questions"])
+
+    _add_entry(entries, "protective_factors", data.get("protective_factors"), ["????????????????", "Protective factors"])
+    _add_entry(entries, "risk_formulation.observed_clues", risk_formulation.get("observed_clues"), ["?????????????????????", "Risk observed clues"])
+    _add_entry(entries, "risk_formulation.missing_or_unclear", risk_formulation.get("missing_or_unclear"), ["??????????????", "Risk information gaps"])
+    _add_entry(entries, "risk_formulation.follow_up_questions", risk_formulation.get("follow_up_questions"), ["??????????????", "Risk follow-up questions"])
+    _add_entry(entries, "recommended_focus", data.get("recommended_focus"), ["??????????????", "??????????????????", "Recommended focus"])
+    return entries
+    return entries
+
+
+def build_source_map(data):
+    entries = _CASE_SUMMARY_BUILD_SOURCE_MAP(data)
+    return _extend_case_summary_split_aliases(entries, data)
+
+
 def find_source_match(template_label, source_map):
     normalized = normalize_label(template_label)
     if not normalized:

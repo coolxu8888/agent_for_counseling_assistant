@@ -68,6 +68,18 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertEqual(payload["status"], "OK")
         self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
 
+    def test_routes_mixed_language_bps_background_to_w2_even_when_negating_session_note(self):
+        payload = self.run_retrieval(
+            "Please organize these mixed-language intake notes into a BPS case background, not a session note. "
+            "来访者近两周 sleep worse after family conflict, still attending class, and sometimes says she wants to disappear, "
+            "but there is no reported plan. Separate known facts, working hypotheses, information gaps, protective factors, and risk follow-up questions."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+
     def test_routes_post_session_note_query_to_w3_even_when_it_mentions_first_interview(self):
         payload = self.run_retrieval(
             "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."

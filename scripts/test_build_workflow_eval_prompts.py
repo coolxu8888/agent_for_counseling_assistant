@@ -38,6 +38,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W1-008", ids)
         self.assertIn("W1-009", ids)
         self.assertIn("W2-005", ids)
+        self.assertIn("W2-006", ids)
         self.assertIn("W3-004", ids)
         self.assertIn("W5-002", ids)
         self.assertIn("W6-002", ids)
@@ -74,6 +75,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
 
         self.assertIn("biopsychosocial", w2["query"].lower())
         self.assertIn("protective factors", w2["expected"].lower())
+        self.assertIn("risk follow-up", w2["expected"].lower())
+
+    def test_evals_include_bilingual_w2_background_case(self):
+        w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-006")
+
+        self.assertIn("bps", w2["query"].lower())
+        self.assertIn("known facts", w2["expected"].lower())
+        self.assertIn("mixed-language", w2["expected"].lower())
         self.assertIn("risk follow-up", w2["expected"].lower())
 
     def test_evals_expand_retrieval_boundary_matrix(self):

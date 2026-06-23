@@ -269,6 +269,31 @@ EVAL_DONE_W2_003
 
         self.assertEqual(result["dimensions"]["RAG 使用合理"]["status"], "PASS")
 
+    def test_w2_006_bilingual_background_case_passes_rules_and_rubric(self):
+        answer = """
+Case background organization
+presenting concerns
+- Sleep disruption, shame after family conflict, and reduced peer contact.
+known facts
+- The client is still attending class, has worse sleep for two weeks, and described passive disappearance language without a reported plan.
+working hypotheses
+- Self-criticism and family-pressure stress may be amplifying the current distress.
+information gaps
+- Direct inquiry about means access, recent escalation, and support availability is still missing.
+protective factors
+- Help-seeking, ongoing school participation, and willingness to return for follow-up.
+risk follow-up questions
+- Ask directly about ideation intensity, means access, recent escalation, and who can support her tonight.
+boundary notes
+- This is a de-identified mixed-language case background organizer, not a diagnosis or final risk rating.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-006", clean_answer)
+        rubric_result = run_dimension_rubric("W2-006", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+
     def test_w3_003_observation_gap_accepts_specific_missing_observation_wording(self):
         answer = """
 SOAP

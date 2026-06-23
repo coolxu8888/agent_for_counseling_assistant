@@ -55,7 +55,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | Intent recognition across counselor tasks | shipped partial | web workbench auto-routing now covers mixed-language ambiguity for W1/W5 boundaries, returns `routing_reasons_summary` in product/API payloads, and passes live bilingual eval `W1-008` alongside mixed-intent cases W1-004/W2-004/W3-004/W4-002/W5-002/W6-002 | verify the hosted deployment uses the new AUTO contract and extend more bilingual W5/W6/W3 edge cases |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
-| P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, and live eval `W2-005` now ship in runner/web/eval | verify hosted deployment and extend uploaded-template fill alignment |
+| P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
 | P0 | W3 session summary and counseling record | shipped partial | generic + SOAP + DAP structured paths, risk-change documentation, DOCX/template mapping, and live eval `W3-005` now ship in runner/web/eval | add BIRP-specific coverage and hosted verification |
 | P0 | W4 case conceptualization by theory/framework | shipped partial | `W4` shipped in runner/web/RAG/eval and now includes humanistic + psychodynamic retrieval-backed boundary coverage (`W4-002`, `W4-003`) plus dedicated W5/W6 sister framework cards to keep conceptualization separate from planning retrieval | add more per-framework subtopic cards and hosted verification |
 | P0 | W5 bounded next-session plan | shipped partial | `W5` shipped in runner/web/RAG/eval and now includes psychodynamic + integrative theory-specific planning retrieval coverage (`W5-003`, `W5-004`) with dedicated framework planning chunks | verify hosted deployment and extend more bilingual framework-routing coverage |
@@ -447,15 +447,52 @@ Remaining gaps:
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with an AUTO-routed W1 summary request that exercises the new brief.
 - The live run passed structural validation, but the rubric layer still returned `WARN`, so W1 summary quality checks remain less granular than the fixed-template shape checks.
 
+## This Run: W2 Case Background Organization With BPS
+
+Capability worked on:
+
+- `W2 case background organization with BPS`, specifically uploaded-template alignment for split biopsychosocial fields plus a mixed-language routing/eval boundary case.
+
+What changed:
+
+- Extended the structured template source-map aliases in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/fill_docx_template.py>) so W2 case-background outputs can deterministically fill more split template labels such as dimension-specific known facts, follow-up questions, risk follow-up questions, and recommended focus instead of collapsing into coarse case-overview matches.
+- Added a retrieval-router guard in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/run-retrieval.ps1`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/run-retrieval.ps1>) so mixed-language W2 prompts that say `not a session note` no longer misroute into W3 just because they contain the phrase `session note` in a negated boundary sentence.
+- Expanded eval coverage in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/build_workflow_eval_prompts.py>) with `W2-006`, a mixed-language BPS case-background prompt that exercises bounded risk follow-up and the negated-session-note route boundary.
+- Updated eval cleaning/rubric coverage in [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/clean_eval_outputs.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/clean_eval_outputs.py>) so `W2-006` is scored as a W2 case-background capability instead of being left outside the cleaner contract.
+- Added regression coverage in:
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_fill_docx_template.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_fill_docx_template.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_retrieval.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_run_retrieval.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_build_workflow_eval_prompts.py>)
+  - [`/Users/win/Documents/Codex/2026-05-15/agent/scripts/test_clean_eval_outputs.py`](</Users/win/Documents/Codex/2026-05-15/agent/scripts/test_clean_eval_outputs.py>)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_fill_docx_template scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs scripts.test_run_retrieval`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"`
+- `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-006`
+
+Outcome:
+
+- W2 mixed-language case-background prompts now stay on the W2 path even when they explicitly negate session-note formatting, which closes a real retrieval/eval misroute discovered during this run.
+- Uploaded W2 template filling now has better deterministic coverage for split case-background sections instead of overusing coarse case-overview matches.
+- The live DeepSeek-backed eval `W2-006` passed after the route fix, so this W2 slice now has real model coverage in addition to local regression tests.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with a W2 mixed-language request plus a W2 template-fill flow.
+- Template alignment is stronger for split BPS/risk/focus labels, but it still needs more real counselor template synonyms beyond the current deterministic alias set.
+- The shipped workbench template-fill UX is unchanged this run; counselors can use the stronger mapping path now, but the UI still does not explain W2-specific alias coverage or unresolved slot reasons as clearly as it could.
+
 ## Next Recommended Capability
 
-Improve `W2 case background organization with BPS` as the next P0 capability.
+Improve `W3 session summary and counseling record` as the next P0 capability.
 
 Recommended scope:
 
-- Strengthen W2 uploaded-template alignment so structured biopsychosocial outputs map more reliably into common counselor background templates.
-- Add one stronger bilingual W2 eval covering mixed raw notes plus bounded risk follow-up fields.
-- Verify the hosted deployment with a W2 run and template-fill smoke after the latest local commits are pushed.
+- Add BIRP-specific structured coverage alongside the existing generic/SOAP/DAP paths.
+- Expand mixed-language W3 routing/eval coverage so negated and boundary-heavy prompts do not drift across W1/W2/W5.
+- Verify the hosted deployment with one W3 record-generation smoke after the latest local commits are pushed.
 
 ## Deployment Readiness Notes
 
