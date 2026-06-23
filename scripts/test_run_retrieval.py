@@ -152,6 +152,20 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
         self.assertIn("theory-frameworks-integrative-next-session-planning-001", chunk_ids)
 
+    def test_routes_bilingual_next_session_plan_when_record_format_is_negated(self):
+        payload = self.run_retrieval(
+            "请先不要写成咨询记录或 session note，只做下一次咨询计划。"
+            "Use a humanistic lens, keep it to one upcoming counseling session, include risk check points, "
+            "and do not expand into a roadmap."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
+        self.assertEqual(payload["route"]["intent"], "Humanistic next-session plan")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
+        self.assertIn("theory-frameworks-humanistic-next-session-planning-001", chunk_ids)
+
     def test_humanistic_roadmap_uses_framework_specific_roadmap_chunk(self):
         payload = self.run_retrieval(
             "Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints."

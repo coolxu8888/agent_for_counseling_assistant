@@ -465,6 +465,22 @@
     ]
   },
   {
+    "id": "W5-005",
+    "name": "bilingual-next-session-not-record",
+    "query": "请先不要写成咨询记录或 session note，只做下一次咨询计划。Use a humanistic lens, keep it to one upcoming counseling session, include risk check points, and do not expand into a roadmap.",
+    "expected": "Workflow 5: bilingual single next-session planning with record-format negation. The answer should preserve the one-session planning route despite the negated session-record language, keep a humanistic frame, include bounded risk monitoring, and avoid drifting into counseling-record formatting or a multi-session roadmap.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W5-005-bilingual-next-session-not-record.txt",
+    "route_status": "OK",
+    "workflow": "workflow_5_next_session_plan",
+    "intent": "Humanistic next-session plan",
+    "chunks": [
+      "next-session-planning-bounded-next-session-plan-001",
+      "theory-frameworks-humanistic-next-session-planning-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
     "id": "W6-002",
     "name": "mixed-next-session-and-roadmap",
     "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",

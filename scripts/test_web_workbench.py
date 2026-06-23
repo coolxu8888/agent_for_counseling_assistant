@@ -346,6 +346,30 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
 
+    def test_detect_workflow_prefers_w5_when_bilingual_request_says_not_a_record(self):
+        details = web_workbench.detect_workflow_details(
+            "\u8fd9\u4e0d\u662f\u8981\u4f60\u5199session note\u6216\u54a8\u8be2\u8bb0\u5f55\uff0c"
+            "\u53ea\u505a\u4e0b\u4e00\u6b21\u54a8\u8be2\u8ba1\u5212\u3002"
+            "Use a humanistic lens and include risk check points."
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+        self.assertIn("next-session", details["route_notice"].lower())
+
+    def test_detect_workflow_prefers_w5_when_english_prompt_says_rather_than_record(self):
+        details = web_workbench.detect_workflow_details(
+            "Using a humanistic lens, create the next session agenda rather than a counseling record. "
+            "Keep it to one upcoming counseling session and include risk check points."
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
     def test_detect_workflow_prefers_w2_when_case_background_request_negates_record_format(self):
         details = web_workbench.detect_workflow_details(
             "Please turn today's session note into a BPS case background for supervision, "

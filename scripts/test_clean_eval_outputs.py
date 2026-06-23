@@ -543,6 +543,36 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
 
+    def test_w5_005_bilingual_record_negation_case_uses_w5_rules(self):
+        answer = """
+Next-session plan
+Selected framework: Humanistic
+Session goal
+- Stay with the client's felt sense around the recent conflict and identify what she most needs from the next meeting.
+Focus areas
+- Immediate emotional experience
+- Self-concept and relational safety
+Planned interventions
+- Reflective listening and process comments grounded in the current material.
+Suggested questions
+- When you imagine the next session, what part of the roommate conflict still feels unfinished?
+Risk monitoring
+- Re-check passive disappearance thoughts, sleep deterioration, and support availability before closing.
+Between-session tasks
+- Optional only if clinically appropriate: notice one moment of self-criticism and jot down what was happening around it.
+Do not do
+- Do not turn this into a counseling record, diagnosis, or multi-session roadmap.
+Boundary notes
+- This is a bounded next-session plan rather than a session note, not a diagnosis, and not a multi-session roadmap; any between-session task still depends on counselor judgment.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-005", clean_answer)
+        rubric_result = run_dimension_rubric("W5-005", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
     def test_w6_001_bilingual_rubric_accepts_bounded_counseling_roadmap(self):
         answer = """
 Counseling roadmap

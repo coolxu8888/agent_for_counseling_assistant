@@ -337,6 +337,8 @@ ROUTING_RULES = {
             (r"plan (only )?the next (counseling )?session", 5),
             (r"only (do|plan) (the )?next session", 5),
             (r"just (do|plan) the next session", 5),
+            (r"rather than (a )?(session note|progress note|counseling record).*(next session|session agenda)", 6),
+            (r"instead of (a )?(session note|progress note|counseling record).*(next session|session agenda)", 6),
             (r"session agenda", 4),
             (r"upcoming session", 4),
             (r"focus for the next session", 4),
@@ -346,6 +348,10 @@ ROUTING_RULES = {
             (r"\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212", 5),
             (r"\u4e0b\u4e00\u6b21\u54a8\u8be2", 4),
             (r"\u53ea\u89c4\u5212.*next session", 6),
+            (r"\u53ea\u505a.*\u4e0b\u6b21\u54a8\u8be2", 6),
+            (r"\u53ea\u505a.*\u4e0b\u4e00\u6b21\u54a8\u8be2", 6),
+            (r"\u53ea\u9700.*\u4e0b\u6b21\u54a8\u8be2", 5),
+            (r"\u800c\u4e0d\u662f.*(?:session note|progress note|counseling record|\u54a8\u8be2\u8bb0\u5f55).*\u4e0b\u6b21\u54a8\u8be2", 6),
             (r"next session.*\u4e0d\u8981.*roadmap", 6),
             (r"\u4f1a\u8c08\u8bae\u7a0b", 4),
             (r"\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9", 4),
@@ -395,6 +401,39 @@ NEGATED_RECORD_FORMAT_PATTERNS = [
     r"不要写成.*咨询记录",
     r"不是.*session note",
     r"不是.*counseling record",
+]
+
+
+EXTRA_NEGATED_RECORD_FORMAT_PATTERNS = [
+    r"not asking for (a )?(session note|progress note|counseling record)",
+    r"rather than (a )?(session note|progress note|counseling record)",
+    r"instead of (a )?(session note|progress note|counseling record)",
+    r"don't need (a )?(session note|progress note|counseling record)",
+    r"do not need (a )?(session note|progress note|counseling record)",
+    r"\u4e0d\u8981\u5199\u6210.*session note",
+    r"\u4e0d\u8981\u5199\u6210.*progress note",
+    r"\u4e0d\u8981\u5199\u6210.*counseling record",
+    r"\u4e0d\u8981\u5199\u6210.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u662f.*session note",
+    r"\u4e0d\u662f.*progress note",
+    r"\u4e0d\u662f.*counseling record",
+    r"\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u662f\u8981.*session note",
+    r"\u4e0d\u662f\u8981.*progress note",
+    r"\u4e0d\u662f\u8981.*counseling record",
+    r"\u4e0d\u662f\u8981.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u7528.*session note",
+    r"\u4e0d\u7528.*progress note",
+    r"\u4e0d\u7528.*counseling record",
+    r"\u4e0d\u7528.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u5148\u4e0d\u505a.*session note",
+    r"\u5148\u4e0d\u505a.*progress note",
+    r"\u5148\u4e0d\u505a.*counseling record",
+    r"\u5148\u4e0d\u505a.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u800c\u4e0d\u662f.*session note",
+    r"\u800c\u4e0d\u662f.*progress note",
+    r"\u800c\u4e0d\u662f.*counseling record",
+    r"\u800c\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55",
 ]
 
 
@@ -566,7 +605,8 @@ def summarize_routing_reasons(top_candidates):
 
 
 def has_negated_record_format(text):
-    return any(re.search(pattern, text) for pattern in NEGATED_RECORD_FORMAT_PATTERNS)
+    patterns = NEGATED_RECORD_FORMAT_PATTERNS + EXTRA_NEGATED_RECORD_FORMAT_PATTERNS
+    return any(re.search(pattern, text) for pattern in patterns)
 
 
 def detect_workflow_details(user_input):

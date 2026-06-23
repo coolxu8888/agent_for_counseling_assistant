@@ -388,6 +388,7 @@ START_CANDIDATES["W4-001"] = ["CBT", "Case conceptualization", "Known facts", "�
 
 
 START_CANDIDATES["W5-001"] = ["Next-session plan", "Next session plan", "Session goal", "Selected framework", "下一节咨询计划", "核心目标"]
+START_CANDIDATES["W5-005"] = START_CANDIDATES["W5-001"]
 START_CANDIDATES["W6-001"] = ["Counseling roadmap", "Selected framework", "Phases", "Hypotheses to verify", "咨询路线图", "阶段"]
 START_CANDIDATES["W2-005"] = ["Case background organization", "biopsychosocial", "Presenting concerns", "Working hypotheses", "Protective factors"]
 
@@ -420,6 +421,8 @@ RULES["W3-007"] = {
     "forbidden": ["diagnosed with", "major depressive disorder", "generalized anxiety disorder"],
 }
 
+RULES["W5-005"] = RULES["W5-001"]
+
 DIMENSION_RUBRICS["W3-005"] = {
     "Route correct": {"required_any": [["DAP"], ["Data"], ["Assessment"], ["Plan"]]},
     "Structure correct": {"required_any": [["Data"], ["Assessment"], ["Plan"], ["risk change", "risk update"]]},
@@ -443,6 +446,8 @@ DIMENSION_RUBRICS["W3-007"] = {
     "Privacy minimized": {"required_any": [["de-identified"], ["client"], ["material"]]},
     "Capability scope": {"forbidden": ["roadmap", "treatment plan", "multi-session"]},
 }
+
+DIMENSION_RUBRICS["W5-005"] = DIMENSION_RUBRICS["W5-001"]
 
 NOISE_LINES = {
     "深度思考",

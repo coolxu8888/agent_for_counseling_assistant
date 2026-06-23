@@ -196,6 +196,12 @@ EVALS = [
         "expected": "Workflow 5: bounded single-session planning. The answer should keep an integrative frame, remain limited to one upcoming session, preserve collaboration and risk-monitoring boundaries, and keep any between-session work explicitly subject to counselor judgment rather than sounding mandatory.",
     },
     {
+        "id": "W5-005",
+        "name": "bilingual-next-session-not-record",
+        "query": "请先不要写成咨询记录或 session note，只做下一次咨询计划。Use a humanistic lens, keep it to one upcoming counseling session, include risk check points, and do not expand into a roadmap.",
+        "expected": "Workflow 5: bilingual single next-session planning with record-format negation. The answer should preserve the one-session planning route despite the negated session-record language, keep a humanistic frame, include bounded risk monitoring, and avoid drifting into counseling-record formatting or a multi-session roadmap.",
+    },
+    {
         "id": "W6-002",
         "name": "mixed-next-session-and-roadmap",
         "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",

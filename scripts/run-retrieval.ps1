@@ -165,6 +165,40 @@ function Select-Workflow {
         "不要写成.*咨询记录"
     )
 
+    if (-not $negatedSessionNote) {
+        $negatedSessionNote = Test-AnyPattern $Text @(
+            "not asking for (a )?(session note|progress note|counseling record)",
+            "rather than (a )?(session note|progress note|counseling record)",
+            "instead of (a )?(session note|progress note|counseling record)",
+            "don't need (a )?(session note|progress note|counseling record)",
+            "do not need (a )?(session note|progress note|counseling record)",
+            (U "\u4e0d\u8981\u5199\u6210.*session note"),
+            (U "\u4e0d\u8981\u5199\u6210.*progress note"),
+            (U "\u4e0d\u8981\u5199\u6210.*counseling record"),
+            (U "\u4e0d\u8981\u5199\u6210.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u662f.*session note"),
+            (U "\u4e0d\u662f.*progress note"),
+            (U "\u4e0d\u662f.*counseling record"),
+            (U "\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u662f\u8981.*session note"),
+            (U "\u4e0d\u662f\u8981.*progress note"),
+            (U "\u4e0d\u662f\u8981.*counseling record"),
+            (U "\u4e0d\u662f\u8981.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u7528.*session note"),
+            (U "\u4e0d\u7528.*progress note"),
+            (U "\u4e0d\u7528.*counseling record"),
+            (U "\u4e0d\u7528.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u5148\u4e0d\u505a.*session note"),
+            (U "\u5148\u4e0d\u505a.*progress note"),
+            (U "\u5148\u4e0d\u505a.*counseling record"),
+            (U "\u5148\u4e0d\u505a.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u800c\u4e0d\u662f.*session note"),
+            (U "\u800c\u4e0d\u662f.*progress note"),
+            (U "\u800c\u4e0d\u662f.*counseling record"),
+            (U "\u800c\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55")
+        )
+    }
+
     if (Test-AnyPattern $Text @(
             "before (the )?first (interview|session)",
             "intake question guide",
@@ -221,6 +255,8 @@ function Select-Workflow {
     if (Test-AnyPattern $Text @(
             "next-session\s*plan",
             "next session\s*plan",
+            "rather than (a )?(session note|progress note|counseling record).*(next session|session agenda)",
+            "instead of (a )?(session note|progress note|counseling record).*(next session|session agenda)",
             "session agenda",
             "upcoming( counseling)? session",
             "single upcoming( counseling)? session",
@@ -229,6 +265,10 @@ function Select-Workflow {
             (U "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212"),
             (U "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212"),
             (U "\u4e0b\u4e00\u6b21\u54a8\u8be2"),
+            (U "\u53ea\u505a.*\u4e0b\u6b21\u54a8\u8be2"),
+            (U "\u53ea\u505a.*\u4e0b\u4e00\u6b21\u54a8\u8be2"),
+            (U "\u53ea\u9700.*\u4e0b\u6b21\u54a8\u8be2"),
+            (U "\u800c\u4e0d\u662f.*(?:session note|progress note|counseling record|\u54a8\u8be2\u8bb0\u5f55).*\u4e0b\u6b21\u54a8\u8be2"),
             (U "\u4f1a\u8c08\u8bae\u7a0b"),
             (U "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9")
         )) {
@@ -342,6 +382,8 @@ function Select-Workflow {
             "next-session\s*plan",
             "next session\s*plan",
             "plan (only )?the next (counseling )?session",
+            "rather than (a )?(session note|progress note|counseling record).*(next session|session agenda)",
+            "instead of (a )?(session note|progress note|counseling record).*(next session|session agenda)",
             "session agenda",
             "upcoming( counseling)? session",
             "single upcoming( counseling)? session",
@@ -352,6 +394,10 @@ function Select-Workflow {
             (U "\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212"),
             (U "\u4e0b\u6b21\u4f1a\u8c08\u8ba1\u5212"),
             (U "\u4e0b\u4e00\u6b21\u54a8\u8be2"),
+            (U "\u53ea\u505a.*\u4e0b\u6b21\u54a8\u8be2"),
+            (U "\u53ea\u505a.*\u4e0b\u4e00\u6b21\u54a8\u8be2"),
+            (U "\u53ea\u9700.*\u4e0b\u6b21\u54a8\u8be2"),
+            (U "\u800c\u4e0d\u662f.*(?:session note|progress note|counseling record|\u54a8\u8be2\u8bb0\u5f55).*\u4e0b\u6b21\u54a8\u8be2"),
             (U "\u4f1a\u8c08\u8bae\u7a0b"),
             (U "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9")
         )

@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | web workbench AUTO routing now surfaces W2/W3 and W5/W3 mixed-signal explanations for negated record-format prompts, retrieval/eval prompt generation now stays on W2 for the new `W2-007` supervision boundary case, and the route regression matrix covers W1-008/W2-006/W2-007/W3-004/W4-002/W5-002/W6-002 | verify the hosted deployment uses the new AUTO contract and extend more bilingual W3/W5 negation patterns plus live eval coverage once credentials exist |
+| P0 | Intent recognition across counselor tasks | shipped partial | web workbench AUTO routing now also catches stronger Chinese/English W5-vs-W3 negated-record phrasing, retrieval/eval prompt generation stays aligned for the new live-evaluated `W5-005` boundary case, and the route regression matrix covers W1-008/W2-006/W2-007/W3-004/W4-002/W5-002/W5-005/W6-002 | verify the hosted deployment uses the new AUTO contract and extend more Chinese-heavy `not X, do Y` route fixtures plus hosted smoke coverage |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -563,15 +563,53 @@ Remaining gaps:
 - Live DeepSeek validation for the new route boundary is still missing because API credentials were not present in this run environment.
 - Bilingual negation coverage is stronger for W2 case-background boundaries than before, but broader Chinese-heavy W3-vs-W5 phrasing and more varied `not X, do Y` formulations still need explicit route fixtures.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the W3-vs-W5 boundary where counselors negate record formatting and ask for only one upcoming session plan.
+
+What changed:
+
+- Extended product-side W5 routing in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) so AUTO routing now recognizes stronger English and Chinese negation phrasing such as `rather than a counseling record`, `不是要写 session note`, and `只做下一次咨询计划`, while still surfacing W5/W3 as `mixed_signals` for counselor review.
+- Brought retrieval routing into parity in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1) by expanding the negated-record detection and the W5 one-session cue set so the same bilingual boundary language lands on `workflow_5_next_session_plan`.
+- Expanded eval coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py) with new boundary case `W5-005`, then regenerated committed eval prompt assets under [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts).
+- Added cleaner/rubric coverage for `W5-005` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) so the new route fixture is scored as a bounded next-session-planning capability rather than remaining unscored.
+- Added regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-retrieval.ps1 -Query "<W5-005 bilingual negated-record prompt>" -SummaryOnly -Json`
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` -> 313 tests passed.
+- `python scripts/run_model_eval.py --ids W5-005` with `DEEPSEEK_API_KEY` loaded from local `.env` and `DEEPSEEK_TIMEOUT_SECONDS=240` -> success.
+
+Outcome:
+
+- The product-facing AUTO router now treats stronger Chinese-heavy `not a record, just plan the next session` prompts as first-class W5 mixed-signal cases instead of letting W3 dominate.
+- Retrieval selection, eval prompt generation, and scorer coverage now agree on the new `W5-005` boundary, which closes the earlier backend parity gap for this slice of intent recognition.
+- The new W5 boundary has real DeepSeek evidence rather than fixture-only coverage, which materially improves market-validation readiness for this agent-core capability.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with the new W5/W3 mixed-signal boundary prompt.
+- The retrieval route for Chinese-first W1 summary prompts still falls back to the generic W1 intake route rather than exposing a narrower W1 summary-mode route, so intent recognition is still partial overall.
+- Broader Chinese-heavy `not X, do Y` variants across W3-vs-W5 and W1-vs-W3 still need additional explicit fixtures before routing can be considered deployment-ready.
+
 ## Next Recommended Capability
 
 Improve `intent recognition across counselor tasks` again as the next P0 capability.
 
 Recommended scope:
 
-- Extend bilingual W3-vs-W5 negation coverage, especially Chinese-heavy prompts that say not to write a record while asking for only the next session plan.
-- Add at least one new live-evaluable routing case for that boundary and verify the hosted deployment shows the new mixed-signal route notice end to end.
-- Re-run a live DeepSeek eval once credentials are available so the new route matrix has current real-model evidence instead of fixture-only coverage.
+- Verify the hosted deployment shows the new W5/W3 mixed-signal route notice end to end for `W5-005`-style prompts.
+- Tighten retrieval-side W1 intake-summary disambiguation so bilingual completed-interview summary prompts do not collapse into generic intake-form retrieval.
+- Add another Chinese-first `not X, do Y` route fixture on the W1-vs-W3 or W3-vs-W5 boundary after the hosted smoke confirms the current AUTO contract.
 
 ## Deployment Readiness Notes
 
