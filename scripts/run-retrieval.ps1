@@ -161,8 +161,11 @@ function Select-Workflow {
         "don't write.*session note",
         "do not write.*counseling record",
         "don't write.*counseling record",
+        "do not write.*birp",
+        "don't write.*birp",
         "不要写成.*session note",
-        "不要写成.*咨询记录"
+        "不要写成.*咨询记录",
+        "不要写成.*birp"
     )
 
     if (-not $negatedSessionNote) {
@@ -176,26 +179,32 @@ function Select-Workflow {
             (U "\u4e0d\u8981\u5199\u6210.*progress note"),
             (U "\u4e0d\u8981\u5199\u6210.*counseling record"),
             (U "\u4e0d\u8981\u5199\u6210.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u8981\u5199\u6210.*birp"),
             (U "\u4e0d\u662f.*session note"),
             (U "\u4e0d\u662f.*progress note"),
             (U "\u4e0d\u662f.*counseling record"),
             (U "\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u662f.*birp"),
             (U "\u4e0d\u662f\u8981.*session note"),
             (U "\u4e0d\u662f\u8981.*progress note"),
             (U "\u4e0d\u662f\u8981.*counseling record"),
             (U "\u4e0d\u662f\u8981.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u662f\u8981.*birp"),
             (U "\u4e0d\u7528.*session note"),
             (U "\u4e0d\u7528.*progress note"),
             (U "\u4e0d\u7528.*counseling record"),
             (U "\u4e0d\u7528.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u4e0d\u7528.*birp"),
             (U "\u5148\u4e0d\u505a.*session note"),
             (U "\u5148\u4e0d\u505a.*progress note"),
             (U "\u5148\u4e0d\u505a.*counseling record"),
             (U "\u5148\u4e0d\u505a.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u5148\u4e0d\u505a.*birp"),
             (U "\u800c\u4e0d\u662f.*session note"),
             (U "\u800c\u4e0d\u662f.*progress note"),
             (U "\u800c\u4e0d\u662f.*counseling record"),
-            (U "\u800c\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55")
+            (U "\u800c\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u800c\u4e0d\u662f.*birp")
         )
     }
 
@@ -214,14 +223,19 @@ function Select-Workflow {
             "organize (these|this)? ?(initial|first) interview notes",
             "fixed intake template",
             "initial interview template",
+            (U "\u9996\u8bbf"),
+            (U "\u9996\u6b21\u8bbf\u8c08"),
             (U "\u521d\u8bbf\u603b\u7ed3"),
             (U "\u521d\u8bbf\u7b14\u8bb0"),
+            (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
+            (U "\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6a21\u677f"),
-            (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f")
+            (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f"),
+            (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3")
         )) {
-        return "workflow_1_intake_form"
-    }
+            return "workflow_1_intake_form"
+        }
 
     if ((-not $negatedSessionNote) -and (Test-AnyPattern $Text @(
             "session note",
@@ -294,13 +308,18 @@ function Select-Workflow {
             "initial interview",
             "\bintake\b",
             (U "\u521d\u8bbf"),
+            (U "\u9996\u8bbf"),
             (U "\u521d\u8bbf\u603b\u7ed3"),
             (U "\u521d\u8bbf\u7b14\u8bb0"),
             (U "\u4fe1\u606f\u6536\u96c6\u8868"),
             (U "\u521d\u59cb\u8bbf\u8c08"),
+            (U "\u9996\u6b21\u8bbf\u8c08"),
+            (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
+            (U "\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6a21\u677f"),
             (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f"),
+            (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3"),
             (U "\u8bbf\u8c08\u63d0\u7eb2"),
             (U "\u9884\u586b\u5199"),
             "JSON\s*Schema",
@@ -458,7 +477,10 @@ function Select-Intent {
                 (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
                 (U "\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
                 (U "\u521d\u8bbf\u603b\u7ed3"),
-                (U "\u521d\u8bbf\u8bb0\u5f55")
+                (U "\u521d\u8bbf\u8bb0\u5f55"),
+                (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
+                (U "\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55"),
+                (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3")
             )) {
             return (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3")
         }

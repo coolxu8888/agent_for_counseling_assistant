@@ -324,6 +324,17 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
 
+    def test_detect_workflow_prefers_w1_for_chinese_first_summary_prompt_that_negates_birp(self):
+        details = web_workbench.detect_workflow_details(
+            "请根据首访原始记录整理固定模板总结，保留风险变化线索，不要写成BIRP或咨询记录。"
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "initial_interview_summary")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
     def test_detect_workflow_prefers_w5_for_bilingual_single_session_plan_prompt(self):
         details = web_workbench.detect_workflow_details(
             "用 CBT 做下次咨询计划，只规划 next session，不要做多阶段 roadmap。"

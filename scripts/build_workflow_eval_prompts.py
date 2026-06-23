@@ -124,6 +124,12 @@ EVALS = [
         "expected": "Workflow 1: Chinese-first completed initial interview summary routing. The answer should preserve the fixed initial interview summary structure despite Chinese-first mixed-language wording and record-format negation, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk documentation, and avoid drifting into a session note, diagnosis, or treatment plan.",
     },
     {
+        "id": "W1-011",
+        "name": "chinese-first-initial-interview-summary-birp-boundary",
+        "query": "请根据首访原始记录整理固定模板总结，保留风险变化线索，不要写成BIRP或咨询记录。",
+        "expected": "Workflow 1: Chinese-first initial interview summary with BIRP record-format negation. The answer should preserve the fixed initial interview summary structure despite Chinese-first wording and BIRP or counseling-record negation, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk-change documentation, and avoid drifting into a session note, BIRP counseling record, diagnosis, or treatment plan.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

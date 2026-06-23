@@ -1043,10 +1043,15 @@ def detect_w1_mode(user_input):
         r"organize (these|this)? ?(initial|first) interview notes",
         r"fixed intake template",
         r"initial interview template",
+        r"\u9996\u8bbf",
+        r"\u9996\u6b21\u8bbf\u8c08",
         r"\u521d\u8bbf\u603b\u7ed3",
+        r"\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55",
+        r"\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55",
         r"\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3",
         r"\u521d\u59cb\u8bbf\u8c08\u6a21\u677f",
         r"\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f",
+        r"\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3",
     ]
     for pattern in summary_patterns:
         if re.search(pattern, text):

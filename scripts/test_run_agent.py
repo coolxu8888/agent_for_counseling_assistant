@@ -555,6 +555,10 @@ class RunAgentTest(unittest.TestCase):
             ),
             "initial_interview_summary",
         )
+        self.assertEqual(
+            detect_w1_mode("请根据首访原始记录整理固定模板总结，保留风险变化线索，不要写成BIRP或咨询记录。"),
+            "initial_interview_summary",
+        )
 
     def test_build_prompt_package_w1_summary_includes_section_specific_missing_field_guidance(self):
         prompt = build_prompt_package(

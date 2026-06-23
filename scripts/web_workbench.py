@@ -233,17 +233,22 @@ ROUTING_RULES = {
             (r"initial interview", 3),
             (r"\bintake\b", 2),
             (r"\u521d\u8bbf", 4),
+            (r"\u9996\u8bbf", 4),
             (r"\u521d\u59cb\u8bbf\u8c08", 4),
+            (r"\u9996\u6b21\u8bbf\u8c08", 4),
             (r"\u4fe1\u606f\u6536\u96c6", 4),
             (r"\u8bbf\u8c08\u8868", 3),
             (r"\u6536\u96c6\u8868", 3),
             (r"\u6765\u8bbf\u4fe1\u606f", 3),
             (r"\u521d\u8bbf\u603b\u7ed3", 6),
             (r"\u521d\u8bbf\u7b14\u8bb0", 5),
+            (r"\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55", 6),
+            (r"\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55", 6),
             (r"\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3", 6),
             (r"\u521d\u59cb\u8bbf\u8c08\u6a21\u677f", 5),
             (r"\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f", 5),
             (r"\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f", 5),
+            (r"\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3", 5),
         ],
         "negative": [
             (r"session note|progress note|counseling record|session record|soap|dap|birp", 4),
@@ -396,11 +401,15 @@ NEGATED_RECORD_FORMAT_PATTERNS = [
     r"do not write.*session note",
     r"don't write.*counseling record",
     r"do not write.*counseling record",
+    r"don't write.*birp",
+    r"do not write.*birp",
     r"不要写成.*session note",
     r"不要写成.*counseling record",
     r"不要写成.*咨询记录",
+    r"不要写成.*birp",
     r"不是.*session note",
     r"不是.*counseling record",
+    r"不是.*birp",
 ]
 
 
@@ -414,26 +423,32 @@ EXTRA_NEGATED_RECORD_FORMAT_PATTERNS = [
     r"\u4e0d\u8981\u5199\u6210.*progress note",
     r"\u4e0d\u8981\u5199\u6210.*counseling record",
     r"\u4e0d\u8981\u5199\u6210.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u8981\u5199\u6210.*birp",
     r"\u4e0d\u662f.*session note",
     r"\u4e0d\u662f.*progress note",
     r"\u4e0d\u662f.*counseling record",
     r"\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u662f.*birp",
     r"\u4e0d\u662f\u8981.*session note",
     r"\u4e0d\u662f\u8981.*progress note",
     r"\u4e0d\u662f\u8981.*counseling record",
     r"\u4e0d\u662f\u8981.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u662f\u8981.*birp",
     r"\u4e0d\u7528.*session note",
     r"\u4e0d\u7528.*progress note",
     r"\u4e0d\u7528.*counseling record",
     r"\u4e0d\u7528.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u4e0d\u7528.*birp",
     r"\u5148\u4e0d\u505a.*session note",
     r"\u5148\u4e0d\u505a.*progress note",
     r"\u5148\u4e0d\u505a.*counseling record",
     r"\u5148\u4e0d\u505a.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u5148\u4e0d\u505a.*birp",
     r"\u800c\u4e0d\u662f.*session note",
     r"\u800c\u4e0d\u662f.*progress note",
     r"\u800c\u4e0d\u662f.*counseling record",
     r"\u800c\u4e0d\u662f.*\u54a8\u8be2\u8bb0\u5f55",
+    r"\u800c\u4e0d\u662f.*birp",
 ]
 
 
@@ -628,6 +643,9 @@ def detect_workflow_details(user_input):
 
     negated_record_format = has_negated_record_format(text)
     if negated_record_format and positive_scores.get("W3", 0) > 0:
+        if positive_scores.get("W1", 0) > 0:
+            scores["W3"] -= 5
+            reasons["W3"].append("-5:negated_record_format_with_initial_interview_summary")
         if positive_scores.get("W2", 0) > 0:
             scores["W3"] -= 5
             reasons["W3"].append("-5:negated_record_format_with_case_background")
