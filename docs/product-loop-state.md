@@ -306,6 +306,46 @@ Remaining gaps:
 - Theory-specific RAG support is still partial because the current framework cards cover the main CBT/humanistic/psychodynamic/integrative concepts but not a broader reference set or richer per-framework subtopics.
 - Eval automation is broader now, but the rubric layer still needs more bilingual failure-reason reporting instead of only pass/fail summary output.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the Chinese-first W1-vs-W3 boundary where counselors ask for a fixed initial-interview summary from `首访原始记录` while explicitly negating `SOAP` or `session note`.
+
+What changed:
+
+- Extended negated-record detection in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) so AUTO routing now treats `SOAP` and `DAP` as first-class record-format cues in the same Chinese-heavy `not X, do Y` family that already handled `BIRP`.
+- Verified the product-side router keeps `请根据首访原始记录整理固定模板总结，保留风险变化线索，不要写成SOAP或session note。` inside `W1` with `initial_interview_summary` mode and `mixed_signals` status instead of drifting into `W3`.
+- Brought retrieval into parity in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1) by extending the same negated-record cue family to `SOAP` / `DAP`, so the retrieval route preserves the dedicated W1 summary intent for this boundary.
+- Expanded eval coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py) with `W1-012`, a Chinese-first W1 summary boundary case that negates `SOAP` while preserving bounded risk-change wording.
+- Added scorer/rubric coverage for `W1-012` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) and regenerated committed eval assets under [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts), including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-012-chinese-first-initial-interview-summary-soap-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-012-chinese-first-initial-interview-summary-soap-boundary.txt).
+- Added regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_agent.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_agent.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w1_for_chinese_first_summary_prompt_that_negates_soap scripts.test_run_retrieval.RunRetrievalTest.test_routes_chinese_first_summary_request_that_negates_soap_to_w1_summary_intent scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_chinese_first_w1_summary_soap_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w1_012_chinese_first_soap_boundary_rubric_accepts_bounded_summary_output`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 207 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` -> 327 tests ran with 2 unrelated pre-existing template-fill failures in `scripts.test_fill_docx_template`; the intent-routing slice itself remained green.
+- Live DeepSeek eval for `W1-012` was blocked on 2026-06-23 because `DEEPSEEK_API_KEY` was missing in the environment.
+
+Outcome:
+
+- The shipped AUTO router now keeps a Chinese-first `首访原始记录 / 固定模板总结 / 不要写成SOAP` request inside W1 summary mode instead of letting W3 dominate.
+- Retrieval selection and the eval matrix now agree with the product router for both `BIRP` and `SOAP` negation boundaries, so this intent-recognition slice has frontend, retrieval, and scorer parity.
+- `W1-012` makes the SOAP negation case durable in regression coverage rather than leaving it implied by broader W1 summary tests.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with a `W1-012`-style prompt that exercises AUTO route metadata plus retrieval-backed generation.
+- There is still no live DeepSeek evidence for `W1-012` in this environment because model credentials were missing.
+- Broader Chinese-heavy W1-vs-W3 phrasing around `DAP` and looser `固定模板` wording still needs more explicit route fixtures before intent recognition can be considered deployment-ready.
+
 ## Next Recommended Capability
 
 Improve `W1 initial interview preparation guide` as the next P0 capability.
