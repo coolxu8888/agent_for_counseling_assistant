@@ -294,6 +294,29 @@ boundary notes
         self.assertEqual(rule_result["status"], "PASS")
         self.assertEqual(rubric_result["status"], "PASS")
 
+    def test_w2_007_session_note_boundary_background_case_passes_rules_and_rubric(self):
+        answer = """
+Case background organization
+known facts
+- Provided material comes from de-identified counseling material about shame after a roommate conflict, worse sleep, and passive disappearance wording without a reported current plan.
+working hypotheses
+- Acute interpersonal stress and self-criticism may be amplifying the current distress.
+information gaps
+- The material does not yet show escalation timeline, means access, or how supports responded after the session.
+protective factors
+- Help-seeking, willingness to return, and an identified friend for support.
+risk follow-up questions
+- Clarify ideation intensity, recent escalation, means access, and what support is available tonight.
+supervision boundary notes
+- Reorganized for supervision as a de-identified case background, not a final risk rating or diagnosis.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-007", clean_answer)
+        rubric_result = run_dimension_rubric("W2-007", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+
     def test_w3_003_observation_gap_accepts_specific_missing_observation_wording(self):
         answer = """
 SOAP

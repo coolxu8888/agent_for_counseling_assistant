@@ -308,6 +308,22 @@
     ]
   },
   {
+    "id": "W2-007",
+    "name": "session-note-boundary-case-background",
+    "query": "Please turn today's session note into a BPS case background for supervision, not a counseling record. Separate known facts, working hypotheses, protective factors, and risk follow-up questions while keeping the material de-identified and bounded.",
+    "expected": "Workflow 2: case background organization with session-record boundary handling. The answer should reorganize the material into a BPS or supervision-oriented case background, keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, and avoid drifting back into counseling-record formatting even though the request mentions session-record cues.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W2-007-session-note-boundary-case-background.txt",
+    "route_status": "OK",
+    "workflow": "workflow_2_case_summary",
+    "intent": "整理个案背景",
+    "chunks": [
+      "intake-assessment-biopsychosocial-client-assessment-001",
+      "case-recording-cps-professional-materials-recording-001",
+      "case-recording-bacp-accurate-relevant-records-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
+  },
+  {
     "id": "W3-004",
     "name": "first-interview-notes-to-record",
     "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",

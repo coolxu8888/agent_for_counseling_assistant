@@ -153,8 +153,14 @@ function Select-Workflow {
     $negatedSessionNote = Test-AnyPattern $Text @(
         "not a session note",
         "not the session note",
+        "not a counseling record",
+        "not the counseling record",
+        "not a session record",
+        "not a progress note",
         "do not write.*session note",
         "don't write.*session note",
+        "do not write.*counseling record",
+        "don't write.*counseling record",
         "不要写成.*session note",
         "不要写成.*咨询记录"
     )

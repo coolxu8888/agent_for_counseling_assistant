@@ -380,6 +380,24 @@ ROUTING_RULES = {
 }
 
 
+NEGATED_RECORD_FORMAT_PATTERNS = [
+    r"not a session note",
+    r"not the session note",
+    r"not a counseling record",
+    r"not a session record",
+    r"not a progress note",
+    r"don't write.*session note",
+    r"do not write.*session note",
+    r"don't write.*counseling record",
+    r"do not write.*counseling record",
+    r"不要写成.*session note",
+    r"不要写成.*counseling record",
+    r"不要写成.*咨询记录",
+    r"不是.*session note",
+    r"不是.*counseling record",
+]
+
+
 def workflow_label(workflow):
     return WORKFLOW_LABELS.get(str(workflow or "").upper(), str(workflow or ""))
 
@@ -524,6 +542,16 @@ def route_notice_for(workflow, route_status, top_candidates):
                 "Detected both initial-interview summary and session-record cues; routed to "
                 "Initial interview because the request asked for the fixed intake summary/template rather than a counseling record."
             )
+        if candidate_ids == ["W2", "W3"]:
+            return (
+                "Detected both case-background and session-record cues; routed to "
+                "Case background because the request asked for BPS or supervision organization rather than a counseling record."
+            )
+        if candidate_ids == ["W5", "W3"]:
+            return (
+                "Detected both next-session planning and session-record cues; routed to "
+                "Next-session plan because the request explicitly asked for one upcoming session rather than record formatting."
+            )
         return f"Detected overlapping counselor tasks; routed to {label} based on the strongest cues."
     return f"Automatic routing matched {label}."
 
@@ -535,6 +563,10 @@ def summarize_routing_reasons(top_candidates):
     for item in top_candidates[:2]:
         fragments.append(f"{item['workflow']} {item['label']} ({item['positive_score']})")
     return "Top route cues: " + " > ".join(fragments)
+
+
+def has_negated_record_format(text):
+    return any(re.search(pattern, text) for pattern in NEGATED_RECORD_FORMAT_PATTERNS)
 
 
 def detect_workflow_details(user_input):
@@ -554,6 +586,15 @@ def detect_workflow_details(user_input):
                 scores[workflow] -= weight
                 reasons[workflow].append(f"-{weight}:{pattern}")
 
+    negated_record_format = has_negated_record_format(text)
+    if negated_record_format and positive_scores.get("W3", 0) > 0:
+        if positive_scores.get("W2", 0) > 0:
+            scores["W3"] -= 5
+            reasons["W3"].append("-5:negated_record_format_with_case_background")
+        if positive_scores.get("W5", 0) > 0:
+            scores["W3"] -= 5
+            reasons["W3"].append("-5:negated_record_format_with_next_session_plan")
+
     ranked = sorted(scores.items(), key=lambda item: (item[1], item[0] == "W2"), reverse=True)
     winner = ranked[0]
     runner_up = ranked[1] if len(ranked) > 1 else (None, 0)
@@ -570,6 +611,10 @@ def detect_workflow_details(user_input):
     elif workflow == "W3" and positive_scores.get("W1", 0) > 0:
         route_status = "mixed_signals"
     elif workflow == "W1" and positive_scores.get("W3", 0) > 0:
+        route_status = "mixed_signals"
+    elif workflow == "W2" and positive_scores.get("W3", 0) > 0 and negated_record_format:
+        route_status = "mixed_signals"
+    elif workflow == "W5" and positive_scores.get("W3", 0) > 0 and negated_record_format:
         route_status = "mixed_signals"
     top_candidates = [
         {

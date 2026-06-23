@@ -39,6 +39,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W1-009", ids)
         self.assertIn("W2-005", ids)
         self.assertIn("W2-006", ids)
+        self.assertIn("W2-007", ids)
         self.assertIn("W3-004", ids)
         self.assertIn("W3-007", ids)
         self.assertIn("W5-002", ids)
@@ -85,6 +86,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("known facts", w2["expected"].lower())
         self.assertIn("mixed-language", w2["expected"].lower())
         self.assertIn("risk follow-up", w2["expected"].lower())
+
+    def test_evals_include_w2_session_note_boundary_case(self):
+        w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-007")
+
+        self.assertIn("session note", w2["query"].lower())
+        self.assertIn("case background", w2["query"].lower())
+        self.assertIn("supervision", w2["query"].lower())
+        self.assertIn("session-record cues", w2["expected"].lower())
 
     def test_evals_expand_retrieval_boundary_matrix(self):
         w1 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-006")

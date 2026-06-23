@@ -80,6 +80,17 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
 
+    def test_routes_session_note_boundary_case_background_to_w2_when_negating_counseling_record(self):
+        payload = self.run_retrieval(
+            "Please turn today's session note into a BPS case background for supervision, not a counseling record. "
+            "Separate known facts, working hypotheses, protective factors, and risk follow-up questions while keeping the material de-identified and bounded."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+
     def test_routes_post_session_note_query_to_w3_even_when_it_mentions_first_interview(self):
         payload = self.run_retrieval(
             "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."

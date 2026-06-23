@@ -334,6 +334,30 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W6")
 
+    def test_detect_workflow_prefers_w5_when_bilingual_next_session_request_negates_session_note(self):
+        details = web_workbench.detect_workflow_details(
+            "\u8bf7\u7528CBT\u505a\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212\uff0c"
+            "\u53ea\u89c4\u5212next session\uff0c"
+            "\u4e0d\u8981\u5199\u6210session note\u6216counseling record\u3002"
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
+    def test_detect_workflow_prefers_w2_when_case_background_request_negates_record_format(self):
+        details = web_workbench.detect_workflow_details(
+            "Please turn today's session note into a BPS case background for supervision, "
+            "not a counseling record. Separate known facts, working hypotheses, protective factors, "
+            "and risk follow-up questions."
+        )
+
+        self.assertEqual(details["workflow"], "W2")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W2")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
     def test_detect_workflow_routes_diagnosis_requests_back_to_case_summary_boundaries(self):
         self.assertEqual(
             web_workbench.detect_workflow(
