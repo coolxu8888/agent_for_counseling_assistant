@@ -251,6 +251,17 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
 
+    def test_routes_chinese_session_note_source_material_to_w5_when_prompt_asks_for_next_session_plan_not_record(self):
+        payload = self.run_retrieval(
+            "请用今天的会谈记录作为素材，整理下一次咨询计划，保留风险检查点，不要写成咨询记录，只聚焦下一次会谈。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
+        self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
+
     def test_routes_single_session_plan_when_prompt_rejects_multi_session_roadmap_scope(self):
         payload = self.run_retrieval(
             "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, "

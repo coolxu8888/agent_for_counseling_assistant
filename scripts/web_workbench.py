@@ -160,6 +160,17 @@ DEMO_SCENARIOS = [
         "output_style": "supervision_summary",
     },
     {
+        "id": "next-session-chinese-session-note-source-material",
+        "title": "W5 Demo: Chinese session-note to next-session plan",
+        "workflow": "W5",
+        "summary": "A Chinese-heavy source-material planning request that keeps today's session record cues inside one bounded next-session plan instead of drifting into counseling-record formatting.",
+        "input": (
+            "请用今天的会谈记录作为素材，整理下一次咨询计划，保留风险检查点，"
+            "不要写成咨询记录，只聚焦下一次会谈。"
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "roadmap-criticism-cycle",
         "title": "W6 Demo: Counseling roadmap",
         "workflow": "W6",

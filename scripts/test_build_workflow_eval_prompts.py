@@ -186,6 +186,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("rather than a counseling record", w5["query"].lower())
         self.assertIn("source-material record negation", w5["expected"].lower())
 
+    def test_evals_include_w5_chinese_session_note_source_material_boundary_case(self):
+        w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-008")
+
+        self.assertIn("会谈记录", w5["query"])
+        self.assertIn("下一次咨询计划", w5["query"])
+        self.assertIn("不要写成咨询记录", w5["query"])
+        self.assertIn("chinese-heavy", w5["expected"].lower())
+
     def test_evals_expand_retrieval_boundary_matrix(self):
         w1 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-006")
         w1_prefill = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-007")
@@ -214,6 +222,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("record-format negation", w5_bilingual["expected"].lower())
         self.assertIn("humanistic", next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-006")["query"].lower())
         self.assertIn("session notes", next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-007")["query"].lower())
+        self.assertIn("会谈记录", next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-008")["query"])
         self.assertIn("psychodynamic", w6_psychodynamic["query"].lower())
         self.assertIn("multi-session roadmap", w6_psychodynamic["expected"].lower())
 

@@ -452,6 +452,17 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
         self.assertIn("next-session", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w5_for_chinese_session_note_source_material_prompt(self):
+        details = web_workbench.detect_workflow_details(
+            "请用今天的会谈记录作为素材，整理下一次咨询计划，保留风险检查点，不要写成咨询记录，只聚焦下一次会谈。"
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+        self.assertIn("W5", details["routing_reasons_summary"])
+
     def test_detect_workflow_prefers_w2_when_case_background_request_negates_record_format(self):
         details = web_workbench.detect_workflow_details(
             "Please turn today's session note into a BPS case background for supervision, "
@@ -2122,6 +2133,13 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["templates"][0]["template_ref"], "demo:demo-template")
         self.assertNotIn("path", payload["templates"][0])
         self.assertIn("de-identified", payload["privacy_notice"])
+        self.assertTrue(
+            any(
+                scenario["id"] == "next-session-chinese-session-note-source-material"
+                and "会谈记录" in scenario["input"]
+                for scenario in payload["scenarios"]
+            )
+        )
 
     def test_handle_runs_detail_returns_saved_payload_for_owner(self):
         with tempfile.TemporaryDirectory() as tmp:

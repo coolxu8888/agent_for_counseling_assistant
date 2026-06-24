@@ -863,6 +863,38 @@ Boundary notes
         self.assertEqual(rubric_result["status"], "FAIL")
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "FAIL")
 
+    def test_w5_008_chinese_session_note_source_material_boundary_rubric_accepts_bounded_plan_output(self):
+        answer = """
+Next-session plan
+Selected framework: humanistic
+Session goal
+- 以今天会谈记录里已经出现的情绪线索为素材，聚焦下一次会谈最需要继续澄清的主题。
+Focus areas
+- 继续梳理冲突后的主观体验与未说出口的需要。
+- 核对今天材料里出现的睡眠波动和风险线索是否有变化。
+Planned interventions
+- 在咨询师判断下，使用反映和澄清帮助来访者把今天记录中的关键体验说得更具体。
+Suggested questions
+- 今天会谈里最卡住的片段，到了下一次还想继续谈什么？
+- 那些“想先退开一下”的念头，最近有没有变得更频繁或更强？
+Risk monitoring
+- 继续单独记录自杀意念、想消失、睡眠恶化等风险信号，只做进一步评估提醒，不做最终风险等级判断。
+Between-session tasks
+- 如咨询师判断合适，可邀请来访者在两次会谈之间记下触发情绪的场景与身体反应。
+Do not do
+- 不把这份输出写成咨询记录，不扩展成多节咨询路线图，也不做确定性诊断；not a diagnosis and not a multi-session roadmap.
+Boundary notes
+- 这是基于今天会谈记录素材生成的单次会谈计划，仍需咨询师判断与补充，材料里未见明确的新风险升级。
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-008", clean_answer)
+        rubric_result = run_dimension_rubric("W5-008", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()

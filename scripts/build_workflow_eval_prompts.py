@@ -256,6 +256,12 @@ EVALS = [
         "expected": "Workflow 5: bounded single next-session planning with source-material record negation. The answer should treat today's session notes only as source material for one upcoming session agenda, preserve bounded risk monitoring, and avoid drifting into counseling-record formatting, diagnosis, or a multi-session roadmap.",
     },
     {
+        "id": "W5-008",
+        "name": "chinese-session-note-source-material-next-session-boundary",
+        "query": "请用今天的会谈记录作为素材，整理下一次咨询计划，保留风险检查点，不要写成咨询记录，只聚焦下一次会谈。",
+        "expected": "Workflow 5: chinese-heavy bounded single next-session planning with source-material record negation. The answer should treat today's session record only as source material for one upcoming session plan, preserve bounded risk monitoring, and avoid drifting into counseling-record formatting, diagnosis, or a multi-session roadmap.",
+    },
+    {
         "id": "W6-002",
         "name": "mixed-next-session-and-roadmap",
         "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",
