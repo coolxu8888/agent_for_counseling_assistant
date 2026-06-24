@@ -218,9 +218,16 @@ function Select-Workflow {
             (U "\u5148\u4e0d\u505a.*progress note"),
             (U "\u5148\u4e0d\u505a.*counseling record"),
             (U "\u5148\u4e0d\u505a.*\u54a8\u8be2\u8bb0\u5f55"),
+            (U "\u5148\u4e0d\u8981\u505a.*session note"),
+            (U "\u5148\u4e0d\u8981\u505a.*progress note"),
+            (U "\u5148\u4e0d\u8981\u505a.*counseling record"),
+            (U "\u5148\u4e0d\u8981\u505a.*\u54a8\u8be2\u8bb0\u5f55"),
             (U "\u5148\u4e0d\u505a.*soap"),
             (U "\u5148\u4e0d\u505a.*dap"),
             (U "\u5148\u4e0d\u505a.*birp"),
+            (U "\u5148\u4e0d\u8981\u505a.*soap"),
+            (U "\u5148\u4e0d\u8981\u505a.*dap"),
+            (U "\u5148\u4e0d\u8981\u505a.*birp"),
             (U "\u800c\u4e0d\u662f.*session note"),
             (U "\u800c\u4e0d\u662f.*progress note"),
             (U "\u800c\u4e0d\u662f.*counseling record"),
@@ -252,10 +259,14 @@ function Select-Workflow {
             (U "\u521d\u8bbf\u7b14\u8bb0"),
             (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
             (U "\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55"),
+            (U "\u9996\u8bbf\u6750\u6599"),
+            (U "\u9996\u6b21\u8bbf\u8c08\u6750\u6599"),
+            (U "\u7b2c\u4e00\u6b21\u8bbf\u8c08\u6750\u6599"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6a21\u677f"),
             (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f"),
-            (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3")
+            (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3"),
+            (U "\u56fa\u5b9a\u6a21\u677f.*(?:\u6574\u7406|\u68b3\u7406|\u5f52\u6863)")
         )) {
             return "workflow_1_intake_form"
         }
@@ -339,10 +350,13 @@ function Select-Workflow {
             (U "\u9996\u6b21\u8bbf\u8c08"),
             (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
             (U "\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55"),
+            (U "\u9996\u8bbf\u6750\u6599"),
+            (U "\u9996\u6b21\u8bbf\u8c08\u6750\u6599"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
             (U "\u521d\u59cb\u8bbf\u8c08\u6a21\u677f"),
             (U "\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f"),
             (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3"),
+            (U "\u56fa\u5b9a\u6a21\u677f.*(?:\u6574\u7406|\u68b3\u7406|\u5f52\u6863)"),
             (U "\u8bbf\u8c08\u63d0\u7eb2"),
             (U "\u9884\u586b\u5199"),
             "JSON\s*Schema",
@@ -503,7 +517,10 @@ function Select-Intent {
                 (U "\u521d\u8bbf\u8bb0\u5f55"),
                 (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
                 (U "\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55"),
-                (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3")
+                (U "\u9996\u8bbf\u6750\u6599"),
+                (U "\u9996\u6b21\u8bbf\u8c08\u6750\u6599"),
+                (U "\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3"),
+                (U "\u56fa\u5b9a\u6a21\u677f.*(?:\u6574\u7406|\u68b3\u7406|\u5f52\u6863)")
             )) {
             return (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3")
         }

@@ -1,6 +1,6 @@
 # Product Loop State
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 This file is the durable handoff state for autonomous product iterations. Future automation runs should read this file before planning. It exists so the project can continue from repository state instead of relying on chat context.
 
@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | web workbench AUTO routing now also catches Chinese-first W1-vs-W3 summary requests that negate `BIRP` or `咨询记录`, retrieval preserves a dedicated W1 `初始访谈材料总结` intent for that boundary, eval prompt generation/scoring include `W1-011`, and committed fixtures now cover this mixed-signal route | verify the hosted deployment uses the new AUTO contract, confirm the W1 summary route metadata end to end, and extend more Chinese-heavy `not X, do Y` route fixtures plus hosted smoke coverage |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, and scorers now also cover loose Chinese-first W1-vs-W3 summary prompts `W1-014` and `W1-015`, and live DeepSeek evals for both passed on 2026-06-24 | push/deploy the latest local commits, then re-run hosted AUTO-route proof because the public Render deployment still misroutes the `W1-015` prompt to `W2` and does not expose `w1_mode` or `routing_reasons_summary` yet |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -793,17 +793,59 @@ Remaining gaps:
 - There is still no live DeepSeek evidence for `W1-013` in this environment because model credentials were missing.
 - Broader Chinese-heavy W1-vs-W3 phrasing around looser `固定模板` wording and hosted route-proof still remains before this P0 capability can be considered deployment-ready.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the loose Chinese-first W1-vs-W3 boundary where counselors ask for a fixed initial-interview summary using broader `固定模板` / `第一次访谈材料` wording while negating `SOAP` or `咨询记录`.
+
+What changed:
+
+- Tightened W1 summary-mode detection in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run_agent.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run_agent.py) so looser phrasing such as `请用固定模板整理首访材料` and `请按固定模板梳理这次第一次访谈材料` still resolves to `initial_interview_summary` instead of falling back to generic intake-prep mode.
+- Extended the product-side AUTO router in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) with broader first-interview material cues plus extra `先不要做...` negated-record patterns, so the shipped workbench keeps these looser Chinese-first prompts in `W1` with mixed-signal handling rather than collapsing into `W3`.
+- Brought retrieval into parity in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1) by recognizing the same `首访材料` / `第一次访谈材料` / loose `固定模板` cues and the `先不要做 SOAP / 咨询记录` variants during W1 intent selection.
+- Added regression coverage for the loose boundary family in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_agent.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_agent.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+- Regenerated committed eval assets with [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py), preserving the new loose-boundary fixtures:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-014-loose-chinese-first-initial-interview-summary-soap-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-014-loose-chinese-first-initial-interview-summary-soap-boundary.txt)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-015-loose-fixed-template-initial-interview-summary-record-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-015-loose-fixed-template-initial-interview-summary-record-boundary.txt)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 219 tests passed.
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- Loaded `.env` into the process environment without printing secret values, then ran:
+  - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-014,W1-015` -> both evals succeeded.
+- Hosted health verification passed:
+  - `GET https://counselor-agent-coze-api.onrender.com/health` -> `{"status":"ok"}`
+- Hosted authenticated smoke on 2026-06-24 using the public Render deployment and fallback demo credentials showed the deployment is still behind the local branch for this capability:
+  - `POST /api/run` with `workflow=AUTO` and the `W1-015` prompt returned `workflow=W2`, `detected_workflow=W2`, `w1_mode=null`, `routing_reasons_summary=null`, and no `w1_summary_brief`.
+
+Outcome:
+
+- The loose `固定模板` / `第一次访谈材料` W1-vs-W3 boundary is now durable across runner mode detection, product-side AUTO routing, retrieval selection, eval prompt coverage, and scorer rules.
+- This run upgraded the capability from fixture-only evidence to real DeepSeek evidence: both `W1-014` and `W1-015` passed through the API eval runner.
+- The hosted smoke produced concrete deployment evidence instead of another generic "verification pending" note: the public Render URL is reachable, but it is not serving the latest intent-routing contract yet.
+
+Remaining gaps:
+
+- The public Render deployment must be updated before this capability can be called deployment-ready; today it still misroutes the `W1-015` prompt to `W2` and omits the expected W1 route metadata.
+- Hosted proof for `W1-014` remains incomplete because the deployed service is demonstrably behind the local branch, so additional hosted route checks before redeploy would not be meaningful.
+- Broader Chinese-heavy W1-vs-W3 phrasing around other looser summary verbs still needs more fixtures only after deployment parity is restored.
+
 ## Next Recommended Capability
 
 Improve `intent recognition across counselor tasks` again as the next P0 capability.
 
 Recommended scope:
 
-- Verify the hosted deployment shows the current W1 summary route metadata and brief end to end for a `W1-013`-style Chinese-first prompt.
-- Superseded follow-up for the latest loop: prefer hosted verification using `W1-014` / `W1-015`-style loose Chinese-first prompts.
-- If hosted verification remains blocked, prioritize live DeepSeek evals for `W1-014` and `W1-015` once credentials are available before adding more fixture-only variants.
-- If hosted verification is blocked again, extend another Chinese-heavy W1-vs-W3 boundary fixture around looser `固定模板` phrasing rather than record-format keywords.
-- Only move to a different P0 capability after the hosted AUTO-route proof for the current W1 summary boundary family exists or is concretely blocked outside the repo.
+- Push and deploy the latest local intent-routing commits, then rerun hosted AUTO-route verification for `W1-014` and `W1-015` until the public Render deployment returns `W1`, `w1_mode=initial_interview_summary`, and the W1 route summary fields.
+- If the hosted deployment still serves stale routing after the new commit is deployed, inspect the deployment source/release path before adding more fixtures; the primary blocker is now deployment parity, not missing local capability logic.
+- Only add another W1-vs-W3 boundary fixture after the hosted deployment is caught up or conclusively blocked outside the repo.
 
 ## Deployment Readiness Notes
 

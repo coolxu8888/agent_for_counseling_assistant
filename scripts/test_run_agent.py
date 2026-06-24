@@ -570,6 +570,14 @@ class RunAgentTest(unittest.TestCase):
             ),
             "initial_interview_summary",
         )
+        self.assertEqual(
+            detect_w1_mode("请用固定模板整理首访材料，保留风险变化线索，不要写成SOAP。"),
+            "initial_interview_summary",
+        )
+        self.assertEqual(
+            detect_w1_mode("请按固定模板梳理这次第一次访谈材料，保留风险变化线索，先不要做咨询记录。"),
+            "initial_interview_summary",
+        )
 
     def test_build_prompt_package_w1_summary_includes_section_specific_missing_field_guidance(self):
         prompt = build_prompt_package(

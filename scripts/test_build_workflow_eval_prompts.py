@@ -41,6 +41,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W1-011", ids)
         self.assertIn("W1-012", ids)
         self.assertIn("W1-013", ids)
+        self.assertIn("W1-014", ids)
         self.assertIn("W2-005", ids)
         self.assertIn("W2-006", ids)
         self.assertIn("W2-007", ids)
@@ -116,6 +117,26 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("dap", w1_dap_boundary["query"].lower())
         self.assertIn("chinese-first", w1_dap_boundary["expected"].lower())
         self.assertIn("record-format negation", w1_dap_boundary["expected"].lower())
+
+    def test_evals_include_loose_chinese_first_w1_summary_soap_boundary_case(self):
+        w1_loose_soap_boundary = next(
+            item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-014"
+        )
+
+        self.assertIn("首访材料", w1_loose_soap_boundary["query"])
+        self.assertIn("soap", w1_loose_soap_boundary["query"].lower())
+        self.assertIn("chinese-first", w1_loose_soap_boundary["expected"].lower())
+        self.assertIn("fixed initial interview summary structure", w1_loose_soap_boundary["expected"].lower())
+
+    def test_evals_include_loose_fixed_template_w1_summary_record_boundary_case(self):
+        w1_loose_record_boundary = next(
+            item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-015"
+        )
+
+        self.assertIn("固定模板", w1_loose_record_boundary["query"])
+        self.assertIn("第一次访谈材料", w1_loose_record_boundary["query"])
+        self.assertIn("咨询记录", w1_loose_record_boundary["query"])
+        self.assertIn("fixed initial interview summary structure", w1_loose_record_boundary["expected"].lower())
 
     def test_evals_include_w2_bps_background_organizer(self):
         w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-005")

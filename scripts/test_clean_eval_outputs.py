@@ -638,6 +638,30 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
 
+    def test_w1_014_loose_chinese_first_soap_boundary_rubric_accepts_bounded_summary_output(self):
+        answer = """
+Initial interview summary template
+known_facts
+- The provided material comes from first-interview intake material rather than a SOAP session note.
+- The notes include sleep disruption and a recent risk-change clue.
+unclear_or_missing
+- The source material does not confirm duration, frequency, or current supports for the passive risk cue.
+follow_up_questions
+- What changed around the recent risk-related statement, and which supports were available at that point?
+risk_crisis
+- Preserve the risk-change clue, document uncertainty, and do not assign a final risk level.
+Boundary notes
+- Keep this as a fixed initial interview summary from source material, not a SOAP session note, diagnosis, or treatment plan.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W1-014", clean_answer)
+        rubric_result = run_dimension_rubric("W1-014", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
+
     def test_w5_005_bilingual_record_negation_case_uses_w5_rules(self):
         answer = """
 Next-session plan
@@ -667,6 +691,29 @@ Boundary notes
         self.assertEqual(rule_result["status"], "PASS")
         self.assertEqual(rubric_result["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
+    def test_w1_015_loose_fixed_template_record_boundary_rubric_accepts_bounded_summary_output(self):
+        answer = """
+Fixed initial interview summary
+Client background
+- Known facts: The first interview material describes worsening sleep over the last two weeks and strong academic pressure.
+- Unclear or missing: Family support details and recent daily functioning still need verification.
+- Follow-up questions: How often are sleep disruptions happening, and what support remains available this week?
+Risk and crisis
+- Known facts: The material includes a passive statement about wanting to disappear for a while, with no current plan or intent documented.
+- Unclear or missing: Frequency, duration, escalation triggers, and immediate protective contacts are still incomplete.
+- Follow-up questions: Has the thought become more frequent, is there any plan or preparation, and who can the client contact if distress rises?
+Boundary notes
+- Keep this as a fixed initial interview summary from source material, not a counseling record, diagnosis, or treatment plan.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W1-015", clean_answer)
+        rubric_result = run_dimension_rubric("W1-015", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
 
     def test_w6_001_bilingual_rubric_accepts_bounded_counseling_roadmap(self):
         answer = """

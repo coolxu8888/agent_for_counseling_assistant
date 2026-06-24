@@ -137,6 +137,30 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
         self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
 
+    def test_routes_loose_chinese_first_summary_request_that_negates_soap_to_w1_summary_intent(self):
+        payload = self.run_retrieval(
+            "请用固定模板整理首访材料，保留风险变化线索，不要写成SOAP。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_1_intake_form")
+        self.assertEqual(payload["route"]["intent"], "初始访谈材料总结")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+        self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
+
+    def test_routes_loose_fixed_template_summary_request_that_negates_record_to_w1_summary_intent(self):
+        payload = self.run_retrieval(
+            "请按固定模板梳理这次第一次访谈材料，保留风险变化线索，先不要做咨询记录。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_1_intake_form")
+        self.assertEqual(payload["route"]["intent"], "初始访谈材料总结")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+        self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
+
     def test_routes_mixed_next_session_and_roadmap_query_to_w6(self):
         payload = self.run_retrieval(
             "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases."

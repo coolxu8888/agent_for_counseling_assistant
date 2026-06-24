@@ -346,6 +346,28 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
 
+    def test_detect_workflow_prefers_w1_for_loose_chinese_first_summary_prompt_that_negates_soap(self):
+        details = web_workbench.detect_workflow_details(
+            "请用固定模板整理首访材料，保留风险变化线索，不要写成SOAP。"
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "initial_interview_summary")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
+    def test_detect_workflow_prefers_w1_for_loose_fixed_template_summary_prompt_that_negates_record(self):
+        details = web_workbench.detect_workflow_details(
+            "请按固定模板梳理这次第一次访谈材料，保留风险变化线索，先不要做咨询记录。"
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "initial_interview_summary")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W1")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+
     def test_detect_workflow_prefers_w5_for_bilingual_single_session_plan_prompt(self):
         details = web_workbench.detect_workflow_details(
             "用 CBT 做下次咨询计划，只规划 next session，不要做多阶段 roadmap。"
