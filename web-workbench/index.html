@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,6 +8,10 @@
   </head>
   <body>
     <div id="rippleField" class="ripple-field" aria-hidden="true"></div>
+    <div class="global-locale-switch" role="group" aria-label="Language switch">
+      <button id="localeZhButton" class="locale-pill active" type="button">中文</button>
+      <button id="localeEnButton" class="locale-pill" type="button">EN</button>
+    </div>
 
     <section id="introOverlay" class="intro-overlay" aria-label="Product introduction">
       <div class="intro-water">
@@ -15,69 +19,73 @@
           <img src="/agent-icon.png" alt="" />
         </div>
         <div class="intro-copy">
-          <span>Counselor Assistant</span>
-          <h1>Paste counselor material once. Let the workspace route the rest.</h1>
-          <p>
-            The product can prepare initial-interview guides, summarize completed intake notes, organize biopsychosocial case backgrounds, draft
-            session records, build framework-based conceptualizations, and fill Word templates while keeping privacy and
-            review boundaries visible.
+          <span data-i18n="intro.badge">Counselor Assistant</span>
+          <h1 data-i18n="intro.title">一次粘贴咨询材料，剩下交给工作台自动分流。</h1>
+          <p data-i18n="intro.body">
+            这个产品可以准备首访信息收集提纲、整理已完成的初访记录、组织生物心理社会背景、生成咨询记录、输出理论取向个案概念化，并在可见的隐私与审阅边界下完成 Word 模板填充。
           </p>
         </div>
         <div class="demo-sphere" aria-hidden="true">
           <div class="demo-roll">
-            <span>Initial interview</span>
-            <span>Case background (BPS)</span>
-            <span>Session note drafting</span>
-            <span>CBT conceptualization</span>
-            <span>Next-session planning</span>
-            <span>Counseling roadmap</span>
-            <span>Risk boundary reminders</span>
-            <span>Word template upload</span>
-            <span>Template slot scan</span>
-            <span>Run history and exports</span>
-            <span>Workspace governance</span>
+            <span data-i18n="intro.roll.w1">首访准备</span>
+            <span data-i18n="intro.roll.w2">个案背景整理（BPS）</span>
+            <span data-i18n="intro.roll.w3">咨询记录生成</span>
+            <span data-i18n="intro.roll.w4">CBT 个案概念化</span>
+            <span data-i18n="intro.roll.w5">下次会谈计划</span>
+            <span data-i18n="intro.roll.w6">多次会谈路线图</span>
+            <span data-i18n="intro.roll.risk">风险边界提醒</span>
+            <span data-i18n="intro.roll.upload">Word 模板上传</span>
+            <span data-i18n="intro.roll.scan">模板槽位扫描</span>
+            <span data-i18n="intro.roll.history">运行历史与导出</span>
+            <span data-i18n="intro.roll.gov">工作台治理</span>
           </div>
         </div>
         <div class="intro-actions">
-          <button id="startLoginButton" class="liquid-button primary-button" type="button">Open workspace</button>
-          <button id="skipIntroButton" class="ghost-button" type="button">Skip intro</button>
+          <button id="startLoginButton" class="liquid-button primary-button" type="button" data-i18n="intro.open">进入工作台</button>
+          <button id="skipIntroButton" class="ghost-button" type="button" data-i18n="intro.skip">跳过介绍</button>
         </div>
       </div>
     </section>
 
-    <section id="loginOverlay" class="login-overlay" aria-label="Sign in">
+    <section id="loginOverlay" class="login-overlay" aria-label="登录">
       <form id="loginForm" class="login-drop">
         <div class="drop-mark">
           <img src="/agent-icon.png" alt="" />
         </div>
-        <h1>Counselor Assistant</h1>
-        <p>
-          Sign in to an isolated counselor workspace. Use de-identified cases only
-          for public MVP validation.
-        </p>
-        <div id="authModeSwitch" class="button-row">
-          <button id="authModeLogin" class="ghost-button" type="button">Sign in</button>
-          <button id="authModeSignup" class="ghost-button" type="button" hidden>Create workspace</button>
+        <div class="login-copy">
+          <span class="login-kicker" data-i18n="login.kicker">中文优先</span>
+          <h1 data-i18n="login.title">咨询师工作台登录</h1>
+          <p data-i18n="login.body">
+            先用去标识化材料做验证。默认测试账号可直接进入，后续再替换为正式工作台账户。
+          </p>
+        </div>
+        <div id="loginCredentialHint" class="login-credential-hint">
+          <strong data-i18n="login.demo.label">测试账号</strong>
+          <span data-i18n="login.demo.value">demo / demo123</span>
+        </div>
+        <div id="authModeSwitch" class="auth-segment">
+          <button id="authModeLogin" class="ghost-button" type="button">登录</button>
+          <button id="authModeSignup" class="ghost-button" type="button" hidden>创建工作台</button>
         </div>
         <label>
-          <span>Username</span>
-          <input id="loginUsername" type="text" autocomplete="username" placeholder="Enter username" />
+          <span data-i18n="login.username">用户名</span>
+          <input id="loginUsername" type="text" autocomplete="username" placeholder="输入用户名" data-i18n-placeholder="login.usernamePlaceholder" />
         </label>
         <label>
-          <span>Password</span>
-          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" />
+          <span data-i18n="login.password">密码</span>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="输入密码" data-i18n-placeholder="login.passwordPlaceholder" />
         </label>
         <label id="signupConfirmWrap" hidden>
-          <span>Confirm password</span>
-          <input id="signupPasswordConfirm" type="password" autocomplete="new-password" placeholder="Confirm password" />
+          <span data-i18n="login.confirmPassword">确认密码</span>
+          <input id="signupPasswordConfirm" type="password" autocomplete="new-password" placeholder="再次输入密码" data-i18n-placeholder="login.confirmPasswordPlaceholder" />
         </label>
         <label id="signupInviteWrap" hidden>
-          <span>Invite code</span>
-          <input id="signupInviteCode" type="text" autocomplete="one-time-code" placeholder="Enter invite code" />
+          <span data-i18n="login.inviteCode">邀请码</span>
+          <input id="signupInviteCode" type="text" autocomplete="one-time-code" placeholder="输入邀请码" data-i18n-placeholder="login.inviteCodePlaceholder" />
         </label>
-        <button id="loginSubmitButton" class="liquid-button primary-button" type="submit">Sign in</button>
+        <button id="loginSubmitButton" class="liquid-button primary-button" type="submit" data-i18n="login.submit">登录</button>
         <span id="authModeHint" class="login-message"></span>
-        <button id="replayIntroButton" class="ghost-button" type="button">Replay intro</button>
+        <button id="replayIntroButton" class="ghost-button login-secondary-action" type="button" data-i18n="login.replay">重新看介绍</button>
         <span id="loginMessage" class="login-message"></span>
       </form>
     </section>
@@ -87,13 +95,13 @@
         <div class="brand">
           <img src="/agent-icon.png" alt="" />
           <div>
-            <h1>Counselor Assistant</h1>
-            <p id="ambientCaption">Route counselor tasks into structured drafts, notes, exports, and template outputs.</p>
+            <h1 data-i18n="topbar.brand">Counselor Assistant</h1>
+            <p id="ambientCaption" data-i18n="topbar.caption">将咨询任务路由成结构化草稿、记录、导出和模板结果。</p>
           </div>
         </div>
         <div class="top-actions">
-          <span id="runStatus" class="status idle">Waiting for input</span>
-          <button id="logoutButton" class="ghost-button" type="button">Sign out</button>
+          <span id="runStatus" class="status idle" data-i18n="status.waiting">等待输入</span>
+          <button id="logoutButton" class="ghost-button" type="button" data-i18n="topbar.logout">退出登录</button>
         </div>
       </header>
 

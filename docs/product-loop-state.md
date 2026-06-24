@@ -966,6 +966,36 @@ Recommended scope:
 - Add bilingual W3-vs-W4 coverage only where the current hosted behavior is still unproven.
 - Keep deployment-readiness environment warnings separate from intent-routing logic unless they directly block model-backed route verification.
 
+## This Run: Chinese-First Login Entry
+
+Capability worked on:
+
+- `P2 minimal high-end web UX`, narrowed to a user-requested Chinese-first login and entry experience that makes the shipped agent product easier to validate without changing the P0 roadmap priority order.
+
+Why this lower-priority slice was allowed:
+
+- This run did not replace the next P0 recommendation.
+- The user explicitly requested Chinese-first login guidance plus a less awkward login UI.
+- The changes stay limited to the product entry surface needed to access agent capabilities, instead of drifting into generic account/settings polish.
+
+What changed:
+
+- Updated [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\index.html`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\index.html) so the intro, login surface, and top bar now default to Chinese copy, expose a fixed top-right `中文 / EN` switch, and show the current internal demo credentials directly in the login card for faster validation.
+- Reworked the login visual treatment in [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\styles.css`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\styles.css) from the previous water-drop ellipse into a more standard rounded SaaS card with a segmented auth switch, credential hint block, and calmer spacing/shadow treatment.
+- Added a lightweight front-end locale layer in [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js) so the entry surface, auth hints, top status text, demo-library shell, and several auth/governance summaries can toggle between Chinese and English without reloading.
+- Added regression coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py) to assert the static page now includes the locale switch, Chinese-first login copy, and the visible demo credential hint.
+
+Tests run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench`
+- `node --check web-workbench/app.js`
+
+Remaining gaps:
+
+- This run intentionally did not translate every workbench panel or every backend-returned status string; the bilingual layer is strongest on the intro/login/top-bar path and the most visible auth/demo summaries.
+- The hosted product still uses the insecure internal `demo/demo123` login for testing only; surfacing it in the UI helps validation but does not improve deployment readiness.
+- P0 capability work remains the next priority, especially another hosted-proof intent-routing ambiguity.
+
 ## Deployment Readiness Notes
 
 Do not claim deployment-ready until:

@@ -2,9 +2,12 @@ const state = {
   workflow: "AUTO",
   runDir: null,
   structuredOutput: null,
+  lastRunData: null,
   templateSlots: [],
   demoCatalog: null,
   user: null,
+  locale: "zh-CN",
+  workspaceGovernance: null,
   authConfig: { signup_enabled: false, invite_required: false },
   authMode: "login",
   caseId: "",
@@ -99,10 +102,240 @@ const INTRO_KEY = "counselor_agent_intro_seen";
 const SIDE_COLLAPSED_KEY = "counselor_agent_side_collapsed";
 const SIDE_WIDTH_KEY = "counselor_agent_side_width";
 const LOGIN_USERNAME_KEY = "counselor_agent_login_username";
+const LOCALE_KEY = "counselor_agent_locale";
+const DEFAULT_LOCALE = "zh-CN";
+const SUPPORTED_LOCALES = ["zh-CN", "en"];
+const MESSAGES = {
+  "zh-CN": {
+    "common.none": "无",
+    "intro.badge": "Counselor Assistant",
+    "intro.title": "一次粘贴咨询材料，剩下交给工作台自动分流。",
+    "intro.body": "这个产品可以准备首访信息收集提纲、整理已完成的初访记录、组织生物心理社会背景、生成咨询记录、输出理论取向个案概念化，并在可见的隐私与审阅边界下完成 Word 模板填充。",
+    "intro.roll.w1": "首访准备",
+    "intro.roll.w2": "个案背景整理（BPS）",
+    "intro.roll.w3": "咨询记录生成",
+    "intro.roll.w4": "CBT 个案概念化",
+    "intro.roll.w5": "下次会谈计划",
+    "intro.roll.w6": "多次会谈路线图",
+    "intro.roll.risk": "风险边界提醒",
+    "intro.roll.upload": "Word 模板上传",
+    "intro.roll.scan": "模板槽位扫描",
+    "intro.roll.history": "运行历史与导出",
+    "intro.roll.gov": "工作台治理",
+    "intro.open": "进入工作台",
+    "intro.skip": "跳过介绍",
+    "login.kicker": "中文优先",
+    "login.title": "咨询师工作台登录",
+    "login.body": "先用去标识化材料做验证。默认测试账号可直接进入，后续再替换为正式工作台账户。",
+    "login.demo.label": "测试账号",
+    "login.demo.value": "demo / demo123",
+    "login.username": "用户名",
+    "login.usernamePlaceholder": "输入用户名",
+    "login.password": "密码",
+    "login.passwordPlaceholder": "输入密码",
+    "login.confirmPassword": "确认密码",
+    "login.confirmPasswordPlaceholder": "再次输入密码",
+    "login.inviteCode": "邀请码",
+    "login.inviteCodePlaceholder": "输入邀请码",
+    "login.submit": "登录",
+    "login.replay": "重新看介绍",
+    "topbar.brand": "Counselor Assistant",
+    "topbar.caption": "将咨询任务路由成结构化草稿、记录、导出和模板结果。",
+    "topbar.logout": "退出登录",
+    "workflow.AUTO": "自动识别",
+    "workflow.W1": "首访准备 / 首访总结",
+    "workflow.W2": "个案背景（BPS）",
+    "workflow.W3": "咨询记录",
+    "workflow.W4": "个案概念化",
+    "workflow.W5": "下次会谈计划",
+    "workflow.W6": "咨询路线图",
+    "workflow.TEMPLATE": "模板起草",
+    "auth.mode.login": "登录",
+    "auth.mode.signup": "创建工作台",
+    "auth.hint.loginOnly": "请使用当前分配的工作台账号登录。",
+    "auth.hint.loginOrSignup": "可以直接登录，也可以为试用创建独立工作台账号。",
+    "auth.hint.signupInvite": "使用部署邀请码创建一个隔离的咨询师工作台。",
+    "auth.hint.signupOpen": "在当前部署上创建一个隔离的咨询师工作台。",
+    "auth.pending.login": "正在登录...",
+    "auth.pending.signup": "正在创建工作台...",
+    "auth.signedInAs": "已登录：{username}",
+    "auth.signedOut": "已退出登录。",
+    "demo.library": "演示资料库",
+    "demo.signIn": "登录后可加载一键演示案例和内置模板。",
+    "demo.scenariosPlaceholder": "这里会显示去标识化的示例工作流。",
+    "demo.templatesPlaceholder": "这里会显示内置 Word 模板。",
+    "demo.loadedWorkflow": "已加载 {workflow} 示例",
+    "demo.loadedScenario": "已加载演示场景：{title}。",
+    "demo.sampleLoaded": "{title}\n\n{summary}\n\n示例输入已填入编辑区。检查后点击“运行”即可发起真实模型调用。",
+    "demo.templateLoaded": "已选择内置模板：{title}。现在可以扫描槽位或开始起草。",
+    "demo.loadSample": "加载示例",
+    "demo.useTemplate": "使用模板",
+    "demo.noneScenario": "当前环境没有可用的演示场景。",
+    "demo.noneTemplate": "当前环境没有找到内置 Word 模板。",
+    "demo.privacy": "只使用去标识化演示材料。不要输入真实姓名、电话、证件号或完整个案信息。",
+    "account.title": "工作台账号",
+    "account.signedOut": "登录后可查看当前工作台账号，并在需要时轮换密码。",
+    "account.signedIn": "当前账号：{username}。在交接咨询师或凭证变更后，请及时轮换工作台密码。",
+    "governance.title": "数据控制",
+    "governance.signedOut": "先检查存储、上传上限和保留策略，再用托管环境做试点验证。",
+    "deployment.title": "部署就绪度",
+    "deployment.signedOut": "登录后可查看模型访问、工作台认证、保留策略和存储持久性。",
+    "intent.title": "意图路由",
+    "intent.empty": "每次运行后，这里会显示系统识别到的咨询任务类型。",
+    "intent.routeStatus": "{prefix} | 路由状态：{status}。",
+    "intent.completed": "{prefix} | 自动路由已完成。",
+    "workflowMode.title": "工作流模式",
+    "workflowMode.empty": "当运行首访工作流时，这里会显示“首访准备”或“首访总结”的细分模式。",
+    "workflowMode.defaultNotice": "已启用当前模式对应的首访引导。",
+    "workspace.export": "备份工作台",
+    "workspace.restore": "恢复备份",
+    "workspace.refresh": "刷新数据状态",
+    "workspace.prune": "清理过期数据",
+    "workspace.clear": "清空工作台",
+    "workspace.backupLabel": "工作台备份（.zip）",
+    "password.loginFirst": "请先登录，再修改工作台密码。",
+    "password.fillFields": "请先填写当前密码、新密码和确认密码。",
+    "password.updated": "密码已更新。",
+    "status.waiting": "等待输入",
+  },
+  en: {
+    "common.none": "None",
+    "intro.badge": "Counselor Assistant",
+    "intro.title": "Paste counselor material once. Let the workspace route the rest.",
+    "intro.body": "The product can prepare initial-interview guides, summarize completed intake notes, organize biopsychosocial case backgrounds, draft session records, build framework-based conceptualizations, and fill Word templates while keeping privacy and review boundaries visible.",
+    "intro.roll.w1": "Initial interview",
+    "intro.roll.w2": "Case background (BPS)",
+    "intro.roll.w3": "Session note drafting",
+    "intro.roll.w4": "CBT conceptualization",
+    "intro.roll.w5": "Next-session planning",
+    "intro.roll.w6": "Counseling roadmap",
+    "intro.roll.risk": "Risk boundary reminders",
+    "intro.roll.upload": "Word template upload",
+    "intro.roll.scan": "Template slot scan",
+    "intro.roll.history": "Run history and exports",
+    "intro.roll.gov": "Workspace governance",
+    "intro.open": "Open workspace",
+    "intro.skip": "Skip intro",
+    "login.kicker": "Chinese first",
+    "login.title": "Counselor workspace sign-in",
+    "login.body": "Use de-identified materials for validation first. The default demo credentials can enter now, and you can replace them with formal workspace credentials later.",
+    "login.demo.label": "Demo credentials",
+    "login.demo.value": "demo / demo123",
+    "login.username": "Username",
+    "login.usernamePlaceholder": "Enter username",
+    "login.password": "Password",
+    "login.passwordPlaceholder": "Enter password",
+    "login.confirmPassword": "Confirm password",
+    "login.confirmPasswordPlaceholder": "Confirm password",
+    "login.inviteCode": "Invite code",
+    "login.inviteCodePlaceholder": "Enter invite code",
+    "login.submit": "Sign in",
+    "login.replay": "Replay intro",
+    "topbar.brand": "Counselor Assistant",
+    "topbar.caption": "Route counselor tasks into structured drafts, notes, exports, and template outputs.",
+    "topbar.logout": "Sign out",
+    "workflow.AUTO": "Auto detect",
+    "workflow.W1": "Initial interview",
+    "workflow.W2": "Case background (BPS)",
+    "workflow.W3": "Session note",
+    "workflow.W4": "Conceptualization",
+    "workflow.W5": "Next-session plan",
+    "workflow.W6": "Counseling roadmap",
+    "workflow.TEMPLATE": "Template draft",
+    "auth.mode.login": "Sign in",
+    "auth.mode.signup": "Create workspace",
+    "auth.hint.loginOnly": "Sign in with your assigned workspace credentials.",
+    "auth.hint.loginOrSignup": "Sign in, or create a separate counselor workspace for pilot use.",
+    "auth.hint.signupInvite": "Create an isolated counselor workspace with the deployment invite code.",
+    "auth.hint.signupOpen": "Create an isolated counselor workspace on this deployment.",
+    "auth.pending.login": "Signing in...",
+    "auth.pending.signup": "Creating workspace...",
+    "auth.signedInAs": "Signed in as {username}",
+    "auth.signedOut": "Signed out.",
+    "demo.library": "Demo library",
+    "demo.signIn": "Sign in to load one-click demos and built-in templates.",
+    "demo.scenariosPlaceholder": "De-identified sample workflows will appear here.",
+    "demo.templatesPlaceholder": "Bundled Word templates will appear here.",
+    "demo.loadedWorkflow": "Loaded {workflow} demo",
+    "demo.loadedScenario": "Loaded demo scenario: {title}.",
+    "demo.sampleLoaded": "{title}\n\n{summary}\n\nThe sample input has been loaded into the composer. Review it and click Run to start a real model call.",
+    "demo.templateLoaded": "Built-in template set to {title}. You can scan slots or start drafting now.",
+    "demo.loadSample": "Load sample",
+    "demo.useTemplate": "Use template",
+    "demo.noneScenario": "No demo scenarios are available in this environment.",
+    "demo.noneTemplate": "No bundled Word templates were found.",
+    "demo.privacy": "Use de-identified demo material only. Avoid names, phone numbers, IDs, and real client data in public MVP validation.",
+    "account.title": "Workspace access",
+    "account.signedOut": "Sign in to review the active workspace account and rotate its password when needed.",
+    "account.signedIn": "Signed in as {username}. Rotate this workspace password after counselor handoff or any credential change.",
+    "governance.title": "Data controls",
+    "governance.signedOut": "Review storage, upload limits, and retention before using hosted pilot data.",
+    "deployment.title": "Deployment readiness",
+    "deployment.signedOut": "Sign in to review model access, workspace auth, retention, and storage durability before pilot launch.",
+    "intent.title": "Intent route",
+    "intent.empty": "Automatic routing will label the detected counselor task after each run.",
+    "intent.routeStatus": "{prefix} | Routing status: {status}.",
+    "intent.completed": "{prefix} | Automatic routing completed.",
+    "workflowMode.title": "Workflow mode",
+    "workflowMode.empty": "W1 prep vs summary details will appear here when the intake workflow runs.",
+    "workflowMode.defaultNotice": "Mode-specific intake guidance is active.",
+    "workspace.export": "Backup workspace",
+    "workspace.restore": "Restore backup",
+    "workspace.refresh": "Refresh data status",
+    "workspace.prune": "Prune expired data",
+    "workspace.clear": "Clear workspace",
+    "workspace.backupLabel": "Workspace backup (.zip)",
+    "password.loginFirst": "Sign in before changing the workspace password.",
+    "password.fillFields": "Enter the current password and confirm the new password first.",
+    "password.updated": "Password updated.",
+    "status.waiting": "Waiting for input",
+  },
+};
+
+function formatMessage(template, params = {}) {
+  return String(template || "").replace(/\{(\w+)\}/g, (_match, key) => String(params[key] ?? ""));
+}
+
+function t(key, params = {}) {
+  const locale = SUPPORTED_LOCALES.includes(state.locale) ? state.locale : DEFAULT_LOCALE;
+  const catalog = MESSAGES[locale] || MESSAGES[DEFAULT_LOCALE];
+  const fallback = MESSAGES.en || {};
+  return formatMessage(catalog[key] || fallback[key] || key, params);
+}
+
+function applyLocale(locale = DEFAULT_LOCALE) {
+  state.locale = SUPPORTED_LOCALES.includes(locale) ? locale : DEFAULT_LOCALE;
+  localStorage.setItem(LOCALE_KEY, state.locale);
+  document.documentElement.lang = state.locale;
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  });
+  $("localeZhButton").classList.toggle("active", state.locale === "zh-CN");
+  $("localeEnButton").classList.toggle("active", state.locale === "en");
+  updateAuthModeUi();
+  initializeWorkspaceBackupUi();
+  renderAccountSummary(state.user);
+  renderWorkspaceGovernance(null);
+  renderDeploymentReadiness(state.deploymentReadiness);
+  renderWorkflowModeSummary(state.lastRunData);
+  renderIntentSummary(state.lastRunData);
+  if (state.demoCatalog) {
+    renderDemoCatalog(state.demoCatalog);
+  } else {
+    clearDemoCatalog();
+  }
+  const runStatus = $("runStatus");
+  if (runStatus && runStatus.classList.contains("idle")) {
+    runStatus.textContent = t("status.waiting");
+  }
+}
 
 function pretty(value) {
   if (value === null || value === undefined || value === "") {
-    return "None";
+    return t("common.none");
   }
   if (typeof value === "string") {
     return value;
@@ -127,7 +360,7 @@ function setPathDisplay(id, path, downloadable = false) {
   }
   clearNode(target);
   if (!path) {
-    target.textContent = "None";
+    target.textContent = t("common.none");
     return;
   }
   if (!downloadable) {
@@ -243,16 +476,18 @@ function updateAuthModeUi() {
   const signupMode = state.authMode === "signup";
   $("signupConfirmWrap").hidden = !signupMode;
   $("signupInviteWrap").hidden = !signupMode || !state.authConfig.invite_required;
-  $("loginSubmitButton").textContent = signupMode ? "Create workspace" : "Sign in";
+  $("authModeLogin").textContent = t("auth.mode.login");
+  $("authModeSignup").textContent = t("auth.mode.signup");
+  $("loginSubmitButton").textContent = signupMode ? t("auth.mode.signup") : t("auth.mode.login");
   $("authModeLogin").disabled = !signupMode;
   $("authModeSignup").disabled = signupMode;
   $("authModeHint").textContent = signupMode
     ? state.authConfig.invite_required
-      ? "Create an isolated counselor workspace with the deployment invite code."
-      : "Create an isolated counselor workspace on this deployment."
+      ? t("auth.hint.signupInvite")
+      : t("auth.hint.signupOpen")
     : state.authConfig.signup_enabled
-      ? "Sign in, or create a separate counselor workspace for pilot use."
-      : "Sign in with your assigned workspace credentials.";
+      ? t("auth.hint.loginOrSignup")
+      : t("auth.hint.loginOnly");
 }
 
 function setAuthMode(mode) {
@@ -417,16 +652,7 @@ function createMiniGhostButton(label, onClick) {
 }
 
 function workflowLabel(workflow) {
-  return {
-    AUTO: "Auto detect",
-    W1: "Initial interview",
-    W2: "Case background (BPS)",
-    W3: "Session note",
-    W4: "Conceptualization",
-    W5: "Next-session plan",
-    W6: "Counseling roadmap",
-    TEMPLATE: "Template draft",
-  }[workflow] || workflow;
+  return t(`workflow.${workflow || "AUTO"}`);
 }
 
 function ensureDeleteCaseButton() {
@@ -457,20 +683,20 @@ function updateCaseActions() {
   }
 }
 
-function clearDemoCatalog(message = "Sign in to load one-click demos and built-in templates.") {
+function clearDemoCatalog(message = "") {
   state.demoCatalog = null;
-  $("demoCatalogStatus").innerHTML = `<strong>Demo library</strong><span>${message}</span>`;
-  addStackPlaceholder("demoStarterList", "De-identified sample workflows will appear here.");
-  addStackPlaceholder("demoTemplateList", "Bundled Word templates will appear here.");
+  $("demoCatalogStatus").innerHTML = `<strong>${t("demo.library")}</strong><span>${message || t("demo.signIn")}</span>`;
+  addStackPlaceholder("demoStarterList", t("demo.scenariosPlaceholder"));
+  addStackPlaceholder("demoTemplateList", t("demo.templatesPlaceholder"));
 }
 
 function applyDemoTemplate(templateRef, title = "template") {
   setSelectedTemplate(
     templateRef,
     title,
-    `Built-in template set to ${title}. You can scan slots or start drafting now.`,
+    t("demo.templateLoaded", { title }),
   );
-  $("auditStatus").textContent = `Loaded built-in template: ${title}.`;
+  $("auditStatus").textContent = t("demo.templateLoaded", { title });
   setPane("template");
 }
 
@@ -482,19 +708,18 @@ function applyDemoScenario(scenarioId) {
   $("inputText").value = scenario.input || "";
   $("outputStyleSelect").value = scenario.output_style || "default";
   $("outputCustomStyle").value = "";
-  $("markdownPane").textContent = `${scenario.title}
-
-${scenario.summary}
-
-The sample input has been loaded into the composer. Review it and click Run to start a real model call.`;
-  setStatus(`Loaded ${workflowLabel(scenario.workflow)} demo`, "idle");
-  $("auditStatus").textContent = `Loaded demo scenario: ${scenario.title}.`;
+  $("markdownPane").textContent = t("demo.sampleLoaded", {
+    title: scenario.title,
+    summary: scenario.summary,
+  });
+  setStatus(t("demo.loadedWorkflow", { workflow: workflowLabel(scenario.workflow) }), "idle");
+  $("auditStatus").textContent = t("demo.loadedScenario", { title: scenario.title });
   setPane("markdown");
 }
 
 function renderDemoCatalog(payload) {
   state.demoCatalog = payload;
-  $("demoCatalogStatus").innerHTML = `<strong>Demo library</strong><span>${payload.privacy_notice || "Use de-identified demo material only."}</span>`;
+  $("demoCatalogStatus").innerHTML = `<strong>${t("demo.library")}</strong><span>${payload.privacy_notice || t("demo.privacy")}</span>`;
 
   const starterList = $("demoStarterList");
   clearNode(starterList);
@@ -507,12 +732,12 @@ function renderDemoCatalog(payload) {
     summary.textContent = `${workflowLabel(scenario.workflow)} | ${scenario.summary}`;
     const actions = document.createElement("div");
     actions.className = "button-row";
-    actions.appendChild(createMiniGhostButton("Load sample", () => applyDemoScenario(scenario.id)));
+    actions.appendChild(createMiniGhostButton(t("demo.loadSample"), () => applyDemoScenario(scenario.id)));
     card.append(title, summary, actions);
     starterList.appendChild(card);
   });
   if (!starterList.children.length) {
-    addStackPlaceholder("demoStarterList", "No demo scenarios are available in this environment.");
+    addStackPlaceholder("demoStarterList", t("demo.noneScenario"));
   }
 
   const templateList = $("demoTemplateList");
@@ -526,12 +751,12 @@ function renderDemoCatalog(payload) {
     summary.textContent = template.summary || template.title;
     const actions = document.createElement("div");
     actions.className = "button-row";
-    actions.appendChild(createMiniGhostButton("Use template", () => applyDemoTemplate(template.template_ref, template.title)));
+    actions.appendChild(createMiniGhostButton(t("demo.useTemplate"), () => applyDemoTemplate(template.template_ref, template.title)));
     card.append(title, summary, actions);
     templateList.appendChild(card);
   });
   if (!templateList.children.length) {
-    addStackPlaceholder("demoTemplateList", "No bundled Word templates were found.");
+    addStackPlaceholder("demoTemplateList", t("demo.noneTemplate"));
   }
 }
 
@@ -661,14 +886,14 @@ function renderAccountSummary(user = state.user) {
   }
   box.innerHTML = "";
   const title = document.createElement("strong");
-  title.textContent = "Workspace access";
+  title.textContent = t("account.title");
   const body = document.createElement("span");
   if (!user) {
-    body.textContent = "Sign in to review the active workspace account and rotate its password when needed.";
+    body.textContent = t("account.signedOut");
     box.append(title, body);
     return;
   }
-  body.textContent = `Signed in as ${user.username}. Rotate this workspace password after counselor handoff or any credential change.`;
+  body.textContent = t("account.signedIn", { username: user.username });
   box.append(title, body);
 }
 
@@ -677,17 +902,21 @@ function renderWorkspaceGovernance(data) {
   if (!box) {
     return;
   }
-  const policy = (data && data.policy) || state.workspacePolicy || {};
+  const activeData = data || state.workspaceGovernance;
+  const policy = (activeData && activeData.policy) || state.workspacePolicy || {};
   if (data && data.policy) {
     state.workspacePolicy = data.policy;
   }
-  const summary = (data && data.summary) || null;
+  if (data) {
+    state.workspaceGovernance = data;
+  }
+  const summary = (activeData && activeData.summary) || null;
   box.innerHTML = "";
   const title = document.createElement("strong");
-  title.textContent = "Data controls";
+  title.textContent = t("governance.title");
   const body = document.createElement("span");
   if (!summary) {
-    body.textContent = "Review storage, upload limits, and retention before using hosted pilot data.";
+    body.textContent = t("governance.signedOut");
     box.append(title, body);
     return;
   }
@@ -707,11 +936,11 @@ function renderDeploymentReadiness(readiness) {
   }
   box.innerHTML = "";
   const title = document.createElement("strong");
-  title.textContent = "Deployment readiness";
+  title.textContent = t("deployment.title");
   const body = document.createElement("span");
   const activeReadiness = readiness || state.deploymentReadiness;
   if (!activeReadiness) {
-    body.textContent = "Sign in to review model access, workspace auth, retention, and storage durability before pilot launch.";
+    body.textContent = t("deployment.signedOut");
     box.append(title, body);
     return;
   }
@@ -740,19 +969,19 @@ function renderIntentSummary(data) {
   const routeNotice = data && data.route_notice;
   const routeReasonsSummary = data && data.routing_reasons_summary;
   const title = document.createElement("strong");
-  title.textContent = "Intent route";
+  title.textContent = t("intent.title");
   const body = document.createElement("span");
   const prefix = workflowLabel(detected);
   if (!data) {
-    body.textContent = "Automatic routing will label the detected counselor task after each run.";
+    body.textContent = t("intent.empty");
   } else if (routeNotice) {
     body.textContent = routeReasonsSummary
       ? `${prefix} | ${routeNotice} ${routeReasonsSummary}`
       : `${prefix} | ${routeNotice}`;
   } else if (routeStatus) {
-    body.textContent = `${prefix} | Routing status: ${routeStatus}.`;
+    body.textContent = t("intent.routeStatus", { prefix, status: routeStatus });
   } else {
-    body.textContent = `${prefix} | Automatic routing completed.`;
+    body.textContent = t("intent.completed", { prefix });
   }
   box.innerHTML = "";
   box.append(title, body);
@@ -764,12 +993,12 @@ function renderWorkflowModeSummary(data) {
     return;
   }
   const title = document.createElement("strong");
-  title.textContent = "Workflow mode";
+  title.textContent = t("workflowMode.title");
   const body = document.createElement("span");
   if (!data || !data.workflow_mode_label) {
-    body.textContent = "W1 prep vs summary details will appear here when the intake workflow runs.";
+    body.textContent = t("workflowMode.empty");
   } else {
-    body.textContent = `${data.workflow_mode_label} | ${data.workflow_mode_notice || "Mode-specific intake guidance is active."}`;
+    body.textContent = `${data.workflow_mode_label} | ${data.workflow_mode_notice || t("workflowMode.defaultNotice")}`;
   }
   box.innerHTML = "";
   box.append(title, body);
@@ -841,6 +1070,7 @@ function renderW3RecordBrief(data) {
 }
 
 function updateRunResult(data) {
+  state.lastRunData = data || null;
   state.runDir = data.run_dir || null;
   state.structuredOutput = data.structured_output || null;
 
@@ -1223,7 +1453,7 @@ async function openSavedRun(runDir) {
 async function submitAuthForm(event) {
   event.preventDefault();
   const signupMode = state.authMode === "signup";
-  $("loginMessage").textContent = signupMode ? "Creating workspace..." : "Signing in...";
+  $("loginMessage").textContent = signupMode ? t("auth.pending.signup") : t("auth.pending.login");
   try {
     const data = await postJson(signupMode ? "/api/signup" : "/api/login", {
       username: $("loginUsername").value.trim(),
@@ -1240,7 +1470,7 @@ async function submitAuthForm(event) {
     localStorage.setItem(LOGIN_USERNAME_KEY, data.user.username);
     hideLogin();
     await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
-    $("auditStatus").textContent = `Signed in as ${data.user.username}`;
+    $("auditStatus").textContent = t("auth.signedInAs", { username: data.user.username });
   } catch (error) {
     $("loginMessage").textContent = error.message;
   }
@@ -1258,6 +1488,8 @@ async function logout() {
   await postJson("/api/logout", {});
   state.user = null;
   state.caseId = "";
+  state.lastRunData = null;
+  state.workspaceGovernance = null;
   state.deploymentReadiness = null;
   $("caseSelect").innerHTML = '<option value="">No case selected</option>';
   clearCaseDetail();
@@ -1265,7 +1497,7 @@ async function logout() {
   renderAccountSummary(null);
   renderWorkspaceGovernance(null);
   renderDeploymentReadiness(null);
-  showLogin("Signed out.");
+  showLogin(t("auth.signedOut"));
 }
 
 async function checkSession() {
@@ -1284,7 +1516,7 @@ async function checkSession() {
       renderAccountSummary(state.user);
       hideLogin();
       await Promise.all([loadCases(), loadDemoCatalog(), refreshWorkspaceGovernance()]);
-      $("auditStatus").textContent = `Signed in as ${data.user.username}`;
+      $("auditStatus").textContent = t("auth.signedInAs", { username: data.user.username });
     } else {
       renderAccountSummary(null);
       clearDemoCatalog();
@@ -1603,14 +1835,14 @@ async function uploadTemplate() {
 
 async function changeWorkspacePassword() {
   if (!state.user) {
-    $("auditStatus").textContent = "Sign in before changing the workspace password.";
+    $("auditStatus").textContent = t("password.loginFirst");
     return;
   }
   const currentPassword = $("accountCurrentPassword").value;
   const newPassword = $("accountNewPassword").value;
   const newPasswordConfirm = $("accountNewPasswordConfirm").value;
   if (!currentPassword || !newPassword || !newPasswordConfirm) {
-    $("auditStatus").textContent = "Enter the current password and confirm the new password first.";
+    $("auditStatus").textContent = t("password.fillFields");
     return;
   }
   const button = $("changePasswordButton");
@@ -1627,7 +1859,7 @@ async function changeWorkspacePassword() {
     $("accountCurrentPassword").value = "";
     $("accountNewPassword").value = "";
     $("accountNewPasswordConfirm").value = "";
-    $("auditStatus").textContent = data.message || "Password updated.";
+    $("auditStatus").textContent = data.message || t("password.updated");
   } catch (error) {
     $("auditStatus").textContent = error.message;
   } finally {
@@ -1639,22 +1871,22 @@ function initializeWorkspaceBackupUi() {
   const exportButton = $("exportWorkspaceButton");
   const restoreButton = $("restoreWorkspaceButton");
   if (exportButton) {
-    exportButton.textContent = "Backup workspace";
+    exportButton.textContent = t("workspace.export");
   }
   if (restoreButton) {
-    restoreButton.textContent = "Restore backup";
+    restoreButton.textContent = t("workspace.restore");
   }
   const refreshButton = $("refreshWorkspaceGovernanceButton");
   if (refreshButton) {
-    refreshButton.textContent = "Refresh data status";
+    refreshButton.textContent = t("workspace.refresh");
   }
   const pruneButton = $("pruneWorkspaceButton");
   if (pruneButton) {
-    pruneButton.textContent = "Prune expired data";
+    pruneButton.textContent = t("workspace.prune");
   }
   const resetButton = $("resetWorkspaceButton");
   if (resetButton) {
-    resetButton.textContent = "Clear workspace";
+    resetButton.textContent = t("workspace.clear");
   }
   const uploadInput = $("workspaceBackupUpload");
   if (uploadInput) {
@@ -1662,7 +1894,7 @@ function initializeWorkspaceBackupUi() {
     if (fieldLabel) {
       const span = fieldLabel.querySelector("span");
       if (span) {
-        span.textContent = "Workspace backup (.zip)";
+        span.textContent = t("workspace.backupLabel");
       }
     }
   }
@@ -1702,6 +1934,8 @@ $("replayIntroButton").addEventListener("click", (event) => {
   event.preventDefault();
   showIntro();
 });
+$("localeZhButton").addEventListener("click", () => applyLocale("zh-CN"));
+$("localeEnButton").addEventListener("click", () => applyLocale("en"));
 $("authModeLogin").addEventListener("click", () => setAuthMode("login"));
 $("authModeSignup").addEventListener("click", () => setAuthMode("signup"));
 $("loginForm").addEventListener("submit", submitAuthForm);
@@ -1727,6 +1961,7 @@ $("inspectTemplateButton").addEventListener("click", inspectTemplate);
 $("draftTemplateButton").addEventListener("click", draftTemplate);
 $("fillTemplateButton").addEventListener("click", fillTemplateFromStructured);
 
+applyLocale(localStorage.getItem(LOCALE_KEY) || DEFAULT_LOCALE);
 primeLoginForm();
 initializeWorkspaceBackupUi();
 updateCaseActions();

@@ -67,6 +67,9 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertNotIn("?/title>", html)
         self.assertIn("&lt;&lt;</button>", html)
         self.assertIn('id="intentSummary"', html)
+        self.assertIn('id="localeZhButton"', html)
+        self.assertIn("咨询师工作台登录", html)
+        self.assertIn("demo / demo123", html)
 
     def test_resolve_download_path_allows_agent_runs_file(self):
         with tempfile.TemporaryDirectory() as tmp:
