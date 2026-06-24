@@ -940,17 +940,21 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W4-004` -> passed.
+- Pushed [`2525519`](C:\Users\win\Documents\Codex\2026-05-15\agent) to `origin/main`, waited for Render to recover from a transient `502`, then re-ran hosted smoke:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use today's session notes to build a CBT case conceptualization with working hypotheses, not a counseling record." --expect-detected-workflow W4 --expect-route-summary-substring W4 --real-run --timeout 240`
+  - Result: passed with `workflow=W4`, `detected_workflow=W4`, and `routing_reasons_summary="Top route cues: W4 Conceptualization (score 8) > W3 Session note (score 5, cues 10)"` on the public URL.
 
 Outcome:
 
 - The shipped web router now matches retrieval behavior for the `session notes -> conceptualization, not a counseling record` boundary instead of showing a contradictory `W3` explanation while still running `W4`.
 - The new `W4-004` fixture upgrades this boundary from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
+- Hosted deployment parity for this W3-vs-W4 boundary is now restored: the public Render product returns `workflow=W4`, `detected_workflow=W4`, and the expected W4-over-W3 route explanation for the same AUTO prompt.
 
 Remaining gaps:
 
-- Hosted deployment verification for `W4-004` is still pending until the latest local commit is pushed and the public Render URL is smoke-tested with the same AUTO-routed prompt.
 - Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs.
-- Broader W3-vs-W4 bilingual phrasing still needs more coverage only after hosted parity for this English-first boundary is confirmed.
+- Broader W3-vs-W4 bilingual phrasing still needs more coverage now that the English-first hosted boundary is confirmed.
+- The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
 ## Next Recommended Capability
 
@@ -958,8 +962,8 @@ Improve `intent recognition across counselor tasks` again as the next P0 capabil
 
 Recommended scope:
 
-- Push the `W4-004` boundary fix, then prove the same AUTO route on the public Render deployment.
-- If hosted parity is restored quickly, move to one additional unproven public-route ambiguity such as W3-vs-W5.
+- Move to one additional unproven public-route ambiguity such as W3-vs-W5, using the same local-eval-plus-hosted-proof loop.
+- Add bilingual W3-vs-W4 coverage only where the current hosted behavior is still unproven.
 - Keep deployment-readiness environment warnings separate from intent-routing logic unless they directly block model-backed route verification.
 
 ## Deployment Readiness Notes
