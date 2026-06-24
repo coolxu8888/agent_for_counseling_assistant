@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek eval `W5-006`, and the hosted Render deployment now agree on both the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`) and the W5-vs-W6 negated-roadmap boundary `W5-006`, keeping `Plan only the next counseling session ... do not expand into a multi-session roadmap` in `W5` on the public URL | move to an unproven public-route ambiguity such as W3-vs-W4, and keep adding hosted proof only where local-vs-public behavior is still unknown |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006` and `W4-004`, and the hosted Render deployment now agree on both the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, and the new W3-vs-W4 negated-record conceptualization boundary `W4-004`, keeping `Use today's session notes to build a CBT case conceptualization ... not a counseling record` in `W4` on the public URL | move to another unproven public-route ambiguity such as W3-vs-W5, and keep adding hosted proof only where local-vs-public behavior is still unknown |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -916,14 +916,50 @@ Remaining gaps:
 - Full-suite verification is currently blocked by unrelated dirty-worktree failures in `scripts.test_fill_docx_template`, so only the relevant capability slice is green at the moment.
 - The next intent-recognition ambiguity should move to an unproven W3-vs-W4 or W3-vs-W5 public-route boundary instead of adding more W5/W6 local fixtures blindly.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the W3-vs-W4 boundary where counselors ask for framework-based case conceptualization from session-note source material while explicitly negating counseling-record formatting.
+
+What changed:
+
+- Tightened the product-side AUTO router in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) so `not a counseling record` now down-ranks `W3` when the request clearly asks for conceptualization, and the visible route notice/routing summary now explains `W4`-over-`W3` using final route score plus raw cue count.
+- Preserved retrieval parity with a dedicated regression in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py) for `Use today's session notes to build a CBT case conceptualization with working hypotheses, not a counseling record.`; the retrieval selector already routed this prompt to `workflow_4_case_conceptualization`, and the new test locks that behavior in.
+- Expanded eval coverage with `W4-004` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py), regenerated committed assets including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W4-004-session-note-to-conceptualization-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W4-004-session-note-to-conceptualization-boundary.txt), and added scorer/rubric coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py).
+- Added regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w4_for_conceptualization_request_that_negates_counseling_record scripts.test_run_retrieval.RunRetrievalTest.test_routes_session_note_source_material_to_w4_when_prompt_negates_record_format scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w4_session_note_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w4_004_session_note_boundary_rubric_accepts_bounded_conceptualization`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 166 tests passed.
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- Loaded `.env` into the process environment without printing secret values, then ran:
+  - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W4-004` -> passed.
+
+Outcome:
+
+- The shipped web router now matches retrieval behavior for the `session notes -> conceptualization, not a counseling record` boundary instead of showing a contradictory `W3` explanation while still running `W4`.
+- The new `W4-004` fixture upgrades this boundary from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
+
+Remaining gaps:
+
+- Hosted deployment verification for `W4-004` is still pending until the latest local commit is pushed and the public Render URL is smoke-tested with the same AUTO-routed prompt.
+- Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs.
+- Broader W3-vs-W4 bilingual phrasing still needs more coverage only after hosted parity for this English-first boundary is confirmed.
+
 ## Next Recommended Capability
 
 Improve `intent recognition across counselor tasks` again as the next P0 capability.
 
 Recommended scope:
 
-- Add hosted AUTO-route verification for one unproven non-W1 ambiguity, preferably W3-vs-W4.
-- Add only the minimal new eval fixture(s) needed for that ambiguity, then prove the same route on the public Render URL.
+- Push the `W4-004` boundary fix, then prove the same AUTO route on the public Render deployment.
+- If hosted parity is restored quickly, move to one additional unproven public-route ambiguity such as W3-vs-W5.
 - Keep deployment-readiness environment warnings separate from intent-routing logic unless they directly block model-backed route verification.
 
 ## Deployment Readiness Notes

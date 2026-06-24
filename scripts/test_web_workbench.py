@@ -390,6 +390,17 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W6")
         self.assertIn("next-session", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w4_for_conceptualization_request_that_negates_counseling_record(self):
+        details = web_workbench.detect_workflow_details(
+            "Use today's session notes to build a CBT case conceptualization with working hypotheses, not a counseling record."
+        )
+
+        self.assertEqual(details["workflow"], "W4")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W4")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+        self.assertIn("conceptualization", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w5_when_bilingual_next_session_request_negates_session_note(self):
         details = web_workbench.detect_workflow_details(
             "\u8bf7\u7528CBT\u505a\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212\uff0c"

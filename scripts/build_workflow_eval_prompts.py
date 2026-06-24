@@ -214,6 +214,12 @@ EVALS = [
         "expected": "Workflow 4: framework-based conceptualization. The answer should explicitly use a humanistic lens, keep the output in hypothesis-and-pattern form, preserve professional boundary reminders, and avoid drifting into a next-session plan or multi-session roadmap.",
     },
     {
+        "id": "W4-004",
+        "name": "session-note-to-conceptualization-boundary",
+        "query": "Use today's session notes to build a CBT case conceptualization with working hypotheses, not a counseling record.",
+        "expected": "Workflow 4: framework-based conceptualization with record-format negation. The answer should explicitly use a CBT conceptualization lens, separate known facts from working hypotheses, keep risk considerations visible, and avoid drifting back into counseling-record formatting or a treatment roadmap.",
+    },
+    {
         "id": "W5-002",
         "name": "single-next-session-not-roadmap",
         "query": "Using CBT, plan only the next counseling session agenda from this case conceptualization.",

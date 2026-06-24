@@ -215,6 +215,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("mixed-language", w3["expected"].lower())
         self.assertIn("risk-change", w3["expected"].lower())
 
+    def test_evals_include_w4_session_note_boundary_case(self):
+        w4 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W4-004")
+
+        self.assertIn("session notes", w4["query"].lower())
+        self.assertIn("not a counseling record", w4["query"].lower())
+        self.assertIn("conceptualization", w4["expected"].lower())
+        self.assertIn("record-format negation", w4["expected"].lower())
+
     def test_main_writes_manifest_including_w5(self):
         with tempfile.TemporaryDirectory() as tmp:
             out_dir = Path(tmp) / "eval-prompts"

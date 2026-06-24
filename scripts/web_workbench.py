@@ -645,6 +645,16 @@ def route_notice_for(workflow, route_status, top_candidates):
                 "Detected both next-session planning and session-record cues; routed to "
                 "Next-session plan because the request explicitly asked for one upcoming session rather than record formatting."
             )
+        if candidate_ids == ["W4", "W3"]:
+            return (
+                "Detected both conceptualization and session-record cues; routed to "
+                "Conceptualization because the request asked for framework-based hypotheses rather than counseling-record formatting."
+            )
+        if candidate_ids == ["W3", "W4"]:
+            return (
+                "Detected both session-record and conceptualization cues; routed to "
+                "Session note because the request still prioritized record-style documentation over framework-based hypotheses."
+            )
         return f"Detected overlapping counselor tasks; routed to {label} based on the strongest cues."
     return f"Automatic routing matched {label}."
 
@@ -654,7 +664,11 @@ def summarize_routing_reasons(top_candidates):
         return ""
     fragments = []
     for item in top_candidates[:2]:
-        fragments.append(f"{item['workflow']} {item['label']} ({item['positive_score']})")
+        fragment = f"{item['workflow']} {item['label']} (score {item['score']}"
+        if item["positive_score"] != item["score"]:
+            fragment += f", cues {item['positive_score']}"
+        fragment += ")"
+        fragments.append(fragment)
     return "Top route cues: " + " > ".join(fragments)
 
 
@@ -710,6 +724,9 @@ def detect_workflow_details(user_input):
         if positive_scores.get("W2", 0) > 0:
             scores["W3"] -= 5
             reasons["W3"].append("-5:negated_record_format_with_case_background")
+        if positive_scores.get("W4", 0) > 0:
+            scores["W3"] -= 5
+            reasons["W3"].append("-5:negated_record_format_with_case_conceptualization")
         if positive_scores.get("W5", 0) > 0:
             scores["W3"] -= 5
             reasons["W3"].append("-5:negated_record_format_with_next_session_plan")
@@ -736,6 +753,8 @@ def detect_workflow_details(user_input):
         route_status = "mixed_signals"
     elif workflow == "W2" and positive_scores.get("W3", 0) > 0 and negated_record_format:
         route_status = "mixed_signals"
+    elif workflow == "W4" and positive_scores.get("W3", 0) > 0:
+        route_status = "mixed_signals"
     elif workflow == "W5" and positive_scores.get("W3", 0) > 0 and negated_record_format:
         route_status = "mixed_signals"
     top_candidates = [
@@ -753,6 +772,16 @@ def detect_workflow_details(user_input):
             key=lambda item: (
                 item["workflow"] == "W5",
                 item["workflow"] == "W6",
+                item["positive_score"],
+            ),
+            reverse=True,
+        )
+    if negated_record_format and workflow == "W4":
+        top_candidates.sort(
+            key=lambda item: (
+                item["workflow"] == "W4",
+                item["workflow"] == "W3",
+                item["score"],
                 item["positive_score"],
             ),
             reverse=True,
