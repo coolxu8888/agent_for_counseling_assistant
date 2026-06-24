@@ -4,10 +4,14 @@ param(
     [string]$Username = "",
     [string]$Password = "",
     [string]$InviteCode = "",
-    [ValidateSet("W1", "W2", "W3", "W4")]
+    [ValidateSet("AUTO", "W1", "W2", "W3", "W4", "W5", "W6")]
     [string]$Workflow = "W2",
     [string]$Input = "",
     [switch]$ExpectPilotReady,
+    [string]$ExpectDetectedWorkflow = "",
+    [string]$ExpectW1Mode = "",
+    [string]$ExpectRouteSummarySubstring = "",
+    [switch]$ExpectW1SummaryBrief,
     [switch]$RequireSignup,
     [switch]$SkipAuth,
     [switch]$SkipRun,
@@ -32,6 +36,18 @@ if ($Input) {
 }
 if ($ExpectPilotReady) {
     $args += "--expect-pilot-ready"
+}
+if ($ExpectDetectedWorkflow) {
+    $args += @("--expect-detected-workflow", $ExpectDetectedWorkflow)
+}
+if ($ExpectW1Mode) {
+    $args += @("--expect-w1-mode", $ExpectW1Mode)
+}
+if ($ExpectRouteSummarySubstring) {
+    $args += @("--expect-route-summary-substring", $ExpectRouteSummarySubstring)
+}
+if ($ExpectW1SummaryBrief) {
+    $args += "--expect-w1-summary-brief"
 }
 if ($RequireSignup) {
     $args += "--require-signup"

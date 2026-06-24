@@ -15,6 +15,11 @@ class HostedSmokeTest(unittest.TestCase):
 
         self.assertEqual(args.workflow, "W5")
 
+    def test_parse_args_accepts_auto_workflow_choice(self):
+        args = hosted_smoke.parse_args(["--base-url", "https://example.test", "--workflow", "AUTO"])
+
+        self.assertEqual(args.workflow, "AUTO")
+
     def test_run_smoke_checks_core_endpoints_and_login(self):
         request_json = Mock(
             side_effect=[
@@ -119,6 +124,71 @@ class HostedSmokeTest(unittest.TestCase):
         self.assertEqual(report["auth_mode"], "signup")
         self.assertEqual(request_json.call_args_list[4].args[1], "/api/signup")
         self.assertEqual(request_json.call_args_list[4].kwargs["payload"]["invite_code"], "invite-123")
+
+    def test_run_smoke_requires_expected_auto_route_metadata(self):
+        request_json = Mock(
+            side_effect=[
+                (200, {"status": "ok"}, {}),
+                (
+                    200,
+                    {
+                        "openapi": "https://example.test/openapi.json",
+                        "deployment_readiness": {
+                            "pilot_ready": True,
+                            "summary": {"fail_count": 0, "warn_count": 1},
+                            "checks": [],
+                        }
+                    },
+                    {},
+                ),
+                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+                (
+                    200,
+                    {
+                        "auth_config": {"signup_enabled": False, "invite_required": False},
+                        "deployment_readiness": {
+                            "pilot_ready": True,
+                            "summary": {"fail_count": 0, "warn_count": 1},
+                            "checks": [],
+                        },
+                    },
+                    {},
+                ),
+                (200, {"status": "success", "user": {"username": "pilot"}}, {"set-cookie": "session=abc"}),
+                (
+                    200,
+                    {
+                        "status": "success",
+                        "workflow": "W1",
+                        "detected_workflow": "W1",
+                        "w1_mode": "initial_interview_summary",
+                        "routing_reasons_summary": "W1 via intake summary cues; W3 down-ranked by negated record wording.",
+                        "w1_summary_brief": {"main_distress": "Sleep worsened after the breakup."},
+                        "clean_output": "summary ready",
+                        "structured_output": {"workflow": "W1"},
+                    },
+                    {},
+                ),
+            ]
+        )
+
+        report = hosted_smoke.run_smoke(
+            "https://example.test",
+            username="pilot",
+            password="pilot-pass-123",
+            workflow="AUTO",
+            input_text="请用固定模板整理首访材料，保留风险变化线索，不要写成咨询记录。",
+            expect_detected_workflow="W1",
+            expect_w1_mode="initial_interview_summary",
+            expect_route_summary_substring="W1 via intake summary cues",
+            expect_w1_summary_brief=True,
+            request_json=request_json,
+        )
+
+        self.assertEqual(report["workflow"]["workflow"], "W1")
+        self.assertEqual(report["workflow"]["detected_workflow"], "W1")
+        self.assertEqual(report["workflow"]["w1_mode"], "initial_interview_summary")
+        self.assertIn("W1 via intake summary cues", report["workflow"]["routing_reasons_summary"])
 
     def test_run_smoke_rejects_not_ready_deployment_when_required(self):
         request_json = Mock(

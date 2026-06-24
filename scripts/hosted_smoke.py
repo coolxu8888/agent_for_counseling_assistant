@@ -84,6 +84,10 @@ def run_smoke(
     input_text=DEFAULT_INPUT,
     timeout=30,
     expect_pilot_ready=False,
+    expect_detected_workflow="",
+    expect_w1_mode="",
+    expect_route_summary_substring="",
+    expect_w1_summary_brief=False,
     require_signup=False,
     skip_auth=False,
     skip_run=False,
@@ -197,9 +201,33 @@ def run_smoke(
             )
             report["workflow"] = {
                 "workflow": payload.get("workflow") or workflow,
+                "detected_workflow": payload.get("detected_workflow") or "",
+                "w1_mode": payload.get("w1_mode") or "",
+                "routing_reasons_summary": payload.get("routing_reasons_summary") or "",
                 "output_excerpt": excerpt[:240],
                 "real_run": bool(real_run),
             }
+            if expect_detected_workflow:
+                _require(
+                    payload.get("detected_workflow") == expect_detected_workflow,
+                    f"/api/run detected_workflow={payload.get('detected_workflow')!r}, expected {expect_detected_workflow!r}.",
+                )
+            if expect_w1_mode:
+                _require(
+                    payload.get("w1_mode") == expect_w1_mode,
+                    f"/api/run w1_mode={payload.get('w1_mode')!r}, expected {expect_w1_mode!r}.",
+                )
+            if expect_route_summary_substring:
+                routing_summary = payload.get("routing_reasons_summary") or ""
+                _require(
+                    expect_route_summary_substring in routing_summary,
+                    f"/api/run routing_reasons_summary did not include {expect_route_summary_substring!r}.",
+                )
+            if expect_w1_summary_brief:
+                _require(
+                    isinstance(payload.get("w1_summary_brief"), dict) and bool(payload.get("w1_summary_brief")),
+                    "/api/run did not return a populated w1_summary_brief payload.",
+                )
             return payload
 
         _run_step(report, "workflow_run", run_step)
@@ -213,10 +241,14 @@ def parse_args(argv=None):
     parser.add_argument("--username", default="", help="Operator username or the new signup username.")
     parser.add_argument("--password", default="", help="Operator password or the new signup password.")
     parser.add_argument("--invite-code", default="", help="Signup invite code when signup is enabled.")
-    parser.add_argument("--workflow", default=DEFAULT_WORKFLOW, choices=["W1", "W2", "W3", "W4", "W5"])
+    parser.add_argument("--workflow", default=DEFAULT_WORKFLOW, choices=["AUTO", "W1", "W2", "W3", "W4", "W5", "W6"])
     parser.add_argument("--input", default=DEFAULT_INPUT, help="Workflow input text used for smoke validation.")
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--expect-pilot-ready", action="store_true")
+    parser.add_argument("--expect-detected-workflow", default="", help="Expected detected_workflow in /api/run.")
+    parser.add_argument("--expect-w1-mode", default="", help="Expected W1 mode in /api/run, for example initial_interview_summary.")
+    parser.add_argument("--expect-route-summary-substring", default="", help="Substring that must appear in routing_reasons_summary.")
+    parser.add_argument("--expect-w1-summary-brief", action="store_true", help="Require a populated w1_summary_brief payload.")
     parser.add_argument("--require-signup", action="store_true")
     parser.add_argument("--skip-auth", action="store_true")
     parser.add_argument("--skip-run", action="store_true")
@@ -235,6 +267,10 @@ def main(argv=None):
         input_text=args.input,
         timeout=args.timeout,
         expect_pilot_ready=args.expect_pilot_ready,
+        expect_detected_workflow=args.expect_detected_workflow,
+        expect_w1_mode=args.expect_w1_mode,
+        expect_route_summary_substring=args.expect_route_summary_substring,
+        expect_w1_summary_brief=args.expect_w1_summary_brief,
         require_signup=args.require_signup,
         skip_auth=args.skip_auth,
         skip_run=args.skip_run,
