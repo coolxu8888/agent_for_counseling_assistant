@@ -440,6 +440,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
 
+    def test_detect_workflow_prefers_w5_when_session_notes_are_only_source_material_for_next_session_agenda(self):
+        details = web_workbench.detect_workflow_details(
+            "Please use today's session notes to prepare the next session agenda rather than a counseling record, "
+            "keep it to one upcoming counseling session, and include risk check points."
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+        self.assertIn("next-session", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w2_when_case_background_request_negates_record_format(self):
         details = web_workbench.detect_workflow_details(
             "Please turn today's session note into a BPS case background for supervision, "

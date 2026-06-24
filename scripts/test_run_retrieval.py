@@ -240,6 +240,17 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
         self.assertIn("theory-frameworks-humanistic-next-session-planning-001", chunk_ids)
 
+    def test_routes_session_note_source_material_to_w5_when_prompt_asks_for_next_session_agenda_not_record(self):
+        payload = self.run_retrieval(
+            "Please use today's session notes to prepare the next session agenda rather than a counseling record, "
+            "keep it to one upcoming counseling session, and include risk check points."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
+
     def test_routes_single_session_plan_when_prompt_rejects_multi_session_roadmap_scope(self):
         payload = self.run_retrieval(
             "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, "

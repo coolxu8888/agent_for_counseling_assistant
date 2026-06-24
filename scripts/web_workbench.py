@@ -786,6 +786,16 @@ def detect_workflow_details(user_input):
             ),
             reverse=True,
         )
+    if negated_record_format and workflow == "W5":
+        top_candidates.sort(
+            key=lambda item: (
+                item["workflow"] == "W5",
+                item["workflow"] == "W3",
+                item["score"],
+                item["positive_score"],
+            ),
+            reverse=True,
+        )
     details = {
         "workflow": workflow,
         "score": scores.get(workflow, 0),

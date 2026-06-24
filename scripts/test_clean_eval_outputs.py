@@ -773,6 +773,36 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
 
+    def test_w5_007_session_note_source_material_boundary_rubric_accepts_bounded_plan_output(self):
+        answer = """
+Next-session plan
+Selected framework: Humanistic
+Session goal
+- Use today's session-note material only as source material to shape one upcoming counseling session agenda.
+Focus areas
+- Revisit the criticism-triggered shutdown that was documented in the current session notes and clarify what still feels unfinished.
+Planned interventions
+- Use empathic reflection plus gentle exploration of the criticism cycle while keeping the plan bounded to one upcoming session.
+Suggested questions
+- Which part of the supervisor interaction still carries the most emotional charge right now?
+Risk monitoring
+- Use a bounded risk check to re-check passive disappearance thoughts, suicide ideation, current safety, escalation triggers, and available supports before ending the next session.
+Between-session tasks
+- Consider a brief emotion-labeling reflection only if it fits counselor judgment and the client's readiness.
+Do not do
+- Do not turn this into a counseling record, diagnosis, or multi-session roadmap.
+Boundary notes
+- This is a bounded next-session plan from session-note source material, not a counseling record, not a diagnosis, and not a multi-session roadmap or full treatment plan.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-007", clean_answer)
+        rubric_result = run_dimension_rubric("W5-007", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
     def test_w6_001_bilingual_rubric_accepts_bounded_counseling_roadmap(self):
         answer = """
 Counseling roadmap

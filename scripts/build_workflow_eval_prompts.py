@@ -250,6 +250,12 @@ EVALS = [
         "expected": "Workflow 5: bounded single-session planning with negated roadmap scope. The answer should preserve the one-session planning route despite roadmap vocabulary inside the negated scope, keep a humanistic frame, include bounded risk monitoring, and avoid drifting into a multi-session roadmap or counseling record.",
     },
     {
+        "id": "W5-007",
+        "name": "session-note-source-material-next-session-boundary",
+        "query": "Please use today's session notes to prepare the next session agenda rather than a counseling record, keep it to one upcoming counseling session, and include risk check points.",
+        "expected": "Workflow 5: bounded single next-session planning with source-material record negation. The answer should treat today's session notes only as source material for one upcoming session agenda, preserve bounded risk monitoring, and avoid drifting into counseling-record formatting, diagnosis, or a multi-session roadmap.",
+    },
+    {
         "id": "W6-002",
         "name": "mixed-next-session-and-roadmap",
         "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",
