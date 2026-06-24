@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, and the hosted Render deployment agree on loose Chinese-first W1-vs-W3 summary prompts `W1-014` and `W1-015`; local router + retrieval + live DeepSeek eval now also agree on the W5-vs-W6 negated-roadmap boundary `W5-006`, keeping `Plan only the next counseling session ... do not expand into a multi-session roadmap` in `W5` | push the local W5-vs-W6 fix to the hosted deployment and verify the public URL returns `detected_workflow=W5` plus route metadata for the new `W5-006` smoke prompt, then move to an unproven W3-vs-W4 ambiguity |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek eval `W5-006`, and the hosted Render deployment now agree on both the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`) and the W5-vs-W6 negated-roadmap boundary `W5-006`, keeping `Plan only the next counseling session ... do not expand into a multi-session roadmap` in `W5` on the public URL | move to an unproven public-route ambiguity such as W3-vs-W4, and keep adding hosted proof only where local-vs-public behavior is still unknown |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -899,22 +899,22 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 162 tests passed.
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W5-006` -> passed.
-- Hosted smoke before redeploy failed against the public Render URL:
+- Hosted smoke before redeploy failed against the public Render URL with `/api/run detected_workflow='W6', expected 'W5'.`
+- Pushed `dfcc75b` to `origin/main`, waited for Render to redeploy, then re-ran the same hosted smoke:
   - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, and do not expand into a multi-session roadmap or later phases." --expect-detected-workflow W5 --expect-route-summary-substring W5 --real-run --timeout 240`
-  - Result: `/api/run detected_workflow='W6', expected 'W5'.`
+  - Result: passed with `workflow=W5`, `detected_workflow=W5`, and a populated `routing_reasons_summary` on the public URL.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` still has unrelated pre-existing failures in `scripts.test_fill_docx_template` on the current dirty worktree, so full-suite green remains blocked outside this routing slice.
 
 Outcome:
 
 - Local router, retrieval, eval prompt generation, and scorer rules now keep the new `W5-006` boundary in `W5` instead of collapsing it into `W6`.
 - This run added real model evidence rather than fixture-only proof: live DeepSeek eval `W5-006` passed with the new boundary wording.
-- The remaining gap is deployment parity, not local capability behavior: the public Render deployment still routes this exact prompt to `W6` until the latest commit is pushed and redeployed.
+- Deployment parity for `W5-006` is now restored: the public Render URL no longer collapses this exact negated-roadmap prompt into `W6`.
 
 Remaining gaps:
 
-- Hosted deployment verification for `W5-006` is still failing because the public Render URL is behind the local branch.
 - Full-suite verification is currently blocked by unrelated dirty-worktree failures in `scripts.test_fill_docx_template`, so only the relevant capability slice is green at the moment.
-- After hosted parity is restored for `W5-006`, the next intent-recognition ambiguity should move to an unproven W3-vs-W4 or W3-vs-W5 public-route boundary instead of adding more W5/W6 local fixtures blindly.
+- The next intent-recognition ambiguity should move to an unproven W3-vs-W4 or W3-vs-W5 public-route boundary instead of adding more W5/W6 local fixtures blindly.
 
 ## Next Recommended Capability
 
@@ -922,8 +922,8 @@ Improve `intent recognition across counselor tasks` again as the next P0 capabil
 
 Recommended scope:
 
-- Push the local W5-vs-W6 negated-roadmap fix and verify the public Render URL returns `detected_workflow=W5` for the `W5-006` prompt.
-- After that parity check is green, add hosted AUTO-route verification for one unproven non-W1 ambiguity, preferably W3-vs-W4.
+- Add hosted AUTO-route verification for one unproven non-W1 ambiguity, preferably W3-vs-W4.
+- Add only the minimal new eval fixture(s) needed for that ambiguity, then prove the same route on the public Render URL.
 - Keep deployment-readiness environment warnings separate from intent-routing logic unless they directly block model-backed route verification.
 
 ## Deployment Readiness Notes
