@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, and scorers now also cover loose Chinese-first W1-vs-W3 summary prompts `W1-014` and `W1-015`, and live DeepSeek evals for both passed on 2026-06-24 | push/deploy the latest local commits, then re-run hosted AUTO-route proof because the public Render deployment still misroutes the `W1-015` prompt to `W2` and does not expose `w1_mode` or `routing_reasons_summary` yet |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, and the hosted Render deployment now all agree on loose Chinese-first W1-vs-W3 summary prompts `W1-014` and `W1-015`; the public URL now returns `detected_workflow=W1`, `w1_mode=initial_interview_summary`, `routing_reasons_summary`, and `w1_summary_brief` for the `W1-015` smoke prompt | broaden hosted AUTO-route proof beyond W1-vs-W3 into other mixed-signal boundaries such as W3-vs-W4 and W5-vs-W6, and keep adding durable eval fixtures only where public-route behavior is still ambiguous |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -837,15 +837,55 @@ Remaining gaps:
 - Hosted proof for `W1-014` remains incomplete because the deployed service is demonstrably behind the local branch, so additional hosted route checks before redeploy would not be meaningful.
 - Broader Chinese-heavy W1-vs-W3 phrasing around other looser summary verbs still needs more fixtures only after deployment parity is restored.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the deployment-parity gap where the public Render URL lagged behind local W1-vs-W3 boundary routing and did not expose the hosted AUTO-route metadata needed to validate `W1-015`.
+
+What changed:
+
+- Added hosted AUTO-route assertion support in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\hosted_smoke.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\hosted_smoke.py) so deployment checks can now require:
+  - `workflow=AUTO`
+  - `detected_workflow`
+  - `w1_mode`
+  - `routing_reasons_summary`
+  - a populated `w1_summary_brief`
+- Mirrored those new hosted-smoke options through [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-hosted-smoke.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-hosted-smoke.ps1) so the deployment check is reusable from PowerShell without hand-editing JSON payloads.
+- Added regression coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_hosted_smoke.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_hosted_smoke.py) for:
+  - `AUTO` as a supported workflow choice
+  - expected W1 route metadata on the hosted smoke path
+- Pushed the current `main` branch to `origin/main`, which advanced GitHub from `99f48fd` to [`290702d`](C:\Users\win\Documents\Codex\2026-05-15\agent) and triggered a fresh Render deployment containing the already-completed local intent-routing work.
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke.HostedSmokeTest.test_parse_args_accepts_auto_workflow_choice scripts.test_hosted_smoke.HostedSmokeTest.test_run_smoke_requires_expected_auto_route_metadata`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke scripts.test_web_workbench` -> 94 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 131 tests passed.
+- Hosted contract polling after `git push origin main` confirmed the public deployment now exposes `deployment_readiness` on both `/service-info` and `/api/session`.
+- Live hosted DeepSeek-backed smoke passed with the stricter AUTO-route assertions:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请按固定模板梳理这次第一次访谈材料，保留风险变化线索，先不要做咨询记录。" --expect-detected-workflow W1 --expect-w1-mode initial_interview_summary --expect-route-summary-substring W1 --expect-w1-summary-brief --real-run`
+
+Outcome:
+
+- Hosted deployment parity for this W1-vs-W3 intent boundary is now restored. The public Render product no longer misroutes the `W1-015` prompt to `W2`; it now returns `workflow=W1`, `detected_workflow=W1`, `w1_mode=initial_interview_summary`, `routing_reasons_summary`, and a populated `w1_summary_brief`.
+- The deployment check for this P0 capability is now durable in-repo rather than living only in ad hoc manual notes.
+
+Remaining gaps:
+
+- The hosted deployment is still not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local filesystem storage.
+- Hosted AUTO-route proof is still narrow: this run closed the W1-vs-W3 parity gap, but there is not yet equivalent public-route verification for other mixed-signal boundaries such as W3-vs-W4 or W5-vs-W6.
+- Broader bilingual ambiguity coverage should now focus on cases whose hosted behavior is still unproven rather than adding more W1-vs-W3 fixtures blindly.
+
 ## Next Recommended Capability
 
 Improve `intent recognition across counselor tasks` again as the next P0 capability.
 
 Recommended scope:
 
-- Push and deploy the latest local intent-routing commits, then rerun hosted AUTO-route verification for `W1-014` and `W1-015` until the public Render deployment returns `W1`, `w1_mode=initial_interview_summary`, and the W1 route summary fields.
-- If the hosted deployment still serves stale routing after the new commit is deployed, inspect the deployment source/release path before adding more fixtures; the primary blocker is now deployment parity, not missing local capability logic.
-- Only add another W1-vs-W3 boundary fixture after the hosted deployment is caught up or conclusively blocked outside the repo.
+- Add hosted AUTO-route verification for at least one non-W1 mixed-signal boundary, preferably W5-vs-W6 or W3-vs-W4, using the now-upgraded hosted smoke harness.
+- Add only the minimal new eval fixture(s) needed for whichever hosted ambiguity case is selected, then prove the same route on the public Render URL.
+- Keep deployment-readiness environment warnings separate from intent-routing logic unless they directly block model-backed route verification.
 
 ## Deployment Readiness Notes
 
