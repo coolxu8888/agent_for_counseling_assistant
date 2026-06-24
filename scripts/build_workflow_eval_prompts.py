@@ -238,6 +238,12 @@ EVALS = [
         "expected": "Workflow 5: bilingual single next-session planning with record-format negation. The answer should preserve the one-session planning route despite the negated session-record language, keep a humanistic frame, include bounded risk monitoring, and avoid drifting into counseling-record formatting or a multi-session roadmap.",
     },
     {
+        "id": "W5-006",
+        "name": "single-session-plan-negated-roadmap-scope",
+        "query": "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, and do not expand into a multi-session roadmap or later phases.",
+        "expected": "Workflow 5: bounded single-session planning with negated roadmap scope. The answer should preserve the one-session planning route despite roadmap vocabulary inside the negated scope, keep a humanistic frame, include bounded risk monitoring, and avoid drifting into a multi-session roadmap or counseling record.",
+    },
+    {
         "id": "W6-002",
         "name": "mixed-next-session-and-roadmap",
         "query": "Map the next several sessions into a phased counseling roadmap, including the immediate next session and later phases.",

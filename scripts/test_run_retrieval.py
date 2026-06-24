@@ -228,6 +228,19 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
         self.assertIn("theory-frameworks-humanistic-next-session-planning-001", chunk_ids)
 
+    def test_routes_single_session_plan_when_prompt_rejects_multi_session_roadmap_scope(self):
+        payload = self.run_retrieval(
+            "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, "
+            "and do not expand into a multi-session roadmap or later phases."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_5_next_session_plan")
+        self.assertEqual(payload["route"]["intent"], "Humanistic next-session plan")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("next-session-planning-bounded-next-session-plan-001", chunk_ids)
+        self.assertIn("theory-frameworks-humanistic-next-session-planning-001", chunk_ids)
+
     def test_humanistic_roadmap_uses_framework_specific_roadmap_chunk(self):
         payload = self.run_retrieval(
             "Create a humanistic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap and preserving risk-monitoring checkpoints."

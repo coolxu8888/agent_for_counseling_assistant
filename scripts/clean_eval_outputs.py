@@ -441,6 +441,7 @@ START_CANDIDATES["W4-001"] = ["CBT", "Case conceptualization", "Known facts", "�
 
 START_CANDIDATES["W5-001"] = ["Next-session plan", "Next session plan", "Session goal", "Selected framework", "下一节咨询计划", "核心目标"]
 START_CANDIDATES["W5-005"] = START_CANDIDATES["W5-001"]
+START_CANDIDATES["W5-006"] = START_CANDIDATES["W5-001"]
 START_CANDIDATES["W6-001"] = ["Counseling roadmap", "Selected framework", "Phases", "Hypotheses to verify", "咨询路线图", "阶段"]
 START_CANDIDATES["W2-005"] = ["Case background organization", "biopsychosocial", "Presenting concerns", "Working hypotheses", "Protective factors"]
 
@@ -474,6 +475,7 @@ RULES["W3-007"] = {
 }
 
 RULES["W5-005"] = RULES["W5-001"]
+RULES["W5-006"] = RULES["W5-001"]
 
 DIMENSION_RUBRICS["W3-005"] = {
     "Route correct": {"required_any": [["DAP"], ["Data"], ["Assessment"], ["Plan"]]},
@@ -500,6 +502,7 @@ DIMENSION_RUBRICS["W3-007"] = {
 }
 
 DIMENSION_RUBRICS["W5-005"] = DIMENSION_RUBRICS["W5-001"]
+DIMENSION_RUBRICS["W5-006"] = DIMENSION_RUBRICS["W5-001"]
 
 NOISE_LINES = {
     "深度思考",

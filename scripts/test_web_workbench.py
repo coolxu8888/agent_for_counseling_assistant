@@ -378,6 +378,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W6")
 
+    def test_detect_workflow_prefers_w5_when_prompt_rejects_multi_session_roadmap_scope(self):
+        details = web_workbench.detect_workflow_details(
+            "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, "
+            "and do not expand into a multi-session roadmap or later phases."
+        )
+
+        self.assertEqual(details["workflow"], "W5")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W5")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W6")
+        self.assertIn("next-session", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w5_when_bilingual_next_session_request_negates_session_note(self):
         details = web_workbench.detect_workflow_details(
             "\u8bf7\u7528CBT\u505a\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212\uff0c"

@@ -692,6 +692,36 @@ Boundary notes
         self.assertEqual(rubric_result["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
 
+    def test_w5_006_negated_roadmap_scope_case_uses_w5_rules(self):
+        answer = """
+Next-session plan
+Selected framework: Humanistic
+Session goal
+- Stay with the client's felt sense around the recent conflict in one upcoming counseling session only.
+Focus areas
+- Immediate emotional experience
+- Self-concept and relational safety
+Planned interventions
+- Reflective listening and process comments grounded in the current material.
+Suggested questions
+- When you imagine the next meeting, what still feels unfinished from the recent conflict?
+Risk monitoring
+- Re-check passive disappearance thoughts, sleep deterioration, and support availability before closing.
+Between-session tasks
+- Optional only if clinically appropriate: notice one moment of self-criticism and jot down what was happening around it.
+Do not do
+- Do not expand this into a multi-session roadmap or later phases.
+Boundary notes
+- This is a bounded next-session plan with negated roadmap scope, not a diagnosis or full treatment plan, counseling record, or a multi-session roadmap.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-006", clean_answer)
+        rubric_result = run_dimension_rubric("W5-006", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
+
     def test_w1_015_loose_fixed_template_record_boundary_rubric_accepts_bounded_summary_output(self):
         answer = """
 Fixed initial interview summary

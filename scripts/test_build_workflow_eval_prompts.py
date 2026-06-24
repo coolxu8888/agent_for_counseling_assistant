@@ -56,6 +56,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W6-003", ids)
         self.assertIn("W5-004", ids)
         self.assertIn("W5-005", ids)
+        self.assertIn("W5-006", ids)
         self.assertIn("W6-004", ids)
 
     def test_evals_include_bilingual_intent_routing_case(self):
@@ -169,6 +170,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("bilingual", w5["expected"].lower())
         self.assertIn("one-session planning route", w5["expected"].lower())
 
+    def test_evals_include_w5_negated_roadmap_scope_case(self):
+        w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-006")
+
+        self.assertIn("humanistic", w5["query"].lower())
+        self.assertIn("next counseling session", w5["query"].lower())
+        self.assertIn("multi-session roadmap", w5["query"].lower())
+        self.assertIn("negated roadmap scope", w5["expected"].lower())
+
     def test_evals_expand_retrieval_boundary_matrix(self):
         w1 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-006")
         w1_prefill = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W1-007")
@@ -195,6 +204,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("counselor judgment", w5_integrative["expected"].lower())
         self.assertIn("humanistic", w5_bilingual["query"].lower())
         self.assertIn("record-format negation", w5_bilingual["expected"].lower())
+        self.assertIn("humanistic", next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-006")["query"].lower())
         self.assertIn("psychodynamic", w6_psychodynamic["query"].lower())
         self.assertIn("multi-session roadmap", w6_psychodynamic["expected"].lower())
 

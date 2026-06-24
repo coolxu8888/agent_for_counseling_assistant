@@ -620,6 +620,11 @@ def route_notice_for(workflow, route_status, top_candidates):
                 "Detected both roadmap and next-session cues; routed to Counseling roadmap "
                 "because the request asked for several sessions or later phases."
             )
+        if candidate_ids == ["W5", "W6"]:
+            return (
+                "Detected both next-session and roadmap cues; routed to Next-session plan "
+                "because the request limited scope to one upcoming session rather than a broader roadmap."
+            )
         if candidate_ids == ["W3", "W1"]:
             return (
                 "Detected both intake-preparation and post-interview record cues; routed to "
@@ -658,6 +663,27 @@ def has_negated_record_format(text):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
+def has_negated_roadmap_scope(text):
+    patterns = [
+        r"do not expand into.*roadmap",
+        r"don't expand into.*roadmap",
+        r"not a roadmap",
+        r"don't do a roadmap",
+        r"do not do a roadmap",
+        r"rather than (a )?(multi-session|multi session|phased roadmap|roadmap)",
+        r"instead of (a )?(multi-session|multi session|phased roadmap|roadmap)",
+        r"only the next (counseling )?session.*(?:not|don't|do not).*(?:roadmap|later phases|multi-session|multi session)",
+        r"next session.*(?:not|don't|do not).*(?:roadmap|later phases|multi-session|multi session)",
+        r"\u4e0d\u8981.*roadmap",
+        r"\u4e0d\u505a.*roadmap",
+        r"\u4e0d\u8981.*\u591a\u9636\u6bb5",
+        r"\u4e0d\u505a.*\u591a\u9636\u6bb5",
+        r"\u5148\u4e0d\u8981.*roadmap",
+        r"\u53ea\u89c4\u5212.*next session.*\u4e0d\u8981.*roadmap",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
 def detect_workflow_details(user_input):
     text = str(user_input or "").strip().lower()
     scores = {workflow: 0 for workflow in ROUTING_RULES}
@@ -676,6 +702,7 @@ def detect_workflow_details(user_input):
                 reasons[workflow].append(f"-{weight}:{pattern}")
 
     negated_record_format = has_negated_record_format(text)
+    negated_roadmap_scope = has_negated_roadmap_scope(text)
     if negated_record_format and positive_scores.get("W3", 0) > 0:
         if positive_scores.get("W1", 0) > 0:
             scores["W3"] -= 5
@@ -686,6 +713,9 @@ def detect_workflow_details(user_input):
         if positive_scores.get("W5", 0) > 0:
             scores["W3"] -= 5
             reasons["W3"].append("-5:negated_record_format_with_next_session_plan")
+    if negated_roadmap_scope and positive_scores.get("W6", 0) > 0 and positive_scores.get("W5", 0) > 0:
+        scores["W6"] -= 8
+        reasons["W6"].append("-8:negated_roadmap_scope_with_next_session_plan")
 
     ranked = sorted(scores.items(), key=lambda item: (item[1], item[0] == "W2"), reverse=True)
     winner = ranked[0]
@@ -712,12 +742,21 @@ def detect_workflow_details(user_input):
         {
             "workflow": workflow_id,
             "label": workflow_label(workflow_id),
-            "score": score,
+            "score": scores.get(workflow_id, 0),
             "positive_score": positive_scores.get(workflow_id, 0),
         }
-        for workflow_id, score in sorted(positive_scores.items(), key=lambda item: item[1], reverse=True)[:3]
-        if score > 0
+        for workflow_id, _positive_score in sorted(positive_scores.items(), key=lambda item: item[1], reverse=True)[:3]
+        if positive_scores.get(workflow_id, 0) > 0
     ]
+    if negated_roadmap_scope and workflow == "W5":
+        top_candidates.sort(
+            key=lambda item: (
+                item["workflow"] == "W5",
+                item["workflow"] == "W6",
+                item["positive_score"],
+            ),
+            reverse=True,
+        )
     details = {
         "workflow": workflow,
         "score": scores.get(workflow, 0),

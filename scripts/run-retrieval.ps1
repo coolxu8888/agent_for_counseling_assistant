@@ -238,6 +238,24 @@ function Select-Workflow {
         )
     }
 
+    $negatedRoadmapScope = Test-AnyPattern $Text @(
+        "do not expand into.*roadmap",
+        "don't expand into.*roadmap",
+        "not a roadmap",
+        "don't do a roadmap",
+        "do not do a roadmap",
+        "rather than (a )?(multi-session|multi session|phased roadmap|roadmap)",
+        "instead of (a )?(multi-session|multi session|phased roadmap|roadmap)",
+        "only the next (counseling )?session.*(?:not|don't|do not).*(?:roadmap|later phases|multi-session|multi session)",
+        "next session.*(?:not|don't|do not).*(?:roadmap|later phases|multi-session|multi session)",
+        (U "\u4e0d\u8981.*roadmap"),
+        (U "\u4e0d\u505a.*roadmap"),
+        (U "\u4e0d\u8981.*\u591a\u9636\u6bb5"),
+        (U "\u4e0d\u505a.*\u591a\u9636\u6bb5"),
+        (U "\u5148\u4e0d\u8981.*roadmap"),
+        (U "\u53ea\u89c4\u5212.*next session.*\u4e0d\u8981.*roadmap")
+    )
+
     if (Test-AnyPattern $Text @(
             "before (the )?first (interview|session)",
             "intake question guide",
@@ -284,23 +302,6 @@ function Select-Workflow {
     }
 
     if (Test-AnyPattern $Text @(
-            "counseling\s*roadmap",
-            "multi-session",
-            "multi session",
-            "phased roadmap",
-            "phase plan",
-            "next several sessions",
-            "later phases",
-            (U "\u54a8\u8be2\u8def\u7ebf\u56fe"),
-            (U "\u591a\u8282\u54a8\u8be2"),
-            (U "\u591a\u9636\u6bb5"),
-            (U "\u5206\u9636\u6bb5"),
-            (U "\u8def\u7ebf\u56fe")
-        )) {
-        return "workflow_6_counseling_roadmap"
-    }
-
-    if (Test-AnyPattern $Text @(
             "next-session\s*plan",
             "next session\s*plan",
             "rather than (a )?(session note|progress note|counseling record).*(next session|session agenda)",
@@ -321,6 +322,23 @@ function Select-Workflow {
             (U "\u4e0b\u6b65\u5de5\u4f5c\u91cd\u70b9")
         )) {
         return "workflow_5_next_session_plan"
+    }
+
+    if ((-not $negatedRoadmapScope) -and (Test-AnyPattern $Text @(
+            "counseling\s*roadmap",
+            "multi-session",
+            "multi session",
+            "phased roadmap",
+            "phase plan",
+            "next several sessions",
+            "later phases",
+            (U "\u54a8\u8be2\u8def\u7ebf\u56fe"),
+            (U "\u591a\u8282\u54a8\u8be2"),
+            (U "\u591a\u9636\u6bb5"),
+            (U "\u5206\u9636\u6bb5"),
+            (U "\u8def\u7ebf\u56fe")
+        ))) {
+        return "workflow_6_counseling_roadmap"
     }
 
     $workflowPatterns = @{
@@ -481,6 +499,9 @@ function Select-Workflow {
 
     if ($negatedSessionNote) {
         $scores["workflow_3_session_note"] = 0
+    }
+    if ($negatedRoadmapScope -and $scores["workflow_5_next_session_plan"] -gt 0) {
+        $scores["workflow_6_counseling_roadmap"] = 0
     }
 
     $winner = $scores.GetEnumerator() | Sort-Object -Property Value -Descending | Select-Object -First 1
