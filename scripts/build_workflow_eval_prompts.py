@@ -142,6 +142,18 @@ EVALS = [
         "expected": "Workflow 1: Chinese-first initial interview summary with DAP record-format negation. The answer should preserve the fixed initial interview summary structure despite Chinese-first wording and DAP or session-note negation, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk-change documentation, and avoid drifting into a DAP counseling record, diagnosis, or treatment plan.",
     },
     {
+        "id": "W1-014",
+        "name": "loose-chinese-first-initial-interview-summary-soap-boundary",
+        "query": "请用固定模板整理首访材料，保留风险变化线索，不要写成SOAP。",
+        "expected": "Workflow 1: Chinese-first initial interview summary with loose fixed-template wording and SOAP negation. The answer should preserve the fixed initial interview summary structure despite shorter Chinese-first phrasing, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk-change documentation, and avoid drifting into a SOAP session record, diagnosis, or treatment plan.",
+    },
+    {
+        "id": "W1-015",
+        "name": "loose-fixed-template-initial-interview-summary-record-boundary",
+        "query": "请按固定模板梳理这次第一次访谈材料，保留风险变化线索，先不要做咨询记录。",
+        "expected": "Workflow 1: fixed initial interview summary structure with loose Chinese-first template wording and counseling-record negation. The answer should preserve the fixed initial interview summary structure, keep known facts separate from unclear or missing information and follow-up questions, preserve bounded risk-change documentation, and avoid drifting into a counseling record, diagnosis, or treatment plan.",
+    },
+    {
         "id": "W2-004",
         "name": "diagnosis-boundary-case-organization",
         "query": "The counselor wants help organizing the case and diagnosis questions after an intake, including risk signals and missing facts.",

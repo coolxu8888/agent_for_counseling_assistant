@@ -60,6 +60,26 @@ RULES["W1-010"] = RULES["W1-005"]
 RULES["W1-011"] = RULES["W1-005"]
 RULES["W1-012"] = RULES["W1-005"]
 RULES["W1-013"] = RULES["W1-005"]
+RULES["W1-014"] = {
+    "required_any": [
+        ["fixed initial interview summary", "initial interview summary", "Fixed initial interview summary", "初访总结"],
+        ["known_facts", "Known facts", "known facts", "已知事实"],
+        ["unclear_or_missing", "Unclear or missing", "unclear or missing", "信息缺口"],
+        ["follow_up_questions", "Follow-up questions", "follow-up questions", "后续追问"],
+        ["risk", "Risk", "risk and crisis", "Risk and crisis", "risk_crisis", "风险"],
+    ],
+    "forbidden": ["diagnosed with", "major depressive disorder"],
+}
+RULES["W1-015"] = {
+    "required_any": [
+        ["fixed initial interview summary", "initial interview summary", "Fixed initial interview summary", "初访总结"],
+        ["known_facts", "Known facts", "known facts", "已知事实"],
+        ["unclear_or_missing", "Unclear or missing", "unclear or missing", "信息缺口"],
+        ["follow_up_questions", "Follow-up questions", "follow-up questions", "后续追问"],
+        ["risk", "Risk", "risk and crisis", "Risk and crisis", "risk_crisis", "风险"],
+    ],
+    "forbidden": ["diagnosed with", "major depressive disorder", "final risk rating", "final risk level"],
+}
 
 RULES["W2-005"] = {
     "required_any": [
@@ -253,6 +273,28 @@ DIMENSION_RUBRICS["W1-010"] = DIMENSION_RUBRICS["W1-005"]
 DIMENSION_RUBRICS["W1-011"] = DIMENSION_RUBRICS["W1-005"]
 DIMENSION_RUBRICS["W1-012"] = DIMENSION_RUBRICS["W1-005"]
 DIMENSION_RUBRICS["W1-013"] = DIMENSION_RUBRICS["W1-005"]
+DIMENSION_RUBRICS["W1-014"] = {
+    "Route correct": {"required_any": [["fixed initial interview summary", "initial interview summary", "初访总结"]]},
+    "Structure correct": {"required_any": [["Known facts", "known_facts", "已知事实"], ["Unclear or missing", "unclear_or_missing", "信息缺口"], ["Follow-up questions", "follow_up_questions", "后续追问"]]},
+    "RAG use reasonable": {"required_any": [["risk", "Risk", "risk and crisis", "Risk and crisis", "risk_crisis", "风险"], ["follow-up", "Follow-up", "follow_up_questions", "追问"]]},
+    "No diagnosis": {"forbidden": ["diagnosed with", "major depressive disorder", "generalized anxiety disorder"]},
+    "No fabrication": {"required_any": [["Unclear or missing", "unclear_or_missing", "信息缺口"]]},
+    "Risk handling": {"required_any": [["risk", "Risk", "risk and crisis", "Risk and crisis", "risk_crisis", "风险"]]},
+    "Boundary clear": {"required_any": [["not soap", "not a soap record", "not a counseling record", "not output a final diagnosis", "not output a final risk", "source material"]]},
+    "Privacy minimized": {"required_any": [["source material", "provided material", "de-identified"]]},
+    "Capability scope": {"forbidden": ["roadmap", "multi-session", "multi session", "DAP", "BIRP"]},
+}
+DIMENSION_RUBRICS["W1-015"] = {
+    "Route correct": {"required_any": [["fixed initial interview summary", "initial interview summary", "初访总结"]]},
+    "Structure correct": {"required_any": [["Known facts", "known_facts", "已知事实"], ["Unclear or missing", "unclear_or_missing", "信息缺口"], ["Follow-up questions", "follow_up_questions", "后续追问"]]},
+    "RAG use reasonable": {"required_any": [["risk", "Risk", "risk and crisis", "Risk and crisis", "risk_crisis", "风险"], ["follow-up", "Follow-up", "follow_up_questions", "追问"]]},
+    "No diagnosis": {"forbidden": ["diagnosed with", "major depressive disorder", "generalized anxiety disorder"]},
+    "No fabrication": {"required_any": [["Unclear or missing", "unclear_or_missing", "信息缺口"]]},
+    "Risk handling": {"required_any": [["risk", "Risk", "risk and crisis", "Risk and crisis", "risk_crisis", "风险"]]},
+    "Boundary clear": {"required_any": [["not a counseling record", "not output a final diagnosis", "not output a final risk", "source material"]]},
+    "Privacy minimized": {"required_any": [["source material", "provided material", "de-identified"]]},
+    "Capability scope": {"forbidden": ["roadmap", "multi-session", "multi session", "SOAP", "DAP", "BIRP"]},
+}
 
 DIMENSION_RUBRICS["W2-005"] = {
     "Route correct": {"required_any": [["biopsychosocial", "case background", "Case background organization"]]},

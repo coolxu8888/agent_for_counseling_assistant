@@ -346,6 +346,40 @@ Remaining gaps:
 - There is still no live DeepSeek evidence for `W1-012` in this environment because model credentials were missing.
 - Broader Chinese-heavy W1-vs-W3 phrasing around `DAP` and looser `固定模板` wording still needs more explicit route fixtures before intent recognition can be considered deployment-ready.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the loose Chinese-first W1-vs-W3 boundary where counselors ask for a fixed initial-interview summary using broader `固定模板` phrasing while negating `SOAP` or `咨询记录`.
+
+What changed:
+
+- Expanded eval coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py) with `W1-014` and `W1-015`, then regenerated committed eval assets including:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-014-loose-chinese-first-initial-interview-summary-soap-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-014-loose-chinese-first-initial-interview-summary-soap-boundary.txt)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-015-loose-fixed-template-initial-interview-summary-record-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W1-015-loose-fixed-template-initial-interview-summary-record-boundary.txt)
+- Tightened scorer coverage in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) so `W1-014` and `W1-015` accept bounded boundary language such as `not a SOAP session note`, `not a counseling record`, and `do not assign a final risk level` instead of false-failing on the negated wording itself.
+- Left the product router, retrieval selector, and runner behavior unchanged because the existing W1 loose-boundary routing tests were already passing; this run closed the remaining eval/scorer productization gap for that intent-recognition slice.
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_loose_fixed_template_w1_summary_record_boundary_case`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w1_014_loose_chinese_first_soap_boundary_rubric_accepts_bounded_summary_output scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w1_015_loose_fixed_template_record_boundary_rubric_accepts_bounded_summary_output`
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs scripts.test_web_workbench scripts.test_run_retrieval scripts.test_run_agent` -> 219 tests passed.
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py` regenerated committed eval prompts and manifest with `W1-014` and `W1-015`.
+- Live DeepSeek evals for `W1-014` / `W1-015` were blocked on 2026-06-24 because `DEEPSEEK_API_KEY` was missing in the environment.
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` still has 2 unrelated failures in `scripts.test_fill_docx_template` from the dirty template-fill worktree, so the repo-wide suite is not fully green outside this capability slice.
+
+Outcome:
+
+- The loose `固定模板` W1 summary boundary family is now durable in committed eval assets and scoring, rather than being only partially covered by routing tests.
+- `W1-014` and `W1-015` now score bounded counselor-facing outputs correctly when they explicitly negate `SOAP` or `咨询记录`, which closes the remaining eval-layer gap for this P0 intent-recognition slice.
+
+Remaining gaps:
+
+- Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with `W1-014` / `W1-015`-style prompts that exercise AUTO route metadata plus retrieval-backed generation.
+- There is still no live DeepSeek evidence for `W1-014` or `W1-015` in this environment because model credentials were missing.
+- Repo-wide deployment-readiness is still blocked by unrelated dirty-worktree failures in `scripts.test_fill_docx_template`; those were not part of this intent-recognition run.
+
 ## Next Recommended Capability
 
 Improve `W1 initial interview preparation guide` as the next P0 capability.
@@ -766,6 +800,8 @@ Improve `intent recognition across counselor tasks` again as the next P0 capabil
 Recommended scope:
 
 - Verify the hosted deployment shows the current W1 summary route metadata and brief end to end for a `W1-013`-style Chinese-first prompt.
+- Superseded follow-up for the latest loop: prefer hosted verification using `W1-014` / `W1-015`-style loose Chinese-first prompts.
+- If hosted verification remains blocked, prioritize live DeepSeek evals for `W1-014` and `W1-015` once credentials are available before adding more fixture-only variants.
 - If hosted verification is blocked again, extend another Chinese-heavy W1-vs-W3 boundary fixture around looser `固定模板` phrasing rather than record-format keywords.
 - Only move to a different P0 capability after the hosted AUTO-route proof for the current W1 summary boundary family exists or is concretely blocked outside the repo.
 
