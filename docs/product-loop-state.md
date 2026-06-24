@@ -1023,17 +1023,19 @@ Tests and evals run:
 - Hosted smoke before redeploy showed the public Render route was only partially updated for this boundary:
   - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Please use today's session notes to prepare the next session agenda rather than a counseling record, keep it to one upcoming counseling session, and include risk check points." --expect-detected-workflow W5 --expect-route-summary-substring W5 --real-run --timeout 240`
   - Result before redeploy: `workflow=W5` and `detected_workflow=W5`, but `routing_reasons_summary` still showed `W3 Session note` ahead of `W5 Next-session plan`.
+- Pushed `b2b37c1` to `origin/main`, waited for Render to redeploy, then re-ran hosted smoke with the stricter ordering assertion:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Please use today's session notes to prepare the next session agenda rather than a counseling record, keep it to one upcoming counseling session, and include risk check points." --expect-detected-workflow W5 --expect-route-summary-substring "W5 Next-session plan" --real-run --timeout 240`
+  - Result after redeploy: passed with `workflow=W5`, `detected_workflow=W5`, and `routing_reasons_summary="Top route cues: W5 Next-session plan (score 7) > W3 Session note (score 5, cues 10)"`.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` still has 2 unrelated dirty-worktree failures in `scripts.test_fill_docx_template`, so full-suite green remains blocked outside this routing slice.
 
 Outcome:
 
 - The shipped web router now keeps the W3-vs-W5 source-material planning boundary in `W5` and surfaces the route explanation in the same order instead of telling users `W3` was the top cue while still running `W5`.
 - The new `W5-007` fixture upgrades this boundary from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment proof for `W5-007` is now narrowed to a single remaining step: redeploy the new route-ordering change so the public `routing_reasons_summary` shows `W5` ahead of `W3` for the same AUTO prompt.
+- Hosted deployment parity for `W5-007` is now restored: the public Render product returns `workflow=W5`, `detected_workflow=W5`, and the expected `W5`-over-`W3` route explanation for the same AUTO prompt.
 
 Remaining gaps:
 
-- The public Render deployment was still serving the old `routing_reasons_summary` ordering before this run's new commit was pushed, so hosted parity for `W5-007` remains pending until redeploy completes and smoke is re-run.
 - Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs.
 - The next intent-recognition ambiguity should move to Chinese-heavy W3-vs-W5 or bilingual W3-vs-W4 wording once this hosted parity step is closed.
 
