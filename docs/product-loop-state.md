@@ -1282,17 +1282,20 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-010` -> passed.
+- Pushed `d664b40` to `origin/main`, waited for Render to recover from a transient `/api/run` `502`, then ran hosted AUTO smoke:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "把这份首访材料改写成督导讨论用的个案背景，按BPS整理已知事实、信息缺口、保护因素和风险追问，而不是固定初访总结模板。" --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
+  - Result: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 18) > W1 Initial interview (score 16, cues 24)"`.
 
 Outcome:
 
 - The shipped web router now keeps this Chinese-heavy supervision/background boundary in `W2` instead of drifting back into `W1` just because the prompt still references `首访材料` and `固定初访总结模板`.
 - The new `W2-010` fixture upgrades this Chinese-heavy W1-vs-W2 ambiguity from a local-only heuristic into a committed eval/scoring contract with live DeepSeek evidence.
 - Retrieval intent selection now stays on case-background organization for this boundary instead of flattening into the generic de-identification share/report branch.
+- Hosted deployment parity for `W2-010` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation for the same AUTO prompt.
 
 Remaining gaps:
 
 - Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
-- The hosted deployment still needs proof for this exact `W2-010` public AUTO boundary after the next push/redeploy.
 - The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
 ## Next Recommended Capability
@@ -1301,7 +1304,7 @@ Continue `intent recognition across counselor tasks` as the next P0 capability.
 
 Recommended scope:
 
-- Verify hosted/public parity for the new `W2-010` Chinese-heavy W1-vs-W2 boundary, then move to another unproven W1-vs-W2 ambiguity with looser negation or mixed risk-language wording.
+- Move to another unproven W1-vs-W2 ambiguity with looser negation or mixed risk-language wording now that hosted/public parity for `W2-010` is confirmed.
 - Keep the same local-test, eval-fixture, live DeepSeek, and hosted-parity loop.
 - Do not shift to P1/P2 work unless it directly blocks verification of a remaining P0 boundary.
 
