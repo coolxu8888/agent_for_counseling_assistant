@@ -486,6 +486,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][0]["workflow"], "W2")
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
 
+    def test_detect_workflow_prefers_w2_for_bilingual_case_background_request_that_negates_conceptualization(self):
+        details = web_workbench.detect_workflow_details(
+            "Use CBT to organize today's session note into a supervision case background, "
+            "keep working hypotheses visible, and do not turn it into a case conceptualization."
+        )
+
+        self.assertEqual(details["workflow"], "W2")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W2")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W4")
+        self.assertIn("case background", details["route_notice"].lower())
+
     def test_detect_workflow_routes_diagnosis_requests_back_to_case_summary_boundaries(self):
         self.assertEqual(
             web_workbench.detect_workflow(

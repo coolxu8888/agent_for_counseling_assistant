@@ -668,6 +668,11 @@ def route_notice_for(workflow, route_status, top_candidates):
                 "Detected both case-background and session-record cues; routed to "
                 "Case background because the request asked for BPS or supervision organization rather than a counseling record."
             )
+        if candidate_ids == ["W2", "W4"]:
+            return (
+                "Detected both case-background and conceptualization cues; routed to "
+                "Case background because the request asked for supervision or BPS organization rather than a full case conceptualization."
+            )
         if candidate_ids == ["W5", "W3"]:
             return (
                 "Detected both next-session planning and session-record cues; routed to "
@@ -726,6 +731,28 @@ def has_negated_roadmap_scope(text):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
+def has_negated_conceptualization_scope(text):
+    patterns = [
+        r"not a case conceptualization",
+        r"not case conceptualization",
+        r"do not turn it into a case conceptualization",
+        r"don't turn it into a case conceptualization",
+        r"do not turn this into a case conceptualization",
+        r"don't turn this into a case conceptualization",
+        r"not a formulation",
+        r"do not write.*conceptualization",
+        r"don't write.*conceptualization",
+        r"rather than (a )?(case conceptualization|conceptualization|formulation)",
+        r"instead of (a )?(case conceptualization|conceptualization|formulation)",
+        r"\u4e0d\u8981.*\u6982\u5ff5\u5316",
+        r"\u4e0d\u505a.*\u6982\u5ff5\u5316",
+        r"\u4e0d\u5199\u6210.*\u6982\u5ff5\u5316",
+        r"\u5148\u4e0d\u505a.*\u6982\u5ff5\u5316",
+        r"\u53ea\u505a.*(?:bps|case background).*\u4e0d\u8981.*\u6982\u5ff5\u5316",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
 def detect_workflow_details(user_input):
     text = str(user_input or "").strip().lower()
     scores = {workflow: 0 for workflow in ROUTING_RULES}
@@ -745,6 +772,7 @@ def detect_workflow_details(user_input):
 
     negated_record_format = has_negated_record_format(text)
     negated_roadmap_scope = has_negated_roadmap_scope(text)
+    negated_conceptualization_scope = has_negated_conceptualization_scope(text)
     if negated_record_format and positive_scores.get("W3", 0) > 0:
         if positive_scores.get("W1", 0) > 0:
             scores["W3"] -= 5
@@ -761,6 +789,12 @@ def detect_workflow_details(user_input):
     if negated_roadmap_scope and positive_scores.get("W6", 0) > 0 and positive_scores.get("W5", 0) > 0:
         scores["W6"] -= 8
         reasons["W6"].append("-8:negated_roadmap_scope_with_next_session_plan")
+    if negated_conceptualization_scope and positive_scores.get("W4", 0) > 0 and positive_scores.get("W2", 0) > 0:
+        scores["W4"] -= 8
+        reasons["W4"].append("-8:negated_conceptualization_scope_with_case_background")
+        if positive_scores.get("W3", 0) > 0:
+            scores["W3"] -= 5
+            reasons["W3"].append("-5:session_note_as_source_material_for_case_background")
 
     ranked = sorted(scores.items(), key=lambda item: (item[1], item[0] == "W2"), reverse=True)
     winner = ranked[0]
@@ -780,6 +814,8 @@ def detect_workflow_details(user_input):
     elif workflow == "W1" and positive_scores.get("W3", 0) > 0:
         route_status = "mixed_signals"
     elif workflow == "W2" and positive_scores.get("W3", 0) > 0 and negated_record_format:
+        route_status = "mixed_signals"
+    elif workflow == "W2" and positive_scores.get("W4", 0) > 0 and negated_conceptualization_scope:
         route_status = "mixed_signals"
     elif workflow == "W4" and positive_scores.get("W3", 0) > 0:
         route_status = "mixed_signals"
@@ -819,6 +855,16 @@ def detect_workflow_details(user_input):
             key=lambda item: (
                 item["workflow"] == "W5",
                 item["workflow"] == "W3",
+                item["score"],
+                item["positive_score"],
+            ),
+            reverse=True,
+        )
+    if negated_conceptualization_scope and workflow == "W2":
+        top_candidates.sort(
+            key=lambda item: (
+                item["workflow"] == "W2",
+                item["workflow"] == "W4",
                 item["score"],
                 item["positive_score"],
             ),

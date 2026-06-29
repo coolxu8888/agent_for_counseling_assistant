@@ -541,6 +541,31 @@ Boundary note
         self.assertEqual(rubric_result["dimensions"]["Route correct"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
 
+    def test_w2_008_conceptualization_negation_boundary_rubric_accepts_bounded_case_background(self):
+        answer = """
+Case background organization
+known facts
+- The de-identified source material describes criticism-triggered anxiety, avoidance after supervisor conflict, and poor sleep.
+working hypotheses
+- A CBT lens may help organize patterns for supervision, but the source material still needs more verification before treating the hypotheses as a full case conceptualization.
+protective factors
+- The client remained engaged in counseling and there is no reported current suicide plan in the provided material.
+information gaps
+- The material does not confirm duration, broader developmental history, or the frequency of the avoidance cycle.
+risk follow-up questions
+- Clarify whether the passive disappearance wording changed in frequency, intensity, or context since the last contact.
+Boundary note
+- This is a de-identified supervision case background, not a case conceptualization or diagnosis.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-008", clean_answer)
+        rubric_result = run_dimension_rubric("W2-008", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Route correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
     def test_w5_001_rubric_flags_multi_session_roadmap_scope(self):
         answer = """
 Next-session plan

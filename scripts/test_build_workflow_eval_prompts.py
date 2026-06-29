@@ -162,6 +162,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("supervision", w2["query"].lower())
         self.assertIn("session-record cues", w2["expected"].lower())
 
+    def test_evals_include_w2_conceptualization_boundary_case(self):
+        w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-008")
+
+        self.assertIn("cbt", w2["query"].lower())
+        self.assertIn("case background", w2["query"].lower())
+        self.assertIn("case conceptualization", w2["query"].lower())
+        self.assertIn("conceptualization negation", w2["expected"].lower())
+
     def test_evals_include_w5_bilingual_record_negation_case(self):
         w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-005")
 

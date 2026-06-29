@@ -91,6 +91,17 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
 
+    def test_routes_bilingual_case_background_request_that_negates_conceptualization_to_w2(self):
+        payload = self.run_retrieval(
+            "Use CBT to organize today's session note into a supervision case background, "
+            "keep working hypotheses visible, and do not turn it into a case conceptualization."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+
     def test_routes_post_session_note_query_to_w3_even_when_it_mentions_first_interview(self):
         payload = self.run_retrieval(
             "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."

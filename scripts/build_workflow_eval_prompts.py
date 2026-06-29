@@ -178,6 +178,12 @@ EVALS = [
         "expected": "Workflow 2: case background organization with session-record boundary handling. The answer should reorganize the material into a BPS or supervision-oriented case background, keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, and avoid drifting back into counseling-record formatting even though the request mentions session-record cues.",
     },
     {
+        "id": "W2-008",
+        "name": "conceptualization-negation-case-background",
+        "query": "Use CBT to organize today's session note into a supervision case background, keep working hypotheses visible, and do not turn it into a case conceptualization.",
+        "expected": "Workflow 2: case background organization with conceptualization negation. The answer should keep a supervision-oriented case background or BPS structure, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up, and avoid drifting into a full case conceptualization even though the request mentions CBT and hypothesis language.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",

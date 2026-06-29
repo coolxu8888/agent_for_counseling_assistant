@@ -256,6 +256,24 @@ function Select-Workflow {
         (U "\u53ea\u89c4\u5212.*next session.*\u4e0d\u8981.*roadmap")
     )
 
+    $negatedConceptualization = Test-AnyPattern $Text @(
+        "not a case conceptualization",
+        "not case conceptualization",
+        "do not turn it into a case conceptualization",
+        "don't turn it into a case conceptualization",
+        "do not turn this into a case conceptualization",
+        "don't turn this into a case conceptualization",
+        "not a formulation",
+        "do not write.*conceptualization",
+        "don't write.*conceptualization",
+        "rather than (a )?(case conceptualization|conceptualization|formulation)",
+        "instead of (a )?(case conceptualization|conceptualization|formulation)",
+        (U "\u4e0d\u8981.*\u6982\u5ff5\u5316"),
+        (U "\u4e0d\u505a.*\u6982\u5ff5\u5316"),
+        (U "\u4e0d\u5199\u6210.*\u6982\u5ff5\u5316"),
+        (U "\u5148\u4e0d\u505a.*\u6982\u5ff5\u5316")
+    )
+
     if (Test-AnyPattern $Text @(
             "before (the )?first (interview|session)",
             "intake question guide",
@@ -288,6 +306,31 @@ function Select-Workflow {
         )) {
             return "workflow_1_intake_form"
         }
+
+    if ($negatedConceptualization -and (Test-AnyPattern $Text @(
+            "case background",
+            "biopsychosocial",
+            "\bbps\b",
+            "supervision summary",
+            (U "\u4e2a\u6848\u80cc\u666f"),
+            (U "\u7763\u5bfc")
+        )) -and (Test-AnyPattern $Text @(
+            "conceptualization",
+            "case formulation",
+            "framework",
+            "CBT",
+            "psychodynamic",
+            "humanistic",
+            "integrative",
+            (U "\u6982\u5ff5\u5316"),
+            (U "\u8ba4\u77e5\u884c\u4e3a"),
+            (U "\u4eba\u672c"),
+            (U "\u7cbe\u795e\u52a8\u529b"),
+            (U "\u6574\u5408\u53d6\u5411"),
+            (U "\u6d41\u6d3e")
+        ))) {
+        return "workflow_2_case_summary"
+    }
 
     if ((-not $negatedSessionNote) -and (Test-AnyPattern $Text @(
             "session note",
