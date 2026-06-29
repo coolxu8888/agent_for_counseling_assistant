@@ -1,6 +1,6 @@
 # Product Loop State
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 This file is the durable handoff state for autonomous product iterations. Future automation runs should read this file before planning. It exists so the project can continue from repository state instead of relying on chat context.
 
@@ -409,16 +409,18 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W6-005` -> passed.
+- Pushed `784655f` to `origin/main`, waited for Render to recover from a transient redeploy `502`, then ran hosted AUTO smoke:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请把今天的session note作为素材，整理接下来几次咨询的路线图，包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。" --expect-detected-workflow W6 --expect-route-summary-substring "W6 Counseling roadmap" --real-run --timeout 240`
+  - Result after redeploy: passed with `workflow=W6`, `detected_workflow=W6`, and `routing_reasons_summary="Top route cues: W6 Counseling roadmap (score 14) > W3 Session note (score -4, cues 10)"`.
 
 Outcome:
 
 - The shipped web router now keeps this bilingual session-note-source-material roadmap boundary in `W6` and shows the route explanation in the same order instead of implying that `W3` or `W5` was still the leading cue.
 - The new `W6-005` fixture upgrades this ambiguity from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
-- The public hosted parity step is the only remaining proof item for this exact boundary after the local router, retrieval selector, product demo entry, and eval pipeline all converged on `W6`.
+- Hosted deployment parity for `W6-005` is now restored: the public Render product returns `workflow=W6`, `detected_workflow=W6`, and the expected `W6`-over-`W3` route explanation for the same AUTO prompt.
 
 Remaining gaps:
 
-- Hosted deployment verification for `W6-005` is still pending until the latest local commit is pushed and the public Render URL is smoke-tested with this AUTO prompt.
 - Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
 - The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
