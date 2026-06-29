@@ -102,6 +102,18 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
 
+    def test_routes_completed_initial_interview_material_that_negates_w1_template_scope_to_w2(self):
+        payload = self.run_retrieval(
+            "These are completed first interview notes. Organize them into a BPS case background for supervision, "
+            "keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, "
+            "and do not keep the fixed initial interview summary template."
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+
     def test_routes_bilingual_session_note_source_material_roadmap_request_to_w6(self):
         payload = self.run_retrieval(
             "请把今天的session note作为素材，整理接下来几次咨询的路线图，"

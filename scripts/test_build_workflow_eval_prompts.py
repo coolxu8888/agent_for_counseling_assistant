@@ -171,6 +171,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("case conceptualization", w2["query"].lower())
         self.assertIn("conceptualization negation", w2["expected"].lower())
 
+    def test_evals_include_w2_completed_initial_interview_boundary_case(self):
+        w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-009")
+
+        self.assertIn("completed first interview notes", w2["query"].lower())
+        self.assertIn("bps case background", w2["query"].lower())
+        self.assertIn("fixed initial interview summary template", w2["query"].lower())
+        self.assertIn("initial-interview-summary negation", w2["expected"].lower())
+
     def test_evals_include_w5_bilingual_record_negation_case(self):
         w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-005")
 

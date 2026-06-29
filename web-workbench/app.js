@@ -39,6 +39,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "professional_concise",
     },
     {
+      id: "initial-interview-material-to-bps-background",
+      title: "W2 Demo: Intake material to BPS background",
+      workflow: "W2",
+      summary: "A boundary case where completed first-interview material should be reorganized into a supervision-oriented BPS background rather than kept in the fixed W1 summary template.",
+      input:
+        "These are completed first interview notes. Organize them into a BPS case background for supervision, keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, and do not keep the fixed initial interview summary template.",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

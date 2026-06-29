@@ -90,6 +90,18 @@ DEMO_SCENARIOS = [
         "output_style": "professional_concise",
     },
     {
+        "id": "initial-interview-material-to-bps-background",
+        "title": "W2 Demo: Intake material to BPS background",
+        "workflow": "W2",
+        "summary": "A boundary case where completed first-interview material should be reorganized into a supervision-oriented BPS background rather than kept in the fixed W1 summary template.",
+        "input": (
+            "These are completed first interview notes. Organize them into a BPS case background for supervision,"
+            " keep known facts, working hypotheses, protective factors, and risk follow-up questions visible,"
+            " and do not keep the fixed initial interview summary template."
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "session-sleep-communication",
         "title": "W3 Demo: Session note",
         "workflow": "W3",
@@ -688,6 +700,11 @@ def route_notice_for(workflow, route_status, top_candidates):
                 "Detected both case-background and conceptualization cues; routed to "
                 "Case background because the request asked for supervision or BPS organization rather than a full case conceptualization."
             )
+        if candidate_ids == ["W2", "W1"]:
+            return (
+                "Detected both completed-intake-summary and case-background cues; routed to "
+                "Case background because the request asked for supervision or BPS organization instead of keeping the fixed initial interview summary template."
+            )
         if candidate_ids == ["W5", "W3"]:
             return (
                 "Detected both next-session planning and session-record cues; routed to "
@@ -773,6 +790,23 @@ def has_negated_conceptualization_scope(text):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
+def has_negated_initial_interview_summary_scope(text):
+    patterns = [
+        r"do not keep.*fixed initial interview summary template",
+        r"don't keep.*fixed initial interview summary template",
+        r"not the fixed initial interview summary template",
+        r"rather than (the )?(fixed )?(initial interview summary|intake summary) template",
+        r"instead of (the )?(fixed )?(initial interview summary|intake summary) template",
+        r"do not use.*fixed initial interview summary template",
+        r"don't use.*fixed initial interview summary template",
+        r"\u4e0d\u8981.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
+        r"\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
+        r"\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
+        r"\u4e0d\u8981\u7ee7\u7eed\u6309.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
+    ]
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
 def detect_workflow_details(user_input):
     text = str(user_input or "").strip().lower()
     scores = {workflow: 0 for workflow in ROUTING_RULES}
@@ -793,6 +827,7 @@ def detect_workflow_details(user_input):
     negated_record_format = has_negated_record_format(text)
     negated_roadmap_scope = has_negated_roadmap_scope(text)
     negated_conceptualization_scope = has_negated_conceptualization_scope(text)
+    negated_initial_interview_summary_scope = has_negated_initial_interview_summary_scope(text)
     if negated_record_format and positive_scores.get("W3", 0) > 0:
         if positive_scores.get("W1", 0) > 0:
             scores["W3"] -= 5
@@ -818,6 +853,9 @@ def detect_workflow_details(user_input):
         if positive_scores.get("W3", 0) > 0:
             scores["W3"] -= 5
             reasons["W3"].append("-5:session_note_as_source_material_for_case_background")
+    if negated_initial_interview_summary_scope and positive_scores.get("W1", 0) > 0 and positive_scores.get("W2", 0) > 0:
+        scores["W1"] -= 8
+        reasons["W1"].append("-8:negated_initial_interview_summary_scope_with_case_background")
 
     ranked = sorted(scores.items(), key=lambda item: (item[1], item[0] == "W2"), reverse=True)
     winner = ranked[0]
@@ -839,6 +877,8 @@ def detect_workflow_details(user_input):
     elif workflow == "W2" and positive_scores.get("W3", 0) > 0 and negated_record_format:
         route_status = "mixed_signals"
     elif workflow == "W2" and positive_scores.get("W4", 0) > 0 and negated_conceptualization_scope:
+        route_status = "mixed_signals"
+    elif workflow == "W2" and positive_scores.get("W1", 0) > 0 and negated_initial_interview_summary_scope:
         route_status = "mixed_signals"
     elif workflow == "W4" and positive_scores.get("W3", 0) > 0:
         route_status = "mixed_signals"
@@ -898,6 +938,16 @@ def detect_workflow_details(user_input):
             key=lambda item: (
                 item["workflow"] == "W2",
                 item["workflow"] == "W4",
+                item["score"],
+                item["positive_score"],
+            ),
+            reverse=True,
+        )
+    if negated_initial_interview_summary_scope and workflow == "W2":
+        top_candidates.sort(
+            key=lambda item: (
+                item["workflow"] == "W2",
+                item["workflow"] == "W1",
                 item["score"],
                 item["positive_score"],
             ),

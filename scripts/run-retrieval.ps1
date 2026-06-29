@@ -274,6 +274,47 @@ function Select-Workflow {
         (U "\u5148\u4e0d\u505a.*\u6982\u5ff5\u5316")
     )
 
+    $negatedInitialInterviewSummary = Test-AnyPattern $Text @(
+        "do not keep.*fixed initial interview summary template",
+        "don't keep.*fixed initial interview summary template",
+        "not the fixed initial interview summary template",
+        "rather than (the )?(fixed )?(initial interview summary|intake summary) template",
+        "instead of (the )?(fixed )?(initial interview summary|intake summary) template",
+        "do not use.*fixed initial interview summary template",
+        "don't use.*fixed initial interview summary template",
+        (U "\u4e0d\u8981.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
+        (U "\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
+        (U "\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
+        (U "\u4e0d\u8981\u7ee7\u7eed\u6309.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f")
+    )
+
+    if ($negatedInitialInterviewSummary -and (Test-AnyPattern $Text @(
+            "case background",
+            "biopsychosocial",
+            "\bbps\b",
+            "supervision summary",
+            "protective factors?",
+            "follow-up questions?",
+            "case background organization",
+            (U "\u4e2a\u6848\u80cc\u666f"),
+            (U "\u7763\u5bfc"),
+            (U "\u4fdd\u62a4\u56e0\u7d20"),
+            (U "\u540e\u7eed\u8ffd\u95ee")
+        )) -and (Test-AnyPattern $Text @(
+            "completed (initial|first) interview notes",
+            "completed (initial|first) interview record",
+            "first interview notes",
+            "initial interview summary",
+            "fixed intake template",
+            "initial interview template",
+            (U "\u521d\u8bbf\u603b\u7ed3"),
+            (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
+            (U "\u9996\u6b21\u8bbf\u8c08\u6750\u6599"),
+            (U "\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f")
+        ))) {
+        return "workflow_2_case_summary"
+    }
+
     if (Test-AnyPattern $Text @(
             "before (the )?first (interview|session)",
             "intake question guide",
@@ -545,6 +586,9 @@ function Select-Workflow {
     }
     if ($negatedRoadmapScope -and $scores["workflow_5_next_session_plan"] -gt 0) {
         $scores["workflow_6_counseling_roadmap"] = 0
+    }
+    if ($negatedInitialInterviewSummary -and $scores["workflow_2_case_summary"] -gt 0) {
+        $scores["workflow_1_intake_form"] = 0
     }
 
     $winner = $scores.GetEnumerator() | Sort-Object -Property Value -Descending | Select-Object -First 1

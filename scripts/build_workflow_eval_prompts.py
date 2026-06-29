@@ -184,6 +184,12 @@ EVALS = [
         "expected": "Workflow 2: case background organization with conceptualization negation. The answer should keep a supervision-oriented case background or BPS structure, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up, and avoid drifting into a full case conceptualization even though the request mentions CBT and hypothesis language.",
     },
     {
+        "id": "W2-009",
+        "name": "completed-initial-interview-to-case-background-boundary",
+        "query": "These are completed first interview notes. Organize them into a BPS case background for supervision, keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, and do not keep the fixed initial interview summary template.",
+        "expected": "Workflow 2: case background organization with initial-interview-summary negation. The answer should reorganize completed first-interview material into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions, and avoid drifting back into the fixed initial interview summary template even though the source material came from a completed intake interview.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",
