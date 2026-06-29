@@ -192,6 +192,18 @@ class RunRetrievalTest(unittest.TestCase):
         self.assertIn("theory-frameworks-cbt-case-conceptualization-001", chunk_ids)
         self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
 
+    def test_routes_bilingual_session_note_source_material_to_w4_when_prompt_asks_for_conceptualization(self):
+        payload = self.run_retrieval(
+            "请根据今天session note整理CBT概念化，保留working hypotheses，不要写成咨询记录。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_4_case_conceptualization")
+        self.assertEqual(payload["route"]["intent"], "CBT conceptualization")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("theory-frameworks-cbt-case-conceptualization-001", chunk_ids)
+        self.assertIn("case-recording-cps-professional-materials-recording-001", chunk_ids)
+
     def test_session_note_confidentiality_retrieval_includes_documentation_boundary_chunks(self):
         payload = self.run_retrieval(
             "Write a counseling record from today's session notes. The client asked who can read the record, the counselor reviewed confidentiality limits and documentation boundaries, and there was no current suicide plan."

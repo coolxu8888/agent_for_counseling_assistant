@@ -145,6 +145,17 @@ DEMO_SCENARIOS = [
         "output_style": "supervision_summary",
     },
     {
+        "id": "conceptualization-bilingual-session-note-boundary",
+        "title": "W4 Demo: Bilingual session-note to conceptualization",
+        "workflow": "W4",
+        "summary": "A bilingual boundary case where today's session note is only source material for a CBT conceptualization rather than a counseling record.",
+        "input": (
+            "请根据今天session note整理CBT概念化，保留working hypotheses，不要写成咨询记录。"
+            " Separate known facts, working hypotheses, risk considerations, and questions that still need verification."
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "next-session-criticism-cycle",
         "title": "W5 Demo: Next-session plan",
         "workflow": "W5",
@@ -333,17 +344,19 @@ ROUTING_RULES = {
             (r"case conceptualization", 5),
             (r"conceptualize this case", 5),
             (r"conceptualization hypothesis", 4),
+            (r"working hypotheses?", 4),
             (r"\bcbt\b", 3),
             (r"psychodynamic", 3),
             (r"humanistic", 3),
             (r"integrative", 3),
             (r"\bframework\b", 3),
-            (r"\u4e2a\u6848\u6982\u5ff5\u5316", 5),
-            (r"\u8ba4\u77e5\u884c\u4e3a", 3),
-            (r"\u4eba\u672c", 3),
-            (r"\u7cbe\u795e\u52a8\u529b", 3),
-            (r"\u6574\u5408\u53d6\u5411", 3),
-            (r"\u6d41\u6d3e", 3),
+            (r"\u4e2a\u6848\u6982\u5ff5\u5316|个案概念化", 5),
+            (r"\u6982\u5ff5\u5316|概念化", 4),
+            (r"\u8ba4\u77e5\u884c\u4e3a|认知行为", 3),
+            (r"\u4eba\u672c|人本", 3),
+            (r"\u7cbe\u795e\u52a8\u529b|精神动力", 3),
+            (r"\u6574\u5408\u53d6\u5411|整合取向", 3),
+            (r"\u6d41\u6d3e|流派", 3),
         ],
         "negative": [
             (r"next-session plan|next session plan|session agenda", 3),
@@ -494,6 +507,10 @@ EXTRA_NEGATED_RECORD_FORMAT_PATTERNS = [
     r"\u800c\u4e0d\u662f.*soap",
     r"\u800c\u4e0d\u662f.*dap",
     r"\u800c\u4e0d\u662f.*birp",
+    r"不要写成.*咨询记录",
+    r"不要写成.*session note",
+    r"不是.*咨询记录",
+    r"不是.*session note",
 ]
 
 

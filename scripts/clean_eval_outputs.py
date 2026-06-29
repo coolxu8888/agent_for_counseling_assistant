@@ -125,7 +125,11 @@ RULES["W4-001"] = {
     "forbidden": ["diagnosed with", "major depressive disorder", "generalized anxiety disorder", "12-session", "roadmap"],
 }
 
-RULES["W4-004"] = RULES["W4-001"]
+RULES["W4-004"] = {
+    **RULES["W4-001"],
+    "forbidden": ["diagnosed with", "major depressive disorder", "generalized anxiety disorder", "12-session", "roadmap"],
+}
+RULES["W4-005"] = RULES["W4-004"]
 
 RULES["W5-001"] = {
     "required_any": [
@@ -367,6 +371,7 @@ DIMENSION_RUBRICS["W4-004"] = {
         ]]
     },
 }
+DIMENSION_RUBRICS["W4-005"] = DIMENSION_RUBRICS["W4-004"]
 
 DIMENSION_RUBRICS["W5-001"] = {
     "Route correct": {
@@ -453,6 +458,8 @@ START_CANDIDATES = {
 }
 
 START_CANDIDATES["W4-001"] = ["CBT", "Case conceptualization", "Known facts", "已知事实", "CBT个案概念化"]
+START_CANDIDATES["W4-004"] = START_CANDIDATES["W4-001"]
+START_CANDIDATES["W4-005"] = START_CANDIDATES["W4-001"]
 
 
 START_CANDIDATES["W5-001"] = ["Next-session plan", "Next session plan", "Session goal", "Selected framework", "下一节咨询计划", "核心目标"]

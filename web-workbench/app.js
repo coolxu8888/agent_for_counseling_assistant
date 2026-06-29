@@ -75,6 +75,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "conceptualization-bilingual-session-note-boundary",
+      title: "W4 Demo: Bilingual session-note to conceptualization",
+      workflow: "W4",
+      summary: "A bilingual boundary case where today's session note is only source material for a CBT conceptualization rather than a counseling record.",
+      input:
+        "请根据今天session note整理CBT概念化，保留working hypotheses，不要写成咨询记录。Separate known facts, working hypotheses, risk considerations, and questions that still need verification.",
+      output_style: "supervision_summary",
+    },
+    {
       id: "next-session-criticism-cycle",
       title: "W5 Demo: Next-session plan",
       workflow: "W5",

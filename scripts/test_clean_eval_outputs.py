@@ -618,6 +618,34 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Capability scope"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Risk handling"]["status"], "PASS")
 
+    def test_w4_005_bilingual_conceptualization_boundary_rubric_accepts_bounded_output(self):
+        answer = """
+CBT case conceptualization
+known facts
+- The de-identified source material comes from today's session note and today's 咨询记录素材 and describes criticism-triggered anxiety, avoidance, and poor sleep after supervisor conflict.
+working hypotheses
+- A CBT lens suggests the client links minor mistakes with global inadequacy, which may maintain the anxiety-avoidance cycle.
+- This working hypothesis should stay tentative until more exceptions and contextual triggers are verified.
+maintaining factors
+- Post-session rumination and avoidance of colleague replies appear to reinforce distress.
+protective factors
+- The client stayed engaged in counseling and denied a current suicide plan in the provided material.
+questions to verify
+- Clarify how often the rumination loop appears and what exceptions exist before treating it as a stable maintaining pattern.
+Risk considerations
+- Keep the passive disappearance wording visible as a risk consideration while avoiding a final risk classification.
+Boundary note
+- This is a bounded case conceptualization from bilingual session-note source material, not a counseling record, not a diagnosis, and not a full intervention prescription.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W4-005", clean_answer)
+        rubric_result = run_dimension_rubric("W4-005", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Route correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
     def test_w1_013_chinese_first_dap_boundary_rubric_accepts_bounded_summary_output(self):
         answer = """
 Initial interview summary

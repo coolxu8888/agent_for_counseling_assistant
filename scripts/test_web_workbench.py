@@ -404,6 +404,17 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
         self.assertIn("conceptualization", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w4_for_bilingual_conceptualization_request_that_negates_record(self):
+        details = web_workbench.detect_workflow_details(
+            "请根据今天session note整理CBT概念化，保留working hypotheses，不要写成咨询记录。"
+        )
+
+        self.assertEqual(details["workflow"], "W4")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W4")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+        self.assertIn("conceptualization", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w5_when_bilingual_next_session_request_negates_session_note(self):
         details = web_workbench.detect_workflow_details(
             "\u8bf7\u7528CBT\u505a\u4e0b\u6b21\u54a8\u8be2\u8ba1\u5212\uff0c"
@@ -496,6 +507,8 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("Please organize this de-identified biopsychosocial case background.", payload["scenarios"][0]["input"])
         self.assertIn("Create an intake information guide", payload["scenarios"][1]["input"])
+        scenario_ids = {item["id"] for item in payload["scenarios"]}
+        self.assertIn("conceptualization-bilingual-session-note-boundary", scenario_ids)
 
     def test_handle_run_auto_detects_workflow(self):
         with tempfile.TemporaryDirectory() as tmp:

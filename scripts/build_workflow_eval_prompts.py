@@ -220,6 +220,12 @@ EVALS = [
         "expected": "Workflow 4: framework-based conceptualization with record-format negation. The answer should explicitly use a CBT conceptualization lens, separate known facts from working hypotheses, keep risk considerations visible, and avoid drifting back into counseling-record formatting or a treatment roadmap.",
     },
     {
+        "id": "W4-005",
+        "name": "bilingual-session-note-to-conceptualization-boundary",
+        "query": "请根据今天session note整理CBT概念化，保留working hypotheses，不要写成咨询记录。Separate known facts, working hypotheses, risk considerations, and questions that still need verification.",
+        "expected": "Workflow 4: bilingual framework-based conceptualization with record-format negation. The answer should explicitly use a CBT conceptualization lens, separate known facts from working hypotheses, keep risk considerations visible, and avoid drifting back into counseling-record formatting or a treatment roadmap.",
+    },
+    {
         "id": "W5-002",
         "name": "single-next-session-not-roadmap",
         "query": "Using CBT, plan only the next counseling session agenda from this case conceptualization.",
