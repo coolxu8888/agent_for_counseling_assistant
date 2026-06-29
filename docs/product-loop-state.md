@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, and `W2-008`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, and the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008` | move to another unproven public-route ambiguity such as bilingual W3-vs-W6 roadmap wording, and keep adding hosted proof only where local-vs-public behavior is still unknown |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, `W2-008`, and `W6-005`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008`, and the bilingual W3-vs-W6 session-note-source-material roadmap boundary `W6-005` | move to another unproven public-route ambiguity such as mixed W1-vs-W2 intake-material organization wording, and keep adding hosted proof only where local-vs-public behavior is still unknown |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -379,6 +379,48 @@ Remaining gaps:
 - Hosted deployment verification is still stale until the latest local commits are pushed and the public Render URL is smoke-tested with `W1-014` / `W1-015`-style prompts that exercise AUTO route metadata plus retrieval-backed generation.
 - There is still no live DeepSeek evidence for `W1-014` or `W1-015` in this environment because model credentials were missing.
 - Repo-wide deployment-readiness is still blocked by unrelated dirty-worktree failures in `scripts.test_fill_docx_template`; those were not part of this intent-recognition run.
+
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the bilingual W3-vs-W6 boundary where counselors use today's `session note` only as source material but explicitly ask for a phased multi-session roadmap rather than a counseling record or single-session plan.
+
+What changed:
+
+- Tightened the product-side AUTO router in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) so Chinese-heavy roadmap cues such as `接下来几次咨询` and `路线图` score `W6` more strongly, while negated counseling-record wording now demotes `W3` when `session note` is only source material for a roadmap.
+- Added a dedicated `W6` route notice and top-candidate ordering for `W6 > W3` so the shipped product no longer shows a misleading session-note-first explanation when the actual selected workflow is the roadmap.
+- Added a visible bilingual demo entry for this boundary in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js)
+  so pilot users can exercise the ambiguity directly from the product demo catalog.
+- Expanded eval coverage with `W6-005` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py), regenerated committed assets including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W6-005-bilingual-session-note-source-material-roadmap-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W6-005-bilingual-session-note-source-material-roadmap-boundary.txt) and the updated [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\manifest.json`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\manifest.json).
+- Added scorer/rubric coverage for `W6-005` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) plus regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w6_when_bilingual_roadmap_request_uses_session_note_as_source_material scripts.test_web_workbench.WebWorkbenchTest.test_handle_demo_catalog_uses_english_validation_prompts scripts.test_run_retrieval.RunRetrievalTest.test_routes_bilingual_session_note_source_material_roadmap_request_to_w6 scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_ambiguity_and_mixed_intent_cases scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w6_bilingual_session_note_source_material_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w6_005_bilingual_session_note_source_material_boundary_rubric_accepts_bounded_roadmap` -> passed after red-green implementation.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 186 tests passed.
+- `node --check web-workbench/app.js`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- Loaded `.env` into the process environment without printing secret values, then ran:
+  - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W6-005` -> passed.
+
+Outcome:
+
+- The shipped web router now keeps this bilingual session-note-source-material roadmap boundary in `W6` and shows the route explanation in the same order instead of implying that `W3` or `W5` was still the leading cue.
+- The new `W6-005` fixture upgrades this ambiguity from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
+- The public hosted parity step is the only remaining proof item for this exact boundary after the local router, retrieval selector, product demo entry, and eval pipeline all converged on `W6`.
+
+Remaining gaps:
+
+- Hosted deployment verification for `W6-005` is still pending until the latest local commit is pushed and the public Render URL is smoke-tested with this AUTO prompt.
+- Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
+- The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
 ## Next Recommended Capability
 
@@ -1166,7 +1208,7 @@ Continue `intent recognition across counselor tasks` as the next P0 capability.
 
 Recommended scope:
 
-- Move to one additional hosted-unproven AUTO boundary such as bilingual W3-vs-W6 roadmap wording where `session note` source material and `next steps` language can still be mistaken for a single-session or documentation request instead of a multi-session roadmap.
+- Move to one additional hosted-unproven AUTO boundary such as mixed W1-vs-W2 intake-material organization wording where completed intake notes, risk clues, and supervision/BPS language can still drift between first-interview summary and case-background organization.
 - Keep the same local-test, eval-fixture, live DeepSeek, and hosted-parity loop.
 - Do not shift to P1/P2 work unless it directly blocks verification of a remaining P0 boundary.
 

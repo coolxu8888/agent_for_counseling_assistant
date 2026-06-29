@@ -101,6 +101,15 @@ const FALLBACK_DEMO_CATALOG = {
         "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues after conflicts. Earlier work identified a likely criticism-anxiety-avoidance cycle, poor sleep after supervisor conflicts, and no reported suicide plan. Build a bounded roadmap with phases, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, and explicit do-not-do boundaries.",
       output_style: "supervision_summary",
     },
+    {
+      id: "roadmap-bilingual-session-note-source-material",
+      title: "W6 Demo: Bilingual session-note to roadmap",
+      workflow: "W6",
+      summary: "A bilingual boundary case where today's session note is only source material for a phased multi-session roadmap rather than a counseling record.",
+      input:
+        "请把今天的session note作为素材，整理接下来几次咨询的路线图，包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。",
+      output_style: "supervision_summary",
+    },
   ],
   templates: [],
   privacy_notice: "Use de-identified demo material only. Avoid names, phone numbers, IDs, and real client data in public MVP validation.",

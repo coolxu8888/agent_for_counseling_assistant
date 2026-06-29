@@ -498,6 +498,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W4")
         self.assertIn("case background", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w6_when_bilingual_roadmap_request_uses_session_note_as_source_material(self):
+        details = web_workbench.detect_workflow_details(
+            "请把今天的session note作为素材，整理接下来几次咨询的路线图，"
+            "包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。"
+        )
+
+        self.assertEqual(details["workflow"], "W6")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W6")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W3")
+        self.assertIn("roadmap", details["route_notice"].lower())
+
     def test_detect_workflow_routes_diagnosis_requests_back_to_case_summary_boundaries(self):
         self.assertEqual(
             web_workbench.detect_workflow(
@@ -521,6 +533,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("Create an intake information guide", payload["scenarios"][1]["input"])
         scenario_ids = {item["id"] for item in payload["scenarios"]}
         self.assertIn("conceptualization-bilingual-session-note-boundary", scenario_ids)
+        self.assertIn("roadmap-bilingual-session-note-source-material", scenario_ids)
 
     def test_handle_run_auto_detects_workflow(self):
         with tempfile.TemporaryDirectory() as tmp:

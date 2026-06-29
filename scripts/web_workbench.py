@@ -196,6 +196,17 @@ DEMO_SCENARIOS = [
         ),
         "output_style": "supervision_summary",
     },
+    {
+        "id": "roadmap-bilingual-session-note-source-material",
+        "title": "W6 Demo: Bilingual session-note to roadmap",
+        "workflow": "W6",
+        "summary": "A bilingual boundary case where today's session note is only source material for a phased multi-session roadmap rather than a counseling record.",
+        "input": (
+            "请把今天的session note作为素材，整理接下来几次咨询的路线图，"
+            "包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。"
+        ),
+        "output_style": "supervision_summary",
+    },
 ]
 
 AGENT_STYLE_INSTRUCTIONS = {
@@ -402,12 +413,16 @@ ROUTING_RULES = {
             (r"phase plan", 4),
             (r"next several sessions", 5),
             (r"later phases", 4),
+            (r"next several counseling sessions", 6),
+            (r"use .*session note.*source material.*roadmap", 6),
             (r"\broadmap\b", 3),
             (r"\u54a8\u8be2\u8def\u7ebf\u56fe", 5),
             (r"\u591a\u8282\u54a8\u8be2", 5),
             (r"\u591a\u9636\u6bb5", 4),
             (r"\u5206\u9636\u6bb5", 4),
             (r"\u8def\u7ebf\u56fe", 4),
+            (r"\u63a5\u4e0b\u6765\u51e0\u6b21\u54a8\u8be2", 6),
+            (r"\u4ee5.*session note.*\u4f5c\u4e3a\u7d20\u6750.*\u8def\u7ebf\u56fe", 6),
         ],
         "negative": [
             (r"plan (only )?the next (counseling )?session", 3),
@@ -678,6 +693,11 @@ def route_notice_for(workflow, route_status, top_candidates):
                 "Detected both next-session planning and session-record cues; routed to "
                 "Next-session plan because the request explicitly asked for one upcoming session rather than record formatting."
             )
+        if candidate_ids == ["W6", "W3"]:
+            return (
+                "Detected both roadmap and session-record cues; routed to "
+                "Counseling roadmap because the request used today's notes only as source material for several sessions or later phases."
+            )
         if candidate_ids == ["W4", "W3"]:
             return (
                 "Detected both conceptualization and session-record cues; routed to "
@@ -786,6 +806,9 @@ def detect_workflow_details(user_input):
         if positive_scores.get("W5", 0) > 0:
             scores["W3"] -= 5
             reasons["W3"].append("-5:negated_record_format_with_next_session_plan")
+        if positive_scores.get("W6", 0) > 0:
+            scores["W3"] -= 5
+            reasons["W3"].append("-5:session_note_as_source_material_for_counseling_roadmap")
     if negated_roadmap_scope and positive_scores.get("W6", 0) > 0 and positive_scores.get("W5", 0) > 0:
         scores["W6"] -= 8
         reasons["W6"].append("-8:negated_roadmap_scope_with_next_session_plan")
@@ -854,6 +877,16 @@ def detect_workflow_details(user_input):
         top_candidates.sort(
             key=lambda item: (
                 item["workflow"] == "W5",
+                item["workflow"] == "W3",
+                item["score"],
+                item["positive_score"],
+            ),
+            reverse=True,
+        )
+    if negated_record_format and workflow == "W6":
+        top_candidates.sort(
+            key=lambda item: (
+                item["workflow"] == "W6",
                 item["workflow"] == "W3",
                 item["score"],
                 item["positive_score"],

@@ -948,6 +948,38 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
 
+    def test_w6_005_bilingual_session_note_source_material_boundary_rubric_accepts_bounded_roadmap(self):
+        answer = """
+Counseling roadmap
+Selected framework: Humanistic
+Phases
+- Phase 1: Use today's session-note material to deepen engagement, clarify the criticism trigger, and re-check immediate safety in the next session.
+- Phase 2: Review recurring patterns across later phases while revising hypotheses as new information appears.
+Hypotheses to verify
+- Interpersonal criticism and self-protective withdrawal may be maintaining the current distress pattern, but this still needs verification.
+Session focus options
+- Immediate next session: review the most recent trigger and identify what still feels unfinished.
+- Later phases: test coping experiments and revise the relational hypothesis if new exceptions appear.
+Risk monitoring checkpoints
+- Re-check passive disappearance thoughts, suicide ideation, sleep deterioration, supports, and any escalation at each phase transition.
+Collaboration or referral reminders
+- Consider collaboration or referral only if new medical, psychiatric, or safety concerns emerge and according to counselor judgment.
+Missing information
+- The source material does not yet confirm escalation timeline, prior response to similar triggers, or current support follow-through.
+Do not do
+- Do not turn this into a counseling record, a fixed treatment protocol, or a promise about results.
+Boundary notes
+- This is a bounded multi-session roadmap built from bilingual session-note source material for a de-identified client, not a diagnosis and not a single-session plan.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W6-005", clean_answer)
+        rubric_result = run_dimension_rubric("W6-005", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()

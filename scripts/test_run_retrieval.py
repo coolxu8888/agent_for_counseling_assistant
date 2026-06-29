@@ -102,6 +102,17 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
 
+    def test_routes_bilingual_session_note_source_material_roadmap_request_to_w6(self):
+        payload = self.run_retrieval(
+            "请把今天的session note作为素材，整理接下来几次咨询的路线图，"
+            "包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_6_counseling_roadmap")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("roadmap-planning-bounded-counseling-roadmap-001", chunk_ids)
+
     def test_routes_post_session_note_query_to_w3_even_when_it_mentions_first_interview(self):
         payload = self.run_retrieval(
             "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus."

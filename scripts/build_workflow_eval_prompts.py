@@ -291,6 +291,12 @@ EVALS = [
         "query": "Create a psychodynamic counseling roadmap for the next several sessions, keeping the immediate next session inside a broader phased roadmap while preserving risk-monitoring checkpoints and reflective hypotheses to verify.",
         "expected": "Workflow 6: bounded multi-session roadmap. The answer should keep a psychodynamic frame, remain in phased multi-session roadmap form, preserve risk-monitoring and boundary reminders, and avoid collapsing into a single next-session plan or presenting interpretations as diagnosis.",
     },
+    {
+        "id": "W6-005",
+        "name": "bilingual-session-note-source-material-roadmap-boundary",
+        "query": "请把今天的session note作为素材，整理接下来几次咨询的路线图，包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。",
+        "expected": "Workflow 6: bilingual multi-session roadmap with session-note source-material boundary handling. The answer should treat today's session note only as source material for a phased counseling roadmap across several sessions, keep the immediate next session inside that broader roadmap, preserve bounded risk monitoring, and avoid drifting into counseling-record formatting, diagnosis, or a single-session plan.",
+    },
 ]
 
 

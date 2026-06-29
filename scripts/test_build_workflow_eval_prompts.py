@@ -58,6 +58,7 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("W5-005", ids)
         self.assertIn("W5-006", ids)
         self.assertIn("W6-004", ids)
+        self.assertIn("W6-005", ids)
 
     def test_evals_include_bilingual_intent_routing_case(self):
         w1_bilingual = next(
@@ -257,6 +258,15 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("咨询记录", w4["query"])
         self.assertIn("bilingual", w4["expected"].lower())
         self.assertIn("record-format negation", w4["expected"].lower())
+
+    def test_evals_include_w6_bilingual_session_note_source_material_boundary_case(self):
+        w6 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W6-005")
+
+        self.assertIn("session note", w6["query"].lower())
+        self.assertIn("later phases", w6["query"].lower())
+        self.assertIn("咨询记录", w6["query"])
+        self.assertIn("source material", w6["expected"].lower())
+        self.assertIn("single-session plan", w6["expected"].lower())
 
     def test_main_writes_manifest_including_w5(self):
         with tempfile.TemporaryDirectory() as tmp:

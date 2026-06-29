@@ -710,5 +710,21 @@
       "ethics-risk-cps-professional-boundary-001",
       "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
     ]
+  },
+  {
+    "id": "W6-005",
+    "name": "bilingual-session-note-source-material-roadmap-boundary",
+    "query": "请把今天的session note作为素材，整理接下来几次咨询的路线图，包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。",
+    "expected": "Workflow 6: bilingual multi-session roadmap with session-note source-material boundary handling. The answer should treat today's session note only as source material for a phased counseling roadmap across several sessions, keep the immediate next session inside that broader roadmap, preserve bounded risk monitoring, and avoid drifting into counseling-record formatting, diagnosis, or a single-session plan.",
+    "prompt_file": "C:\\Users\\win\\Documents\\Codex\\2026-05-15\\agent\\eval-prompts\\W6-005-bilingual-session-note-source-material-roadmap-boundary.txt",
+    "route_status": "OK",
+    "workflow": "workflow_6_counseling_roadmap",
+    "intent": "Generic counseling roadmap",
+    "chunks": [
+      "roadmap-planning-bounded-counseling-roadmap-001",
+      "ethics-risk-cps-professional-boundary-001",
+      "case-recording-cps-professional-materials-recording-001",
+      "ethics-risk-china-risk-boundary-self-harm-harm-to-others-001"
+    ]
   }
 ]
