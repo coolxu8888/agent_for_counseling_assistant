@@ -48,6 +48,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "chinese-intake-material-to-bps-background",
+      title: "W2 Demo: Chinese intake material to BPS background",
+      workflow: "W2",
+      summary: "A Chinese-heavy boundary case where first-interview material should be rewritten into a supervision-oriented BPS case background instead of staying in the fixed W1 summary template.",
+      input:
+        "把这份首访材料改写成督导讨论用的个案背景，按BPS整理已知事实、信息缺口、保护因素和风险追问，而不是固定初访总结模板。",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

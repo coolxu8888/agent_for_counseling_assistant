@@ -511,6 +511,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W1")
         self.assertIn("case background", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w2_for_chinese_intake_material_background_request_that_negates_w1_template_scope(self):
+        details = web_workbench.detect_workflow_details(
+            "把这份首访材料改写成督导讨论用的个案背景，按BPS整理已知事实、信息缺口、保护因素和风险追问，"
+            "而不是固定初访总结模板。"
+        )
+
+        self.assertEqual(details["workflow"], "W2")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W2")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W1")
+        self.assertIn("case background", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w6_when_bilingual_roadmap_request_uses_session_note_as_source_material(self):
         details = web_workbench.detect_workflow_details(
             "请把今天的session note作为素材，整理接下来几次咨询的路线图，"

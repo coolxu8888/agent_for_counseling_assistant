@@ -340,6 +340,30 @@ supervision boundary notes
         self.assertEqual(rule_result["status"], "PASS")
         self.assertEqual(rubric_result["status"], "PASS")
 
+    def test_w2_010_chinese_initial_interview_material_boundary_background_case_passes_rules_and_rubric(self):
+        answer = """
+Case background organization
+BPS summary
+known facts
+- Family conflict was followed by worse sleep, the client kept attending class, and passive disappearance wording was reported without a plan.
+working hypotheses
+- Stress reactivity and conflict sensitivity may be sustaining the current distress, but the hypotheses still need verification.
+information gaps
+- The source material does not yet confirm escalation triggers, prior coping attempts, or whether the passive risk wording has changed since the first interview.
+protective factors
+- The client remained engaged in follow-up, kept attending class, and described at least one available support person.
+risk follow-up questions
+- Clarify current ideation intensity, any plan or means access, recent escalation, and who can support the client before the next contact.
+supervision boundary notes
+- Reorganized the first-interview material into a supervision-oriented BPS case background for a Chinese-heavy request, not a fixed initial interview summary template, diagnosis, or final risk rating.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-010", clean_answer)
+        rubric_result = run_dimension_rubric("W2-010", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+
     def test_w3_003_observation_gap_accepts_specific_missing_observation_wording(self):
         answer = """
 SOAP

@@ -648,6 +648,24 @@ function Select-Intent {
     }
 
     if ($WorkflowName -eq "workflow_2_case_summary") {
+        if (Test-AnyPattern $Text @(
+                "case background",
+                "biopsychosocial",
+                "\bbps\b",
+                "case background organization",
+                "working hypotheses?",
+                "protective factors?",
+                "information gaps?",
+                "follow-up questions?",
+                (U "\u4e2a\u6848\u80cc\u666f"),
+                (U "\u7763\u5bfc\u8ba8\u8bba"),
+                (U "\u5de5\u4f5c\u5047\u8bbe"),
+                (U "\u4fdd\u62a4\u56e0\u7d20"),
+                (U "\u4fe1\u606f\u7f3a\u53e3"),
+                (U "\u98ce\u9669\u8ffd\u95ee")
+            )) {
+            return (U "\u6574\u7406\u4e2a\u6848\u80cc\u666f")
+        }
         if (Test-AnyPattern $Text @((U "\u5bf9\u5916"), (U "\u5206\u4eab"), (U "\u7763\u5bfc"), (U "\u62a5\u544a"), (U "\u53bb\u8bc6\u522b"), (U "\u8131\u654f"))) {
             return (U "\u5916\u90e8\u5206\u4eab\u6216\u62a5\u544a")
         }

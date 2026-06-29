@@ -102,6 +102,17 @@ DEMO_SCENARIOS = [
         "output_style": "supervision_summary",
     },
     {
+        "id": "chinese-intake-material-to-bps-background",
+        "title": "W2 Demo: Chinese intake material to BPS background",
+        "workflow": "W2",
+        "summary": "A Chinese-heavy boundary case where first-interview material should be rewritten into a supervision-oriented BPS case background instead of staying in the fixed W1 summary template.",
+        "input": (
+            "把这份首访材料改写成督导讨论用的个案背景，按BPS整理已知事实、信息缺口、保护因素和风险追问，"
+            "而不是固定初访总结模板。"
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "session-sleep-communication",
         "title": "W3 Demo: Session note",
         "workflow": "W3",
@@ -324,6 +335,7 @@ ROUTING_RULES = {
             (r"\u4e2a\u6848\u4fe1\u606f", 4),
             (r"\u4e2a\u6848\u80cc\u666f", 4),
             (r"\u7763\u5bfc", 3),
+            (r"\u7763\u5bfc\u8ba8\u8bba", 3),
             (r"\u53bb\u8bc6\u522b", 3),
             (r"\u8bca\u65ad", 4),
             (r"\u98ce\u9669\u4fe1\u53f7", 4),

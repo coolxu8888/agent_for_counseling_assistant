@@ -114,6 +114,17 @@ class RunRetrievalTest(unittest.TestCase):
         chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
         self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
 
+    def test_routes_chinese_intake_material_background_request_that_negates_w1_template_scope_to_w2(self):
+        payload = self.run_retrieval(
+            "把这份首访材料改写成督导讨论用的个案背景，按BPS整理已知事实、信息缺口、保护因素和风险追问，"
+            "而不是固定初访总结模板。"
+        )
+
+        self.assertEqual(payload["status"], "OK")
+        self.assertEqual(payload["route"]["workflow"], "workflow_2_case_summary")
+        chunk_ids = [chunk["chunk_id"] for chunk in payload["selected_chunks"]]
+        self.assertIn("intake-assessment-biopsychosocial-client-assessment-001", chunk_ids)
+
     def test_routes_bilingual_session_note_source_material_roadmap_request_to_w6(self):
         payload = self.run_retrieval(
             "请把今天的session note作为素材，整理接下来几次咨询的路线图，"
