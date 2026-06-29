@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, `W2-008`, and `W6-005`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008`, and the bilingual W3-vs-W6 session-note-source-material roadmap boundary `W6-005` | move to another unproven public-route ambiguity such as mixed W1-vs-W2 intake-material organization wording, and keep adding hosted proof only where local-vs-public behavior is still unknown |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, `W2-008`, `W2-009`, and `W6-005`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008`, the mixed completed-intake-material W1-vs-W2 boundary `W2-009`, and the bilingual W3-vs-W6 session-note-source-material roadmap boundary `W6-005` | move to another unproven public-route ambiguity such as a Chinese-heavy or looser-negation W1-vs-W2 intake-material organization prompt, and keep adding hosted proof only where local-vs-public behavior is still unknown |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -1210,9 +1210,51 @@ Continue `intent recognition across counselor tasks` as the next P0 capability.
 
 Recommended scope:
 
-- Move to one additional hosted-unproven AUTO boundary such as mixed W1-vs-W2 intake-material organization wording where completed intake notes, risk clues, and supervision/BPS language can still drift between first-interview summary and case-background organization.
+- Move to one additional hosted-unproven AUTO boundary such as a Chinese-heavy or looser-negation W1-vs-W2 intake-material organization prompt where completed intake notes, risk clues, and supervision/BPS language can still drift between first-interview summary and case-background organization.
 - Keep the same local-test, eval-fixture, live DeepSeek, and hosted-parity loop.
 - Do not shift to P1/P2 work unless it directly blocks verification of a remaining P0 boundary.
+
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the mixed W1-vs-W2 boundary where completed first-interview material, BPS/supervision organization language, and explicit rejection of the fixed initial interview summary template can still drift between `W1` summary mode and `W2` case-background organization.
+
+What changed:
+
+- Added a dedicated product-facing demo entry for this boundary in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) and [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js) so the shipped workbench now exposes `completed first interview notes -> W2 BPS background` directly in the demo catalog.
+- Tightened the product-side AUTO router in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) with a dedicated `negated initial interview summary scope` guard plus a specific `W2 > W1` route notice so completed intake material routes to `W2` when the counselor explicitly asks for supervision/BPS organization instead of the fixed W1 summary template.
+- Brought retrieval parity into [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1) so the same boundary no longer collapses into `workflow_1_intake_form` during eval prompt generation or retrieval-backed runs.
+- Expanded eval coverage with `W2-009` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py), regenerated committed assets including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W2-009-completed-initial-interview-to-case-background-boundary.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W2-009-completed-initial-interview-to-case-background-boundary.txt) and the updated [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\manifest.json`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\manifest.json).
+- Added scorer/rubric coverage for `W2-009` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py) plus regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_handle_demo_catalog_uses_english_validation_prompts scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w2_for_completed_initial_interview_material_that_negates_w1_template_scope scripts.test_run_retrieval.RunRetrievalTest.test_routes_completed_initial_interview_material_that_negates_w1_template_scope_to_w2 scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w2_completed_initial_interview_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w2_009_initial_interview_material_boundary_background_case_passes_rules_and_rubric` -> passed after red-green implementation.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 190 tests passed.
+- `node --check web-workbench/app.js`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- Loaded `.env` into the process environment without printing secret values, then ran:
+  - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-009` -> passed.
+- Pushed `5707fe2` to `origin/main`, then ran hosted AUTO smoke on the public Render URL:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "These are completed first interview notes. Organize them into a BPS case background for supervision, keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, and do not keep the fixed initial interview summary template." --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
+  - Result: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 15) > W1 Initial interview (score 13)"`.
+
+Outcome:
+
+- The shipped product now exposes and correctly explains this mixed completed-intake-material boundary as `W2`, instead of letting retrieval-backed runs fall back to `W1`.
+- The new `W2-009` fixture upgrades this W1-vs-W2 ambiguity from a local-only heuristic into a committed eval/scoring contract with live DeepSeek evidence.
+- Hosted deployment parity for `W2-009` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation for the same AUTO prompt.
+
+Remaining gaps:
+
+- Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
+- The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
+- Intent routing remains partial overall; the next best target is another W1-vs-W2 ambiguity with Chinese-heavy or looser negation wording rather than lower-priority product polish.
 
 ## Deployment Readiness Notes
 
