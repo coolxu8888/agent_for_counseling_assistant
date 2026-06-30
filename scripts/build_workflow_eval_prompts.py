@@ -196,6 +196,12 @@ EVALS = [
         "expected": "Workflow 2: chinese-heavy case background organization with initial-interview-summary negation. The answer should reorganize first-interview source material into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions, and avoid drifting back into the fixed initial interview summary template even though the request is Chinese-heavy and supervision-oriented.",
     },
     {
+        "id": "W2-011",
+        "name": "loose-initial-interview-summary-negation-case-background",
+        "query": "Use these completed intake notes to build a supervision case background with BPS, known facts, protective factors, and risk follow-up questions. Do not keep it as the usual initial interview summary.",
+        "expected": "Workflow 2: loose initial-interview-summary negation for case background organization. The answer should reorganize completed intake material into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions, and avoid drifting back into the usual initial interview summary even though the request uses looser W1-summary wording.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",

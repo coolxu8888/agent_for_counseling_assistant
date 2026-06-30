@@ -364,6 +364,29 @@ supervision boundary notes
         self.assertEqual(rule_result["status"], "PASS")
         self.assertEqual(rubric_result["status"], "PASS")
 
+    def test_w2_011_loose_initial_interview_summary_negation_background_case_passes_rules_and_rubric(self):
+        answer = """
+Case background organization
+known facts
+- The completed intake material describes sleep disruption, family pressure, and passive self-harm wording without a reported plan or intent.
+working hypotheses
+- The client may be overwhelmed by combined academic and family strain, but the hypotheses still need verification in supervision.
+protective factors
+- The client remains engaged with counseling and named at least one supportive peer contact.
+information gaps
+- Clarify recent escalation, current intent, means access, and what support is available between sessions.
+risk follow-up questions
+- Ask what changed since the passive-risk statement, how intense the thoughts are now, and what immediate support steps feel realistic.
+supervision boundary notes
+- Reorganized the completed intake notes into a supervision-oriented BPS case background, not the usual initial interview summary, diagnosis, or final risk rating.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-011", clean_answer)
+        rubric_result = run_dimension_rubric("W2-011", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+
     def test_w3_003_observation_gap_accepts_specific_missing_observation_wording(self):
         answer = """
 SOAP

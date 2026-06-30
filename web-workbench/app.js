@@ -57,6 +57,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "loose-intake-summary-negation-to-bps-background",
+      title: "W2 Demo: Loose intake-summary negation",
+      workflow: "W2",
+      summary: "A looser W1-vs-W2 boundary where completed intake notes should become a supervision BPS background instead of staying in the usual initial interview summary format.",
+      input:
+        "Use these completed intake notes to build a supervision case background with BPS, known facts, protective factors, and risk follow-up questions. Do not keep it as the usual initial interview summary.",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

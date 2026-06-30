@@ -523,6 +523,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W1")
         self.assertIn("case background", details["route_notice"].lower())
 
+    def test_detect_workflow_prefers_w2_for_completed_intake_background_request_with_loose_w1_summary_negation(self):
+        details = web_workbench.detect_workflow_details(
+            "Use these completed intake notes to build a supervision case background with BPS, known facts, "
+            "protective factors, and risk follow-up questions. Do not keep it as the usual initial interview summary."
+        )
+
+        self.assertEqual(details["workflow"], "W2")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W2")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W1")
+        self.assertIn("case background", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w6_when_bilingual_roadmap_request_uses_session_note_as_source_material(self):
         details = web_workbench.detect_workflow_details(
             "请把今天的session note作为素材，整理接下来几次咨询的路线图，"

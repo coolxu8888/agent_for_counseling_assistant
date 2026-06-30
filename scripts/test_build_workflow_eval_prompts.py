@@ -187,6 +187,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("固定初访总结模板", w2["query"])
         self.assertIn("chinese-heavy", w2["expected"].lower())
 
+    def test_evals_include_w2_loose_initial_interview_summary_negation_boundary_case(self):
+        w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-011")
+
+        self.assertIn("completed intake notes", w2["query"].lower())
+        self.assertIn("usual initial interview summary", w2["query"].lower())
+        self.assertIn("supervision case background", w2["query"].lower())
+        self.assertIn("loose initial-interview-summary negation", w2["expected"].lower())
+
     def test_evals_include_w5_bilingual_record_negation_case(self):
         w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-005")
 
