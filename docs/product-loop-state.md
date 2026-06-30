@@ -1325,16 +1325,19 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-011` -> passed.
+- Pushed `bffa524` to `origin/main`, saw one transient Render `/api/run` `502` during redeploy, then confirmed `/health` returned `{"status":"ok"}` and ran hosted AUTO smoke:
+  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use these completed intake notes to build a supervision case background with BPS, known facts, protective factors, and risk follow-up questions. Do not keep it as the usual initial interview summary." --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
+  - Result after redeploy: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 15) > W1 Initial interview (score 2, cues 10)"`.
 
 Outcome:
 
 - The shipped product now treats this looser completed-intake-material boundary as `W2` with visible mixed-signal explanation instead of quietly flattening it into a generic W2 result or letting retrieval collapse into `W1`.
 - The new `W2-011` fixture upgrades this loose-summary-negation ambiguity from an uncovered heuristic into a committed eval/scoring contract with live DeepSeek evidence.
+- Hosted deployment parity for `W2-011` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation for the same AUTO prompt after redeploy finishes.
 
 Remaining gaps:
 
 - Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
-- Hosted deployment parity for `W2-011` still needs to be re-run after pushing the latest local commit.
 - The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
 ## Next Recommended Capability
