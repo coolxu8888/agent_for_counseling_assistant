@@ -75,6 +75,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "regular-intake-summary-negation-to-bps-background",
+      title: "W2 Demo: Regular intake-summary negation",
+      workflow: "W2",
+      summary: "A supervision boundary where completed intake materials should become a BPS case background instead of staying in the regular initial interview summary.",
+      input:
+        "Please organize these completed intake materials into a BPS supervision case background with confidentiality limits, risk follow-up questions, and protective factors; this is for case discussion, not the regular initial interview summary.",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

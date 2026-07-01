@@ -426,6 +426,31 @@ P：
         self.assertEqual(result["dimensions"]["无编造"]["status"], "PASS")
 
 
+    def test_w2_013_regular_initial_interview_summary_negation_background_case_passes_rules_and_rubric(self):
+        answer = """
+Case background organization
+known facts
+- The completed intake materials describe worsening sleep, family pressure, and passive disappearance wording without a reported plan or intent.
+working hypotheses
+- Current strain may reflect combined family and role-pressure stress, but the supervision hypotheses still need verification.
+protective factors
+- The client remains engaged with counseling and has at least one available support person.
+information gaps
+- Clarify current ideation intensity, access to means, confidentiality expectations, and what changed since the earlier intake wording.
+risk follow-up questions
+- Re-check current ideation, practical support, and whether any confidentiality-limit discussion needs follow-up before case sharing.
+confidentiality boundary reminders
+- Keep the material de-identified and explain the supervision-sharing boundary in counselor-facing language only.
+supervision boundary notes
+- Reorganized the completed intake materials into a supervision-oriented BPS case background, not the regular initial interview summary, diagnosis, or final risk rating.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-013", clean_answer)
+        rubric_result = run_dimension_rubric("W2-013", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+
     def test_clean_all_supports_deepseek_api_raw_file(self):
         with TemporaryDirectory(dir=Path.cwd()) as tmp:
             tmp_path = Path(tmp)

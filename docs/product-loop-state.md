@@ -52,7 +52,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, `W2-008`, `W2-009`, `W2-010`, `W2-011`, `W2-012`, and `W6-005`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008`, the English completed-intake-material W1-vs-W2 boundary `W2-009`, the Chinese-heavy completed-intake-material W1-vs-W2 boundary `W2-010`, the loose-summary-negation W1-vs-W2 boundary `W2-011`, and live local/model proof for the Chinese-heavy loose-negation W1-vs-W2 boundary `W2-012` | move to another unproven public-route ambiguity such as a mixed-risk or bilingual W1-vs-W2 intake-material organization prompt beyond the new loose-summary-negation coverage, and keep adding hosted proof only where local-vs-public behavior is still unknown |
+| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, `W2-008`, `W2-009`, `W2-010`, `W2-011`, `W2-012`, `W2-013`, and `W6-005`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008`, the English completed-intake-material W1-vs-W2 boundary `W2-009`, the Chinese-heavy completed-intake-material W1-vs-W2 boundary `W2-010`, the loose-summary-negation W1-vs-W2 boundary `W2-011`, live local/model proof for the Chinese-heavy loose-negation W1-vs-W2 boundary `W2-012`, and live local/model proof for the regular-summary-negation W1-vs-W2 boundary `W2-013` | close hosted parity for `W2-012` and `W2-013`, then move to another unproven public-route ambiguity such as a mixed-risk or bilingual W1-vs-W2 intake-material organization prompt |
 | P0 | W1 initial interview preparation guide | shipped partial | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | shipped partial | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | shipped partial | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -1381,13 +1381,54 @@ Remaining gaps:
 - Hosted deployment parity for `W2-012` is still unproven in this run; the best next verification step is a public AUTO smoke after pushing the new route contract.
 - The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
+## This Run: Intent Recognition Across Counselor Tasks
+
+Capability worked on:
+
+- `Intent recognition across counselor tasks`, specifically the W1-vs-W2 boundary where completed intake materials, supervision/BPS organization language, confidentiality-boundary wording, and the looser phrase `not the regular initial interview summary` could still lose mixed-signal metadata in the product router or collapse back to `W1` in retrieval.
+
+What changed:
+
+- Added a dedicated product-facing demo entry for this boundary in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) and [`C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js`](C:\Users\win\Documents\Codex\2026-05-15\agent\web-workbench\app.js) so the shipped workbench now exposes `completed intake materials -> supervision BPS background (regular-summary negation)` directly in the demo catalog.
+- Tightened the product-side AUTO router in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\web_workbench.py) by broadening `has_negated_initial_interview_summary_scope()` to recognize looser English phrases such as `not the regular initial interview summary`, `regular intake summary`, and `instead of leaving it in the regular initial interview summary`, so `W2` now preserves visible `W2 > W1` mixed-signal routing metadata instead of flattening to a `clear` route.
+- Brought retrieval parity into [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\run-retrieval.ps1) so the same completed-intake supervision prompt now routes to `workflow_2_case_summary` instead of falling back to `workflow_1_intake_form`.
+- Expanded eval coverage with `W2-013` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\build_workflow_eval_prompts.py), regenerated committed assets including [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W2-013-regular-initial-interview-summary-negation-case-background.txt`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\W2-013-regular-initial-interview-summary-negation-case-background.txt) and the updated [`C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\manifest.json`](C:\Users\win\Documents\Codex\2026-05-15\agent\eval-prompts\manifest.json).
+- Added scorer/rubric coverage for `W2-013` in [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\clean_eval_outputs.py), including explicit acceptance for `not the regular initial interview summary`, plus regression coverage in:
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_web_workbench.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_retrieval.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_build_workflow_eval_prompts.py)
+  - [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_clean_eval_outputs.py)
+
+Tests and evals run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_marks_mixed_signals_for_regular_initial_interview_summary_negation` -> failed red first with `route_status='clear'`, then passed green with `route_status='mixed_signals'`.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_retrieval.RunRetrievalTest.test_routes_regular_initial_interview_summary_negation_case_background_to_w2` -> failed red first with `workflow_1_intake_form`, then passed green with `workflow_2_case_summary`.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w2_regular_initial_interview_summary_negation_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w2_013_regular_initial_interview_summary_negation_background_case_passes_rules_and_rubric` -> passed after red-green implementation.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 206 tests passed.
+- `node --check web-workbench/app.js`
+- `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
+- Loaded `.env` into the process environment without printing secret values, then ran:
+  - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-013` -> passed.
+
+Outcome:
+
+- The shipped product now keeps this `regular initial interview summary` supervision/background boundary in `W2` while preserving visible `W2 > W1` mixed-signal routing metadata for counselors.
+- The new `W2-013` fixture upgrades this regular-summary-negation ambiguity from an uncovered heuristic into a committed eval/scoring contract with live DeepSeek evidence.
+- Retrieval intent selection now matches the product router for this prompt family, so completed intake materials with confidentiality-boundary wording stay inside case-background organization rather than collapsing into intake-summary handling.
+
+Remaining gaps:
+
+- Hosted deployment parity for `W2-012` and `W2-013` is still unproven in this run; the best next verification step is a public AUTO smoke after pushing the new route contract.
+- Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
+- The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
+
 ## Next Recommended Capability
 
 Continue `intent recognition across counselor tasks` as the next P0 capability.
 
 Recommended scope:
 
-- First close hosted parity for `W2-012`, then move to another unproven W1-vs-W2 ambiguity with mixed risk-language wording or bilingual intake-material organization beyond the new Chinese-heavy loose-negation coverage.
+- First close hosted parity for `W2-012` and `W2-013`, then move to another unproven W1-vs-W2 ambiguity with mixed risk-language wording or bilingual intake-material organization beyond the current loose-negation coverage.
 - Keep the same local-test, eval-fixture, live DeepSeek, and hosted-parity loop.
 - Do not shift to P1/P2 work unless it directly blocks verification of a remaining P0 boundary.
 
