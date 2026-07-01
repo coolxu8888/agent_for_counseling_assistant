@@ -85,6 +85,8 @@ def run_smoke(
     timeout=30,
     expect_pilot_ready=False,
     expect_detected_workflow="",
+    expect_route_status="",
+    expect_route_notice_substring="",
     expect_w1_mode="",
     expect_route_summary_substring="",
     expect_w1_summary_brief=False,
@@ -202,6 +204,8 @@ def run_smoke(
             report["workflow"] = {
                 "workflow": payload.get("workflow") or workflow,
                 "detected_workflow": payload.get("detected_workflow") or "",
+                "route_status": payload.get("route_status") or "",
+                "route_notice": payload.get("route_notice") or "",
                 "w1_mode": payload.get("w1_mode") or "",
                 "routing_reasons_summary": payload.get("routing_reasons_summary") or "",
                 "output_excerpt": excerpt[:240],
@@ -211,6 +215,17 @@ def run_smoke(
                 _require(
                     payload.get("detected_workflow") == expect_detected_workflow,
                     f"/api/run detected_workflow={payload.get('detected_workflow')!r}, expected {expect_detected_workflow!r}.",
+                )
+            if expect_route_status:
+                _require(
+                    payload.get("route_status") == expect_route_status,
+                    f"/api/run route_status={payload.get('route_status')!r}, expected {expect_route_status!r}.",
+                )
+            if expect_route_notice_substring:
+                route_notice = payload.get("route_notice") or ""
+                _require(
+                    expect_route_notice_substring in route_notice,
+                    f"/api/run route_notice did not include {expect_route_notice_substring!r}.",
                 )
             if expect_w1_mode:
                 _require(
@@ -246,6 +261,8 @@ def parse_args(argv=None):
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--expect-pilot-ready", action="store_true")
     parser.add_argument("--expect-detected-workflow", default="", help="Expected detected_workflow in /api/run.")
+    parser.add_argument("--expect-route-status", default="", help="Expected route_status in /api/run, for example mixed_signals.")
+    parser.add_argument("--expect-route-notice-substring", default="", help="Substring that must appear in route_notice.")
     parser.add_argument("--expect-w1-mode", default="", help="Expected W1 mode in /api/run, for example initial_interview_summary.")
     parser.add_argument("--expect-route-summary-substring", default="", help="Substring that must appear in routing_reasons_summary.")
     parser.add_argument("--expect-w1-summary-brief", action="store_true", help="Require a populated w1_summary_brief payload.")
@@ -268,6 +285,8 @@ def main(argv=None):
         timeout=args.timeout,
         expect_pilot_ready=args.expect_pilot_ready,
         expect_detected_workflow=args.expect_detected_workflow,
+        expect_route_status=args.expect_route_status,
+        expect_route_notice_substring=args.expect_route_notice_substring,
         expect_w1_mode=args.expect_w1_mode,
         expect_route_summary_substring=args.expect_route_summary_substring,
         expect_w1_summary_brief=args.expect_w1_summary_brief,

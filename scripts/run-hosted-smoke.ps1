@@ -9,6 +9,8 @@ param(
     [string]$Input = "",
     [switch]$ExpectPilotReady,
     [string]$ExpectDetectedWorkflow = "",
+    [string]$ExpectRouteStatus = "",
+    [string]$ExpectRouteNoticeSubstring = "",
     [string]$ExpectW1Mode = "",
     [string]$ExpectRouteSummarySubstring = "",
     [switch]$ExpectW1SummaryBrief,
@@ -39,6 +41,12 @@ if ($ExpectPilotReady) {
 }
 if ($ExpectDetectedWorkflow) {
     $args += @("--expect-detected-workflow", $ExpectDetectedWorkflow)
+}
+if ($ExpectRouteStatus) {
+    $args += @("--expect-route-status", $ExpectRouteStatus)
+}
+if ($ExpectRouteNoticeSubstring) {
+    $args += @("--expect-route-notice-substring", $ExpectRouteNoticeSubstring)
 }
 if ($ExpectW1Mode) {
     $args += @("--expect-w1-mode", $ExpectW1Mode)

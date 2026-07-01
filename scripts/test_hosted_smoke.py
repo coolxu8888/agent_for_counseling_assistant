@@ -20,6 +20,23 @@ class HostedSmokeTest(unittest.TestCase):
 
         self.assertEqual(args.workflow, "AUTO")
 
+    def test_parse_args_accepts_route_metadata_expectations(self):
+        args = hosted_smoke.parse_args(
+            [
+                "--base-url",
+                "https://example.test",
+                "--workflow",
+                "AUTO",
+                "--expect-route-status",
+                "mixed_signals",
+                "--expect-route-notice-substring",
+                "case background",
+            ]
+        )
+
+        self.assertEqual(args.expect_route_status, "mixed_signals")
+        self.assertEqual(args.expect_route_notice_substring, "case background")
+
     def test_run_smoke_checks_core_endpoints_and_login(self):
         request_json = Mock(
             side_effect=[
@@ -32,7 +49,7 @@ class HostedSmokeTest(unittest.TestCase):
                             "pilot_ready": True,
                             "summary": {"fail_count": 0, "warn_count": 1},
                             "checks": [],
-                        }
+                        },
                     },
                     {},
                 ),
@@ -90,7 +107,7 @@ class HostedSmokeTest(unittest.TestCase):
                             "pilot_ready": True,
                             "summary": {"fail_count": 0, "warn_count": 1},
                             "checks": [],
-                        }
+                        },
                     },
                     {},
                 ),
@@ -137,7 +154,7 @@ class HostedSmokeTest(unittest.TestCase):
                             "pilot_ready": True,
                             "summary": {"fail_count": 0, "warn_count": 1},
                             "checks": [],
-                        }
+                        },
                     },
                     {},
                 ),
@@ -161,6 +178,8 @@ class HostedSmokeTest(unittest.TestCase):
                         "status": "success",
                         "workflow": "W1",
                         "detected_workflow": "W1",
+                        "route_status": "mixed_signals",
+                        "route_notice": "Initial interview summary because the request asked for the fixed template instead of a counseling record.",
                         "w1_mode": "initial_interview_summary",
                         "routing_reasons_summary": "W1 via intake summary cues; W3 down-ranked by negated record wording.",
                         "w1_summary_brief": {"main_distress": "Sleep worsened after the breakup."},
@@ -177,8 +196,10 @@ class HostedSmokeTest(unittest.TestCase):
             username="pilot",
             password="pilot-pass-123",
             workflow="AUTO",
-            input_text="请用固定模板整理首访材料，保留风险变化线索，不要写成咨询记录。",
+            input_text="Please organize completed first-interview material with the fixed template rather than a counseling record.",
             expect_detected_workflow="W1",
+            expect_route_status="mixed_signals",
+            expect_route_notice_substring="fixed template",
             expect_w1_mode="initial_interview_summary",
             expect_route_summary_substring="W1 via intake summary cues",
             expect_w1_summary_brief=True,
@@ -187,7 +208,9 @@ class HostedSmokeTest(unittest.TestCase):
 
         self.assertEqual(report["workflow"]["workflow"], "W1")
         self.assertEqual(report["workflow"]["detected_workflow"], "W1")
+        self.assertEqual(report["workflow"]["route_status"], "mixed_signals")
         self.assertEqual(report["workflow"]["w1_mode"], "initial_interview_summary")
+        self.assertIn("fixed template", report["workflow"]["route_notice"])
         self.assertIn("W1 via intake summary cues", report["workflow"]["routing_reasons_summary"])
 
     def test_run_smoke_rejects_not_ready_deployment_when_required(self):
@@ -202,7 +225,7 @@ class HostedSmokeTest(unittest.TestCase):
                             "pilot_ready": False,
                             "summary": {"fail_count": 1, "warn_count": 1},
                             "checks": [{"id": "deepseek_api", "status": "fail"}],
-                        }
+                        },
                     },
                     {},
                 ),
