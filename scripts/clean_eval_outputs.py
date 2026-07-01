@@ -135,6 +135,7 @@ RULES["W2-009"] = {
 }
 RULES["W2-010"] = RULES["W2-009"]
 RULES["W2-011"] = RULES["W2-009"]
+RULES["W2-012"] = RULES["W2-009"]
 
 RULES["W4-001"] = {
     "required_any": [
@@ -383,6 +384,7 @@ DIMENSION_RUBRICS["W2-009"] = {
 }
 DIMENSION_RUBRICS["W2-010"] = DIMENSION_RUBRICS["W2-009"]
 DIMENSION_RUBRICS["W2-011"] = DIMENSION_RUBRICS["W2-009"]
+DIMENSION_RUBRICS["W2-012"] = DIMENSION_RUBRICS["W2-009"]
 
 DIMENSION_RUBRICS["W4-001"] = {
     "Route correct": {"required_any": [["CBT", "基于CBT框架"], ["case conceptualization", "framework-based case conceptualization", "个案概念化", "概念化"]]},
@@ -524,6 +526,7 @@ START_CANDIDATES["W2-008"] = ["Case background organization", "supervision case 
 START_CANDIDATES["W2-009"] = ["Case background organization", "supervision-oriented BPS case background", "Known facts", "Working hypotheses", "Protective factors"]
 START_CANDIDATES["W2-010"] = ["Case background organization", "supervision-oriented BPS case background", "Known facts", "Working hypotheses", "Protective factors"]
 START_CANDIDATES["W2-011"] = ["Case background organization", "supervision-oriented BPS case background", "Known facts", "Working hypotheses", "Protective factors"]
+START_CANDIDATES["W2-012"] = ["Case background organization", "supervision-oriented BPS case background", "Known facts", "Working hypotheses", "Protective factors"]
 START_CANDIDATES["W3-005"] = ["DAP", "Data", "Assessment", "Plan"]
 START_CANDIDATES["W3-007"] = ["BIRP", "Behavior", "Intervention", "Response", "Plan"]
 

@@ -294,7 +294,14 @@ function Select-Workflow {
         (U "\u4e0d\u8981.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
         (U "\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
         (U "\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
-        (U "\u4e0d\u8981\u7ee7\u7eed\u6309.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f")
+        (U "\u4e0d\u8981\u7ee7\u7eed\u6309.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
+        (U "\u4e0d\u8981.*\u6309.*\u5e38\u89c4\u521d\u8bbf\u603b\u7ed3"),
+        (U "\u4e0d\u8981.*\u6309.*\u901a\u5e38\u7684?\u521d\u8bbf\u603b\u7ed3"),
+        (U "\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u683c\u5f0f"),
+        (U "\u522b\u518d.*\u6309.*\u521d\u8bbf\u603b\u7ed3"),
+        (U "\u522b.*\u5199\u6210.*\u521d\u8bbf\u603b\u7ed3"),
+        (U "\u4e0d\u8981\u8fd8\u662f.*\u521d\u8bbf\u603b\u7ed3"),
+        (U "\u4e0d\u8981\u6cbf\u7528.*\u521d\u8bbf\u603b\u7ed3")
     )
 
     if ($negatedInitialInterviewSummary -and (Test-AnyPattern $Text @(
@@ -316,6 +323,8 @@ function Select-Workflow {
             "initial interview summary",
             "fixed intake template",
             "initial interview template",
+            (U "\u5df2\u5b8c\u6210\u7684?\u521d\u8bbf\u8bb0\u5f55"),
+            (U "\u5df2\u5b8c\u6210\u7684?\u9996\u8bbf\u6750\u6599"),
             (U "\u521d\u8bbf\u603b\u7ed3"),
             (U "\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55"),
             (U "\u9996\u6b21\u8bbf\u8c08\u6750\u6599"),
@@ -628,6 +637,8 @@ function Select-Intent {
                 "initial interview template",
                 (U "\u5df2\u7ecf\u5b8c\u6210\u7684\u521d\u8bbf\u8bb0\u5f55"),
                 (U "\u5df2\u5b8c\u6210\u521d\u8bbf"),
+                (U "\u5df2\u5b8c\u6210\u7684?\u521d\u8bbf\u8bb0\u5f55"),
+                (U "\u5df2\u5b8c\u6210\u7684?\u9996\u8bbf\u6750\u6599"),
                 (U "\u521d\u59cb\u8bbf\u8c08\u6750\u6599\u603b\u7ed3"),
                 (U "\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
                 (U "\u521d\u8bbf\u603b\u7ed3"),

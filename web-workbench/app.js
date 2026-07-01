@@ -66,6 +66,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "chinese-loose-intake-summary-negation-to-bps-background",
+      title: "W2 Demo: Chinese loose intake-summary negation",
+      workflow: "W2",
+      summary: "A Chinese-heavy loose-negation boundary where completed intake material should become a supervision BPS background instead of staying in the usual initial interview summary.",
+      input:
+        "请把这份已完成的首访材料整理成督导讨论用的个案背景，按BPS梳理已知事实、信息缺口、保护因素和风险追问，不要还是按常规初访总结。",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

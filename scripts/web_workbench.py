@@ -124,6 +124,17 @@ DEMO_SCENARIOS = [
         "output_style": "supervision_summary",
     },
     {
+        "id": "chinese-loose-intake-summary-negation-to-bps-background",
+        "title": "W2 Demo: Chinese loose intake-summary negation",
+        "workflow": "W2",
+        "summary": "A Chinese-heavy loose-negation boundary where completed intake material should become a supervision BPS background instead of staying in the usual initial interview summary.",
+        "input": (
+            "请把这份已完成的首访材料整理成督导讨论用的个案背景，按BPS梳理已知事实、信息缺口、保护因素和风险追问，"
+            "不要还是按常规初访总结。"
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "session-sleep-communication",
         "title": "W3 Demo: Session note",
         "workflow": "W3",
@@ -309,6 +320,8 @@ ROUTING_RULES = {
             (r"\u6765\u8bbf\u4fe1\u606f", 3),
             (r"\u521d\u8bbf\u603b\u7ed3", 6),
             (r"\u521d\u8bbf\u7b14\u8bb0", 5),
+            (r"\u5df2\u5b8c\u6210\u7684?\u521d\u8bbf\u8bb0\u5f55", 5),
+            (r"\u5df2\u5b8c\u6210\u7684?\u9996\u8bbf\u6750\u6599", 5),
             (r"\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55", 6),
             (r"\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55", 6),
             (r"\u9996\u8bbf\u6750\u6599", 5),
@@ -835,6 +848,13 @@ def has_negated_initial_interview_summary_scope(text):
         r"\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
         r"\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
         r"\u4e0d\u8981\u7ee7\u7eed\u6309.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
+        r"\u4e0d\u8981.*\u6309.*\u5e38\u89c4\u521d\u8bbf\u603b\u7ed3",
+        r"\u4e0d\u8981.*\u6309.*\u901a\u5e38\u7684?\u521d\u8bbf\u603b\u7ed3",
+        r"\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u683c\u5f0f",
+        r"\u522b\u518d.*\u6309.*\u521d\u8bbf\u603b\u7ed3",
+        r"\u522b.*\u5199\u6210.*\u521d\u8bbf\u603b\u7ed3",
+        r"\u4e0d\u8981\u8fd8\u662f.*\u521d\u8bbf\u603b\u7ed3",
+        r"\u4e0d\u8981\u6cbf\u7528.*\u521d\u8bbf\u603b\u7ed3",
     ]
     return any(re.search(pattern, text) for pattern in patterns)
 
