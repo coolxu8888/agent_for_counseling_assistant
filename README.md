@@ -29,7 +29,6 @@ python scripts/web_workbench.py --host 0.0.0.0 --port $PORT
 - `DEEPSEEK_API_KEY`
 - `WORKBENCH_USER`
 - `WORKBENCH_PASSWORD`
-- `WORKBENCH_SECRET_KEY`
 
 按需变量：
 
