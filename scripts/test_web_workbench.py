@@ -572,6 +572,18 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(details["top_candidates"][1]["workflow"], "W1")
         self.assertIn("case background", details["route_notice"].lower())
 
+    def test_detect_workflow_marks_mixed_signals_for_bilingual_standard_risk_block_negation(self):
+        details = web_workbench.detect_workflow_details(
+            "请把已完成的首访材料整理成督导 case background，保留 protective factors 和 risk follow-up questions，"
+            "不要把它放回 standard initial interview summary risk block。"
+        )
+
+        self.assertEqual(details["workflow"], "W2")
+        self.assertEqual(details["route_status"], "mixed_signals")
+        self.assertEqual(details["top_candidates"][0]["workflow"], "W2")
+        self.assertEqual(details["top_candidates"][1]["workflow"], "W1")
+        self.assertIn("case background", details["route_notice"].lower())
+
     def test_detect_workflow_prefers_w6_when_bilingual_roadmap_request_uses_session_note_as_source_material(self):
         details = web_workbench.detect_workflow_details(
             "请把今天的session note作为素材，整理接下来几次咨询的路线图，"
@@ -609,6 +621,7 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("initial-interview-material-to-bps-background", scenario_ids)
         self.assertIn("chinese-loose-intake-summary-negation-to-bps-background", scenario_ids)
         self.assertIn("regular-intake-summary-negation-to-bps-background", scenario_ids)
+        self.assertIn("bilingual-risk-block-negation-to-bps-background", scenario_ids)
         self.assertIn("conceptualization-bilingual-session-note-boundary", scenario_ids)
         self.assertIn("roadmap-bilingual-session-note-source-material", scenario_ids)
 

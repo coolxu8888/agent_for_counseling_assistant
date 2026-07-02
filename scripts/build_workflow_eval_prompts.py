@@ -220,6 +220,12 @@ EVALS = [
         "expected": "Workflow 2: standard initial-interview-summary risk-block negation for case background organization. The answer should reorganize completed first-interview material into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions, keep the earlier risk wording visible as source material rather than a final rating, and avoid drifting back into the standard initial interview summary risk block even though the request is framed around risk-language handling.",
     },
     {
+        "id": "W2-015",
+        "name": "bilingual-standard-initial-interview-summary-risk-block-negation-case-background",
+        "query": "请把已完成的首访材料整理成督导 case background，保留 protective factors 和 risk follow-up questions，不要把它放回 standard initial interview summary risk block。",
+        "expected": "Workflow 2: bilingual standard initial-interview-summary risk-block negation for case background organization. The answer should reorganize completed first-interview material into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions, keep the earlier risk wording visible as source material rather than a final rating, and avoid drifting back into the standard initial interview summary risk block even though the request uses mixed Chinese and English risk-language wording.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",

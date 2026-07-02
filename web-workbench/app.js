@@ -93,6 +93,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "bilingual-risk-block-negation-to-bps-background",
+      title: "W2 Demo: Bilingual risk-block negation",
+      workflow: "W2",
+      summary: "A bilingual mixed-risk boundary where completed first-interview material should become a supervision case background instead of going back into the standard intake-summary risk block.",
+      input:
+        "请把已完成的首访材料整理成督导 case background，保留 protective factors 和 risk follow-up questions，不要把它放回 standard initial interview summary risk block。",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

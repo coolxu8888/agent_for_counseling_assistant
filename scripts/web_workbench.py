@@ -157,6 +157,17 @@ DEMO_SCENARIOS = [
         "output_style": "supervision_summary",
     },
     {
+        "id": "bilingual-risk-block-negation-to-bps-background",
+        "title": "W2 Demo: Bilingual risk-block negation",
+        "workflow": "W2",
+        "summary": "A bilingual mixed-risk boundary where completed first-interview material should become a supervision case background instead of going back into the standard intake-summary risk block.",
+        "input": (
+            "请把已完成的首访材料整理成督导 case background，保留 protective factors 和 risk follow-up questions，"
+            "不要把它放回 standard initial interview summary risk block。"
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "session-sleep-communication",
         "title": "W3 Demo: Session note",
         "workflow": "W3",
@@ -882,6 +893,8 @@ def has_negated_initial_interview_summary_scope(text):
         r"don't leave it in.*standard initial interview summary risk block",
         r"instead of (the )?standard initial interview summary risk block",
         r"instead of (the )?standard intake summary risk block",
+        r"\u4e0d\u8981.*(?:\u653e\u56de|\u653e\u5728|\u5199\u56de).*(?:standard )?initial interview summary risk block",
+        r"\u4e0d\u8981.*(?:\u653e\u56de|\u653e\u5728|\u5199\u56de).*(?:standard )?intake summary risk block",
         r"\u4e0d\u8981.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
         r"\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
         r"\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",

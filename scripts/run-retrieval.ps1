@@ -307,6 +307,8 @@ function Select-Workflow {
         "don't leave it in.*standard initial interview summary risk block",
         "instead of (the )?standard initial interview summary risk block",
         "instead of (the )?standard intake summary risk block",
+        (U "\u4e0d\u8981.*(?:\u653e\u56de|\u653e\u5728|\u5199\u56de).*(?:standard )?initial interview summary risk block"),
+        (U "\u4e0d\u8981.*(?:\u653e\u56de|\u653e\u5728|\u5199\u56de).*(?:standard )?intake summary risk block"),
         (U "\u4e0d\u8981.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
         (U "\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),
         (U "\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f"),

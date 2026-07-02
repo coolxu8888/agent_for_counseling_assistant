@@ -219,6 +219,14 @@ class BuildWorkflowEvalPromptsTest(unittest.TestCase):
         self.assertIn("protective factors", w2["query"].lower())
         self.assertIn("standard initial-interview-summary risk-block negation", w2["expected"].lower())
 
+    def test_evals_include_w2_bilingual_standard_initial_interview_summary_risk_block_boundary_case(self):
+        w2 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W2-015")
+
+        self.assertIn("首访材料", w2["query"])
+        self.assertIn("case background", w2["query"].lower())
+        self.assertIn("standard initial interview summary risk block", w2["query"].lower())
+        self.assertIn("bilingual standard initial-interview-summary risk-block negation", w2["expected"].lower())
+
     def test_evals_include_w5_bilingual_record_negation_case(self):
         w5 = next(item for item in build_workflow_eval_prompts.EVALS if item["id"] == "W5-005")
 

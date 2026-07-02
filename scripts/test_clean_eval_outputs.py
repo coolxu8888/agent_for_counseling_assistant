@@ -474,6 +474,29 @@ supervision boundary notes
         self.assertEqual(rule_result["status"], "PASS")
         self.assertEqual(rubric_result["status"], "PASS")
 
+    def test_w2_015_bilingual_standard_initial_interview_summary_risk_block_background_case_passes_rules_and_rubric(self):
+        answer = """
+Case background organization
+known facts
+- The completed first-interview material describes worsening sleep, family pressure, and earlier passive disappearance wording without a reported plan or intent.
+working hypotheses
+- Current distress may reflect combined interpersonal strain and self-critical pressure, but the supervision hypotheses still need verification.
+protective factors
+- The client remains willing to attend counseling and can name at least one available support person.
+information gaps
+- Clarify current ideation intensity, what shifted since the earlier risk wording, means access, and what support can be activated after sessions.
+risk follow-up questions
+- Re-check what changed around the passive-risk clue, what practical support is available, and whether the counselor needs to revisit confidentiality limits before supervision discussion.
+supervision boundary notes
+- Reorganized the completed first-interview material into a supervision-oriented BPS case background, not the standard initial interview summary risk block, diagnosis, or final risk rating.
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W2-015", clean_answer)
+        rubric_result = run_dimension_rubric("W2-015", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+
     def test_clean_all_supports_deepseek_api_raw_file(self):
         with TemporaryDirectory(dir=Path.cwd()) as tmp:
             tmp_path = Path(tmp)
