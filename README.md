@@ -45,4 +45,4 @@ python scripts/web_workbench.py --host 0.0.0.0 --port $PORT
 - `scripts/run_agent.py` 内置的角色、安全边界、Workflow 固定输出合同与工作流补充指令。
 - `rag/**/*.md` 中带非空 `chunk_id` 的检索片段，由 retrieval map 按工作流装配。
 - 当前用户输入；启用结构化输出时同时装配对应 schema 合同。
-- `counselor-agent-v0.1-system-prompt.md` 是模型配置参考；文件名中的 `v0.1` 仅为兼容标识。
+- `counselor-agent-v0.1-system-prompt.md` 用于兼容离线评测和三个基础工作流 prompt；Web 完整能力由运行时组装，文件名中的 `v0.1` 仅为兼容标识。
