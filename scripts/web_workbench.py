@@ -146,6 +146,17 @@ DEMO_SCENARIOS = [
         "output_style": "supervision_summary",
     },
     {
+        "id": "standard-risk-block-negation-to-bps-background",
+        "title": "W2 Demo: Standard risk-block negation",
+        "workflow": "W2",
+        "summary": "A mixed-risk boundary where completed first-interview material should become a supervision BPS background instead of staying in the standard intake-summary risk block.",
+        "input": (
+            "Use completed first interview material to write a supervision case background with protective factors"
+            " and risk follow-up questions, not the standard initial interview summary risk block."
+        ),
+        "output_style": "supervision_summary",
+    },
+    {
         "id": "session-sleep-communication",
         "title": "W3 Demo: Session note",
         "workflow": "W3",
@@ -865,6 +876,12 @@ def has_negated_initial_interview_summary_scope(text):
         r"don't use.*regular initial interview summary",
         r"do not leave it in.*regular initial interview summary",
         r"don't leave it in.*regular initial interview summary",
+        r"not the standard initial interview summary risk block",
+        r"not the standard intake summary risk block",
+        r"do not leave it in.*standard initial interview summary risk block",
+        r"don't leave it in.*standard initial interview summary risk block",
+        r"instead of (the )?standard initial interview summary risk block",
+        r"instead of (the )?standard intake summary risk block",
         r"\u4e0d\u8981.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
         r"\u4e0d\u8981.*\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
         r"\u800c\u4e0d\u662f.*\u56fa\u5b9a\u521d\u8bbf\u603b\u7ed3\u6a21\u677f",
@@ -876,6 +893,10 @@ def has_negated_initial_interview_summary_scope(text):
         r"\u522b.*\u5199\u6210.*\u521d\u8bbf\u603b\u7ed3",
         r"\u4e0d\u8981\u8fd8\u662f.*\u521d\u8bbf\u603b\u7ed3",
         r"\u4e0d\u8981\u6cbf\u7528.*\u521d\u8bbf\u603b\u7ed3",
+        r"\u4e0d\u8981.*\u6807\u51c6\u521d\u8bbf\u603b\u7ed3.*\u98ce\u9669\u680f",
+        r"\u4e0d\u8981.*\u5e38\u89c4\u521d\u8bbf\u603b\u7ed3.*\u98ce\u9669\u680f",
+        r"\u4e0d\u8981.*\u98ce\u9669\u680f.*\u521d\u8bbf\u603b\u7ed3",
+        r"\u4e0d\u8981\u6cbf\u7528.*\u521d\u8bbf\u603b\u7ed3.*\u98ce\u9669\u680f",
     ]
     return any(re.search(pattern, text) for pattern in patterns)
 

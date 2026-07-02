@@ -84,6 +84,15 @@ const FALLBACK_DEMO_CATALOG = {
       output_style: "supervision_summary",
     },
     {
+      id: "standard-risk-block-negation-to-bps-background",
+      title: "W2 Demo: Standard risk-block negation",
+      workflow: "W2",
+      summary: "A mixed-risk boundary where completed first-interview material should become a supervision BPS background instead of staying in the standard intake-summary risk block.",
+      input:
+        "Use completed first interview material to write a supervision case background with protective factors and risk follow-up questions, not the standard initial interview summary risk block.",
+      output_style: "supervision_summary",
+    },
+    {
       id: "session-sleep-communication",
       title: "W3 Demo: Session note",
       workflow: "W3",

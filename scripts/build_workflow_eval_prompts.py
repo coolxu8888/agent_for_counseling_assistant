@@ -214,6 +214,12 @@ EVALS = [
         "expected": "Workflow 2: regular initial-interview-summary negation for case background organization. The answer should reorganize completed intake materials into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, confidentiality-boundary reminders, and bounded risk follow-up questions, and avoid drifting back into the regular initial interview summary even though the source material came from a completed intake workflow.",
     },
     {
+        "id": "W2-014",
+        "name": "standard-initial-interview-summary-risk-block-negation-case-background",
+        "query": "Use completed first interview material to write a supervision case background with protective factors and risk follow-up questions, not the standard initial interview summary risk block.",
+        "expected": "Workflow 2: standard initial-interview-summary risk-block negation for case background organization. The answer should reorganize completed first-interview material into a supervision-oriented BPS case background, preserve known facts, working hypotheses, information gaps, protective factors, and bounded risk follow-up questions, keep the earlier risk wording visible as source material rather than a final rating, and avoid drifting back into the standard initial interview summary risk block even though the request is framed around risk-language handling.",
+    },
+    {
         "id": "W3-004",
         "name": "first-interview-notes-to-record",
         "query": "These are my first interview notes from today. Turn them into a counseling record with a risk update and next session focus.",
