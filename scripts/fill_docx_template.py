@@ -123,6 +123,97 @@ def _add_section_entries(entries, sections):
             _add_entry(entries, f"sections[{index}].fields", field_lines, [heading])
 
 
+W1_SUMMARY_SECTION_ALIASES = {
+    "main_distress": [
+        "Main distress",
+        "Main complaint",
+        "Presenting concern",
+        "Presenting concerns",
+    ],
+    "basic_situation": [
+        "Basic situation",
+        "Background",
+        "Current situation",
+        "Current stressors and background",
+    ],
+    "functioning": [
+        "Functioning",
+        "Emotion and functioning",
+        "Emotional functioning",
+    ],
+    "support_coping": [
+        "Support and coping",
+        "Support system",
+        "Coping resources",
+    ],
+    "history": [
+        "Prior help-seeking and treatment history",
+        "Help-seeking history",
+        "Treatment history",
+        "Prior counseling history",
+    ],
+    "psychological_tests": [
+        "Psychological tests",
+        "Assessment findings",
+        "Psychological assessment",
+    ],
+    "risk_crisis": [
+        "Risk and crisis information",
+        "Risk and crisis",
+        "Risk information",
+        "Safety risk and crisis",
+    ],
+    "handling_suggestion": [
+        "Handling suggestions",
+        "Counselor handling suggestions",
+        "Suggested handling",
+    ],
+    "other_notes": [
+        "Other notes",
+        "Additional notes",
+    ],
+}
+
+W1_SUMMARY_BUCKET_ALIASES = {
+    "known_facts": ["known facts", "documented facts", "facts"],
+    "unclear_or_missing": [
+        "unclear or missing",
+        "missing information",
+        "information gaps",
+        "items to verify",
+    ],
+    "follow_up_questions": [
+        "follow-up questions",
+        "follow up questions",
+        "questions to verify",
+        "next questions",
+    ],
+}
+
+
+def _w1_summary_aliases(section):
+    section_id = section.get("id") or ""
+    heading = section.get("heading") or section.get("title") or ""
+    aliases = [heading]
+    aliases.extend(W1_SUMMARY_SECTION_ALIASES.get(section_id, []))
+    return [alias for alias in aliases if alias]
+
+
+def _add_w1_summary_entries(entries, sections):
+    for index, section in enumerate(sections or []):
+        base_aliases = _w1_summary_aliases(section)
+        for bucket, suffixes in W1_SUMMARY_BUCKET_ALIASES.items():
+            value = section.get(bucket)
+            if not value:
+                continue
+            aliases = []
+            for base_alias in base_aliases:
+                aliases.append(base_alias)
+                for suffix in suffixes:
+                    aliases.append(f"{base_alias} {suffix}")
+            _add_entry(entries, f"sections[{index}].{bucket}", value, aliases)
+
+
 def build_source_map(data):
     entries = []
     if not isinstance(data, dict):
@@ -173,6 +264,9 @@ def build_source_map(data):
             ]
             if matching_sections:
                 _add_entry(entries, f"sections.{normalize_label(alias)}", matching_sections, [alias])
+
+    if document_type == "initial_session_summary":
+        _add_w1_summary_entries(entries, data.get("sections"))
 
     _add_entry(entries, "boundary_notes", data.get("boundary_notes"), ["边界说明", "伦理边界", "注意事项"])
     return entries
@@ -883,7 +977,7 @@ def fill_tables(root, source_map, report):
 
 
 def _paragraph_label_and_value(text, include_prefilled=False):
-    match = re.match(r"^\s*(?P<label>[^：:Ŗē\n]{1,40})(?P<sep>[：:Ŗē])(?P<value>.*)$", text or "")
+    match = re.match(r"^\s*(?P<label>[^：:Ŗē\n]{1,200})(?P<sep>[：:Ŗē]\s*)(?P<value>.*)$", text or "")
     if not match:
         return None
     value = match.group("value")
@@ -893,7 +987,7 @@ def _paragraph_label_and_value(text, include_prefilled=False):
 
 
 def _paragraph_label_and_placeholder(text):
-    match = re.match(r"^\s*(?P<label>[^：:\n]{1,40})(?P<sep>[：:])(?P<value>.*)$", text or "")
+    match = re.match(r"^\s*(?P<label>[^：:\n]{1,200})(?P<sep>[：:]\s*)(?P<value>.*)$", text or "")
     if not match:
         return None
     value = match.group("value")

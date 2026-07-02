@@ -67,6 +67,32 @@ class FillDocxTemplateTest(unittest.TestCase):
             "boundary_notes": [],
         }
 
+    def sample_w1_summary_structured(self):
+        return {
+            "workflow": "W1",
+            "document_type": "initial_session_summary",
+            "title": "Initial interview summary",
+            "sections": [
+                {
+                    "id": "main_distress",
+                    "heading": "Main distress",
+                    "known_facts": ["Sleep worsened after the breakup."],
+                    "unclear_or_missing": ["Duration of the low mood was not documented."],
+                    "follow_up_questions": ["Ask when the sleep change started."],
+                },
+                {
+                    "id": "risk_crisis",
+                    "heading": "Risk and crisis information",
+                    "known_facts": ["The notes mention passive disappearance language without a plan."],
+                    "unclear_or_missing": ["Access to means and prior attempts were not documented."],
+                    "follow_up_questions": ["Ask about self-harm history, plan, means, and protective factors."],
+                },
+            ],
+            "boundary_notes": [
+                "Organize only the material the counselor provided. Do not invent missing facts, final diagnoses, or final risk ratings."
+            ],
+        }
+
     def sample_w2_structured(self):
         return {
             "workflow": "W2",
@@ -228,6 +254,23 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertEqual(
             mapped_paths["Recommended focus"],
             "recommended_focus",
+        )
+
+    def test_build_template_mapping_matches_w1_summary_bucket_labels(self):
+        slots = extract_template_slots_from_xml(self.w1_summary_placeholder_xml())
+        source_paths = build_source_paths(self.sample_w1_summary_structured())
+
+        mapping = build_template_mapping(slots, source_paths)
+
+        mapped_paths = {item["template_label"]: item["source_path"] for item in mapping["mappings"]}
+        self.assertEqual(mapped_paths["Main complaint known facts"], "sections[0].known_facts")
+        self.assertEqual(
+            mapped_paths["Risk and crisis information missing information"],
+            "sections[1].unclear_or_missing",
+        )
+        self.assertEqual(
+            mapped_paths["Risk and crisis information follow-up questions"],
+            "sections[1].follow_up_questions",
         )
 
     def test_build_llm_mapping_prompt_constrains_model_to_json_and_source_paths(self):
@@ -804,6 +847,19 @@ class FillDocxTemplateTest(unittest.TestCase):
             "</w:document>"
         )
 
+    def w1_summary_placeholder_xml(self):
+        return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            f'<w:document xmlns:w="{WORD_NS}">'
+            "<w:body>"
+            "<w:p><w:r><w:t>Main complaint known facts: ____</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>Risk and crisis information missing information: ____</w:t></w:r></w:p>"
+            "<w:p><w:r><w:t>Risk and crisis information follow-up questions: ____</w:t></w:r></w:p>"
+            "<w:sectPr/>"
+            "</w:body>"
+            "</w:document>"
+        )
+
     def non_placeholder_table_xml(self):
         return (
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -859,6 +915,33 @@ class FillDocxTemplateTest(unittest.TestCase):
         self.assertIn("出现被动自杀意念，无具体计划。", document_xml)
         self.assertIn("下次咨询重点：继续评估安全情况", document_xml)
         self.assertEqual(len(saved_report["filled_fields"]), 2)
+
+    def test_fill_docx_template_fills_w1_summary_bucket_placeholders(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            template_path = tmp_path / "template.docx"
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            write_docx_package(template_path, self.w1_summary_placeholder_xml())
+            structured_path.write_text(
+                json.dumps(self.sample_w1_summary_structured(), ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+            document_xml = self.read_document_xml(output_path)
+
+        self.assertEqual(report["status"], "PASS")
+        self.assertIn("Main complaint known facts: Sleep worsened after the breakup.", document_xml)
+        self.assertIn(
+            "Risk and crisis information missing information: Access to means and prior attempts were not documented.",
+            document_xml,
+        )
+        self.assertIn(
+            "Risk and crisis information follow-up questions: Ask about self-harm history, plan, means, and protective factors.",
+            document_xml,
+        )
 
     def test_fill_docx_template_fills_single_cell_table_block(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -113,6 +113,65 @@ class RunTemplateFillEvalTest(unittest.TestCase):
         self.assertEqual(result["report"]["llm_status"], "success")
         self.assertEqual(result["mapping"]["mappings"][0]["source_path"], "next_session_focus")
 
+    def test_run_single_template_fill_eval_passes_deterministic_w1_summary_mapping(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            template_xml = root / "template.xml"
+            structured_output = root / "structured.json"
+            result_dir = root / "results"
+            template_xml.write_text(
+                """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t>Main complaint known facts: ____</w:t></w:r></w:p>
+    <w:sectPr />
+  </w:body>
+</w:document>
+""",
+                encoding="utf-8",
+            )
+            structured_output.write_text(
+                json.dumps(
+                    {
+                        "workflow": "W1",
+                        "document_type": "initial_session_summary",
+                        "title": "Initial interview summary",
+                        "sections": [
+                            {
+                                "id": "main_distress",
+                                "heading": "Main distress",
+                                "known_facts": ["Sleep worsened after the breakup."],
+                                "unclear_or_missing": ["Duration of the low mood was not documented."],
+                                "follow_up_questions": ["Ask when the sleep change started."],
+                            }
+                        ],
+                        "boundary_notes": ["Use counselor-provided material only."],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            item = {
+                "id": "TF-W1",
+                "name": "template-deterministic-w1-summary",
+                "template_xml_file": str(template_xml),
+                "structured_output_file": str(structured_output),
+                "expected_source_path": "sections[0].known_facts",
+                "expected_label": "Main complaint known facts",
+                "expected_output_contains": ["Sleep worsened after the breakup."],
+            }
+
+            result = run_single_template_fill_eval(
+                item,
+                DeepSeekConfig(api_key="test-key", model="deepseek-v4-flash", base_url="https://example.test"),
+                result_dir,
+                http_post_json=lambda *_args, **_kwargs: None,
+            )
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["report"]["llm_status"], "skipped")
+        self.assertEqual(result["mapping"]["mappings"][0]["source_path"], "sections[0].known_facts")
+
 
 if __name__ == "__main__":
     unittest.main()
