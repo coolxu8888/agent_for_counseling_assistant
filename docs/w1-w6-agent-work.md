@@ -73,7 +73,7 @@ Acceptance:
 
 ## Agent C — Repository Integration
 
-Status: assigned — Agents A and B approved
+Status: complete — integration, spec review, and quality review approved
 
 Owned files:
 
@@ -115,8 +115,8 @@ Quality reviewer: read-only; inspect maintainability, edge cases, test quality, 
 - [x] Agent A quality review approved
 - [x] Agent B evidence audit complete
 - [x] Agent B spec review approved
-- [ ] Agent C repository integration complete
-- [ ] Agent C spec review approved
-- [ ] Agent C quality review approved
-- [ ] Integrated verification passes
-- [ ] Notion overview synchronized
+- [x] Agent C repository integration complete
+- [x] Agent C spec review approved
+- [x] Agent C quality review approved
+- [x] Integrated verification passes
+- [x] Notion overview synchronized
