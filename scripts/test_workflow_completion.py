@@ -170,6 +170,26 @@ class WorkflowCompletionTest(unittest.TestCase):
         self.assertIn("完成", rendered)
         self.assertIn("local_tests", rendered)
 
+    def test_render_markdown_escapes_pipe_and_backslash_in_name(self):
+        data = self.matrix()
+        data["workflows"]["W1"]["name"] = r"Research\Review | approval"
+        validate_matrix(data, self.repo_root)
+        rendered = render_markdown(data)
+        self.assertIn(r"Research\\Review \| approval", rendered)
+        self.assertNotIn(r"Research\Review | approval", rendered)
+
+    def test_rejects_line_breaks_and_completion_markers_in_name(self):
+        for unsafe_name in (
+            "Line one\nLine two",
+            "Line one\rLine two",
+            "Injected <!-- workflow-completion:start -->",
+            "Injected <!-- workflow-completion:end -->",
+        ):
+            with self.subTest(unsafe_name=unsafe_name):
+                data = self.matrix()
+                data["workflows"]["W1"]["name"] = unsafe_name
+                self.assert_invalid(data, "unsafe workflow name")
+
     def test_replace_generated_section_and_reject_bad_markers(self):
         document = "before\n<!-- workflow-completion:start -->\nstale\n<!-- workflow-completion:end -->\nafter\n"
         expected = "before\n<!-- workflow-completion:start -->\nfresh\n<!-- workflow-completion:end -->\nafter\n"

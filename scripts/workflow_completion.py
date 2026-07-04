@@ -56,6 +56,10 @@ def _contains_key(value: object, forbidden: str) -> bool:
     return False
 
 
+def _escape_markdown_cell(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("|", "\\|")
+
+
 def validate_matrix(data: dict, repo_root: Path) -> None:
     """Reject schema drift, unsupported claims, and missing evidence."""
     if not isinstance(data, dict):
@@ -76,6 +80,9 @@ def validate_matrix(data: dict, repo_root: Path) -> None:
             )
         if not isinstance(workflow.get("name"), str) or not workflow["name"].strip():
             raise CompletionValidationError(f"{workflow_id}.name must be non-empty")
+        name = workflow["name"]
+        if "\r" in name or "\n" in name or START_MARKER in name or END_MARKER in name:
+            raise CompletionValidationError(f"{workflow_id} has unsafe workflow name")
         gates = workflow.get("gates")
         _require_exact_keys(gates, GATE_IDS, f"{workflow_id} gate keys")
 
@@ -155,7 +162,13 @@ def render_markdown(data: dict) -> str:
         statuses = [labels[workflow["gates"][gate_id]["status"]] for gate_id in GATE_IDS]
         overall = "完成" if derived["completed"] else "未完成"
         first_missing = derived["missing_gates"][0] if derived["missing_gates"] else "—"
-        row = [workflow_id, workflow["name"], *statuses, overall, first_missing]
+        row = [
+            workflow_id,
+            _escape_markdown_cell(workflow["name"]),
+            *statuses,
+            overall,
+            first_missing,
+        ]
         lines.append("| " + " | ".join(row) + " |")
     return "\n".join(lines)
 
