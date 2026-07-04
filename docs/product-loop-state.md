@@ -48,6 +48,21 @@ A capability is not complete just because a prompt exists. It is considered prod
 - risk/privacy/ethics boundary handling
 - documentation in this file
 
+## W1-W6 Unified Completion Matrix
+
+`workflow-completion.json` is the authoritative source for W1-W6 gate status. A workflow is complete only when all five gates pass; completion is derived and is never maintained manually. After changing evidence, regenerate with `python scripts/workflow_completion.py --write` and verify with `python scripts/workflow_completion.py --check`.
+
+<!-- workflow-completion:start -->
+| 工作流 | 名称 | local_tests | real_model_eval | web_integration | hosted_verification | real_template_verification | 总体状态 | 首个缺失门槛 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| W1 | Initial interview | 通过 | 通过 | 未验证 | 未验证 | 未验证 | 未完成 | web_integration |
+| W2 | Case background organization | 通过 | 通过 | 未验证 | 未验证 | 未验证 | 未完成 | web_integration |
+| W3 | Session summary and counseling record | 通过 | 通过 | 未验证 | 未验证 | 未验证 | 未完成 | web_integration |
+| W4 | Case conceptualization | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
+| W5 | Bounded next-session plan | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
+| W6 | Counseling roadmap | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
+<!-- workflow-completion:end -->
+
 ## Current Capability Backlog
 
 | Priority | Capability | Status | Evidence | Next Step |

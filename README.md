@@ -44,6 +44,14 @@ v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系
 | `eval-results/` | DeepSeek Web 回归测试的 raw output、clean output 和检查汇总 |
 | `counseling-agent-mvp.md` | 初访信息收集表三版本的早期 MVP 内容 |
 
+## W1-W6 Progress
+
+The authoritative W1-W6 completion status and evidence are maintained in [`workflow-completion.json`](workflow-completion.json) and rendered in [`docs/product-loop-state.md`](docs/product-loop-state.md#w1-w6-unified-completion-matrix). Validate that repository data and the generated progress table agree with:
+
+```powershell
+python scripts/workflow_completion.py --check
+```
+
 ## 推荐接入顺序
 
 1. 使用 `counselor-agent-v0.1-system-prompt.md` 作为系统提示词。
