@@ -19,7 +19,7 @@ Owner: root agent.
 
 ## Agent A — Completion Engine
 
-Status: assigned
+Status: complete — implementation, spec review, and quality review approved
 
 Owned files:
 
@@ -43,7 +43,7 @@ Acceptance:
 
 ## Agent B — Evidence Audit
 
-Status: assigned
+Status: complete — audit, spec review, and quality review approved
 
 Owned file:
 
@@ -73,7 +73,7 @@ Acceptance:
 
 ## Agent C — Repository Integration
 
-Status: blocked until Agents A and B finish
+Status: assigned — Agents A and B approved
 
 Owned files:
 
@@ -109,12 +109,12 @@ Quality reviewer: read-only; inspect maintainability, edge cases, test quality, 
 
 ## Controller Checklist
 
-- [ ] Isolated worktree and usable baseline established
-- [ ] Agent A implementation complete
-- [ ] Agent A spec review approved
-- [ ] Agent A quality review approved
-- [ ] Agent B evidence audit complete
-- [ ] Agent B spec review approved
+- [x] Isolated worktree established; full baseline recorded as timeout, focused baseline used
+- [x] Agent A implementation complete
+- [x] Agent A spec review approved
+- [x] Agent A quality review approved
+- [x] Agent B evidence audit complete
+- [x] Agent B spec review approved
 - [ ] Agent C repository integration complete
 - [ ] Agent C spec review approved
 - [ ] Agent C quality review approved
