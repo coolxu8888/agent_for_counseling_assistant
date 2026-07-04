@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Sequence
+from urllib.parse import urlsplit
 
 
 WORKFLOW_IDS = tuple(f"W{index}" for index in range(1, 7))
@@ -45,6 +46,16 @@ def _require_exact_keys(actual: object, expected: tuple[str, ...], label: str) -
         )
 
 
+def _contains_key(value: object, forbidden: str) -> bool:
+    if isinstance(value, dict):
+        return forbidden in value or any(
+            _contains_key(item, forbidden) for item in value.values()
+        )
+    if isinstance(value, list):
+        return any(_contains_key(item, forbidden) for item in value)
+    return False
+
+
 def validate_matrix(data: dict, repo_root: Path) -> None:
     """Reject schema drift, unsupported claims, and missing evidence."""
     if not isinstance(data, dict):
@@ -59,9 +70,9 @@ def validate_matrix(data: dict, repo_root: Path) -> None:
         workflow = workflows[workflow_id]
         if not isinstance(workflow, dict):
             raise CompletionValidationError(f"{workflow_id} must be an object")
-        if "completed" in workflow:
+        if _contains_key(workflow, "completed"):
             raise CompletionValidationError(
-                f"{workflow_id} must not store a completed field"
+                f"{workflow_id} must not store a completed field anywhere"
             )
         if not isinstance(workflow.get("name"), str) or not workflow["name"].strip():
             raise CompletionValidationError(f"{workflow_id}.name must be non-empty")
@@ -94,9 +105,9 @@ def validate_matrix(data: dict, repo_root: Path) -> None:
                     raise CompletionValidationError(f"{prefix} must be an object")
                 evidence_type = item.get("type")
                 value = item.get("value")
-                if evidence_type not in {"path", "command"}:
+                if evidence_type not in {"path", "command", "url"}:
                     raise CompletionValidationError(
-                        f"{prefix}.type must be 'path' or 'command'"
+                        f"{prefix}.type must be 'path', 'command', or 'url'"
                     )
                 if not isinstance(value, str) or not value.strip():
                     raise CompletionValidationError(f"{prefix}.value must be non-empty")
@@ -111,6 +122,12 @@ def validate_matrix(data: dict, repo_root: Path) -> None:
                     if not candidate.exists():
                         raise CompletionValidationError(
                             f"{prefix} path does not exist: {value}"
+                        )
+                elif evidence_type == "url":
+                    parsed = urlsplit(value)
+                    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                        raise CompletionValidationError(
+                            f"{prefix} must be an absolute HTTP(S) URL"
                         )
 
 

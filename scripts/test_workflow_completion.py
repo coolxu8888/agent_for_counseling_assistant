@@ -57,15 +57,24 @@ class WorkflowCompletionTest(unittest.TestCase):
 
     def test_any_non_passed_gate_is_incomplete(self):
         for status in ("failed", "unverified"):
-            with self.subTest(status=status):
-                workflow = self.workflow_with_statuses(
-                    ["passed", "passed", "passed", "passed", status]
-                )
-                derived = derive_workflow_status(workflow)
-                self.assertFalse(derived["completed"])
-                self.assertEqual(
-                    ["real_template_verification"], derived["missing_gates"]
-                )
+            for missing_index, missing_gate in enumerate(GATE_IDS):
+                with self.subTest(status=status, missing_gate=missing_gate):
+                    statuses = ["passed"] * len(GATE_IDS)
+                    statuses[missing_index] = status
+                    derived = derive_workflow_status(
+                        self.workflow_with_statuses(statuses)
+                    )
+                    self.assertFalse(derived["completed"])
+                    self.assertEqual([missing_gate], derived["missing_gates"])
+
+    def test_multiple_missing_gates_preserve_canonical_order(self):
+        workflow = self.workflow_with_statuses(
+            ["failed", "passed", "unverified", "passed", "failed"]
+        )
+        self.assertEqual(
+            ["local_tests", "web_integration", "real_template_verification"],
+            derive_workflow_status(workflow)["missing_gates"],
+        )
 
     def test_rejects_missing_or_extra_workflows(self):
         data = self.matrix()
@@ -90,6 +99,26 @@ class WorkflowCompletionTest(unittest.TestCase):
         data = self.matrix()
         data["workflows"]["W2"]["completed"] = False
         self.assert_invalid(data, "completed")
+
+    def test_rejects_completed_nested_in_gate_or_evidence_but_allows_note(self):
+        data = self.matrix()
+        data["workflows"]["W1"]["gates"]["local_tests"]["completed"] = True
+        self.assert_invalid(data, "completed")
+
+        data = self.matrix()
+        gate = data["workflows"]["W1"]["gates"]["local_tests"]
+        gate["note"] = "Waiting for a durable result."
+        gate["evidence"] = [
+            {
+                "type": "command",
+                "value": "python -m unittest",
+                "completed": True,
+            }
+        ]
+        self.assert_invalid(data, "completed")
+
+        del gate["evidence"][0]["completed"]
+        validate_matrix(data, self.repo_root)
 
     def test_rejects_passed_gate_without_evidence(self):
         data = self.matrix()
@@ -119,6 +148,14 @@ class WorkflowCompletionTest(unittest.TestCase):
                 {"type": "path", "value": "results/w1.txt"},
                 {"type": "command", "value": "python -m unittest"},
             ],
+        )
+        validate_matrix(data, self.repo_root)
+
+    def test_accepts_hosted_url_evidence_without_network_access(self):
+        data = self.matrix()
+        data["workflows"]["W4"]["gates"]["hosted_verification"] = self.gate(
+            "passed",
+            [{"type": "url", "value": "https://example.invalid/runs/w4"}],
         )
         validate_matrix(data, self.repo_root)
 
