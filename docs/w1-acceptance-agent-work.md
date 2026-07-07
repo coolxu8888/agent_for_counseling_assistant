@@ -16,7 +16,7 @@ W1 is complete only after both W1 modes pass Web and hosted acceptance, the real
 
 ## Agent A — Acceptance Contract
 
-Status: assigned
+Status: complete — implementation, spec review, and quality review approved
 
 Owned files:
 
@@ -32,7 +32,7 @@ Deliverables:
 
 ## Agent B — Real Template
 
-Status: blocked until Agent A is approved
+Status: assigned — Agent A approved
 
 Owned files:
 
@@ -50,7 +50,7 @@ Deliverables:
 
 ## Agent C — Hosted Evidence Tooling
 
-Status: blocked until Agent A is approved
+Status: assigned — Agent A approved
 
 Owned files:
 
@@ -91,9 +91,9 @@ It may set only W1's three remaining gates to passed, using report paths. W2-W6 
 
 ## Controller Checklist
 
-- [ ] Agent A implementation complete
-- [ ] Agent A spec review approved
-- [ ] Agent A quality review approved
+- [x] Agent A implementation complete
+- [x] Agent A spec review approved
+- [x] Agent A quality review approved
 - [ ] Agent B implementation and real run complete
 - [ ] Agent B spec and quality reviews approved
 - [ ] Agent C implementation and hosted real runs complete
