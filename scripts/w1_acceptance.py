@@ -15,8 +15,8 @@ from urllib.parse import urlparse
 
 W1_MODES = ("intake_prep", "initial_interview_summary")
 W1_VISIBLE_LABELS = {
-    "intake_prep": "初始访谈准备",
-    "initial_interview_summary": "初始访谈总结",
+    "intake_prep": "首访准备",
+    "initial_interview_summary": "首访总结",
 }
 W1_TEMPLATE_PATH = "docs/4.心理咨询初始访谈表_20210906.docx"
 W1_SUMMARY_SECTIONS = (

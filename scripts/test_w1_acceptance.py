@@ -41,8 +41,8 @@ def valid_web_report():
         "base_url": "http://localhost:8000",
         "timestamp_utc": "2026-07-07T08:00:00Z",
         "scenarios": [
-            web_scenario("intake_prep", "初始访谈准备"),
-            web_scenario("initial_interview_summary", "初始访谈总结"),
+            web_scenario("intake_prep", "首访准备"),
+            web_scenario("initial_interview_summary", "首访总结"),
         ],
     }
 
@@ -86,11 +86,12 @@ class W1AcceptanceTests(unittest.TestCase):
             validate_web_report(report)
 
     def test_w1_web_report_requires_the_mode_specific_all_chinese_label(self):
+        validate_web_report(valid_web_report())
         for mode, unsafe_label in (
-            ("intake_prep", "初始访谈总结"),
-            ("initial_interview_summary", "初始访谈准备"),
-            ("intake_prep", "W1 初始访谈准备"),
-            ("initial_interview_summary", "初始访谈 summary"),
+            ("intake_prep", "首访总结"),
+            ("initial_interview_summary", "首访准备"),
+            ("intake_prep", "W1 首访准备"),
+            ("initial_interview_summary", "首访 summary"),
         ):
             report = valid_web_report()
             next(item for item in report["scenarios"] if item["mode"] == mode)["visible_label"] = unsafe_label
