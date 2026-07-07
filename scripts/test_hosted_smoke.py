@@ -8,9 +8,15 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import hosted_smoke
+from run_agent import detect_w1_mode
 
 
 class HostedSmokeTest(unittest.TestCase):
+    def test_built_in_w1_scenarios_select_their_expected_modes(self):
+        for expected_mode, scenario in hosted_smoke.W1_HOSTED_SCENARIOS.items():
+            with self.subTest(mode=expected_mode):
+                self.assertEqual(detect_w1_mode(scenario), expected_mode)
+
     def _w1_payload(self, mode):
         sections = {"basic_situation": {"known_facts": ["已提供去标识化线索"]}}
         return {
