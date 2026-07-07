@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import ipaddress
 import json
+import math
 import re
 from datetime import datetime
 from pathlib import Path
@@ -43,8 +44,9 @@ _SENSITIVE_VALUE = re.compile(
 )
 _CREDENTIALED_URL = re.compile(r"https?://[^\s/@:]+:[^\s/@]+@", re.IGNORECASE)
 _JWT = re.compile(r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?![A-Za-z0-9_-])")
-_WINDOWS_PATH = re.compile(r"(?:^|\s)(?:[A-Za-z]:[\\/]|\\\\)[^\s]+")
-_UNIX_SERVER_PATH = re.compile(r"(?:^|\s)/(?:app|etc|home|mnt|opt|private|root|srv|tmp|usr|var)(?:/|\s|$)", re.IGNORECASE)
+_WINDOWS_DRIVE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]+[^\s,;)\]}]+")
+_WINDOWS_UNC_PATH = re.compile(r"(?<![A-Za-z0-9_\\])\\\\[^\\/\s]+[\\/][^\s,;)\]}]+")
+_UNIX_ABSOLUTE_PATH = re.compile(r"(?<![A-Za-z0-9:/])(/[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)+)")
 
 
 def _fail(message: str) -> None:
@@ -73,6 +75,18 @@ def _is_sensitive_key(key: str) -> bool:
     return not all(index + 1 == len(tokens) - 1 and tokens[-1] in telemetry_suffixes for index in indices)
 
 
+def _contains_absolute_filesystem_path(value: str) -> bool:
+    if _WINDOWS_DRIVE_PATH.search(value) or _WINDOWS_UNC_PATH.search(value):
+        return True
+    for match in _UNIX_ABSOLUTE_PATH.finditer(value):
+        candidate = match.group(1)
+        segments = candidate.split("/")[1:]
+        if candidate.startswith("/api/") and all(segment not in {".", ".."} for segment in segments):
+            continue
+        return True
+    return False
+
+
 def _validate_sanitized(value: Any, location: str = "report") -> None:
     if isinstance(value, dict):
         for key, child in value.items():
@@ -86,8 +100,10 @@ def _validate_sanitized(value: Any, location: str = "report") -> None:
     elif isinstance(value, str):
         if _SENSITIVE_VALUE.search(value) or _CREDENTIALED_URL.search(value) or _JWT.search(value):
             _fail(f"{location} contains secret or cookie material")
-        if _WINDOWS_PATH.search(value) or _UNIX_SERVER_PATH.search(value):
+        if _contains_absolute_filesystem_path(value):
             _fail(f"{location} contains a direct server filesystem path")
+    elif isinstance(value, float) and not math.isfinite(value):
+        _fail(f"{location} contains a non-finite number")
     elif value is not None and not isinstance(value, (bool, int, float)):
         _fail(f"{location} contains unsupported data type {type(value).__name__}")
 
@@ -243,5 +259,5 @@ def write_sanitized_report(path: Path, report: dict) -> None:
     _validate_sanitized(report)
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    payload = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False) + "\n"
     destination.write_text(payload, encoding="utf-8", newline="\n")

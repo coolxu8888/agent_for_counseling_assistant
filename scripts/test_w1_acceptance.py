@@ -272,14 +272,37 @@ class W1AcceptanceTests(unittest.TestCase):
 
     def test_report_allows_url_routes_but_rejects_absolute_server_paths(self):
         report = valid_web_report()
-        report["routes"] = ["/api/v1", "/health", "GET /api/run"]
+        report["routes"] = ["/api/v1", "/health", "GET /api/run", "https://app.render.com/api/v1"]
         validate_web_report(report)
-        for value in ("/srv/app/output.docx", "/var/tmp/report.json", r"C:\\server\\output.docx", r"\\server\share\output.docx"):
+        for value in (
+            "/workspace/private/output.docx",
+            "saved=(/data/output.docx),done",
+            "/run/secrets/key",
+            "/Users/admin/private.docx",
+            r"path=(C:\server\out.docx)",
+            r"C:\server\output.docx",
+            r"prefix=(\\server\share\output.docx),done",
+        ):
             changed = valid_web_report()
             changed["path"] = value
             with self.subTest(value=value):
                 with self.assertRaisesRegex(W1AcceptanceError, "filesystem path"):
                     validate_web_report(changed)
+
+    def test_report_recursively_rejects_non_finite_numbers(self):
+        for value in (float("nan"), float("inf"), float("-inf")):
+            report = valid_web_report()
+            report["nested"] = {"values": [1.0, value]}
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(W1AcceptanceError, "finite"):
+                    validate_web_report(report)
+
+    def test_writer_rejects_non_finite_json_numbers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "report.json"
+            with self.assertRaises(W1AcceptanceError):
+                write_sanitized_report(path, {"value": float("nan")})
+            self.assertFalse(path.exists())
 
     def test_report_rejects_sensitive_assignments_inside_ordinary_strings(self):
         unsafe = (
