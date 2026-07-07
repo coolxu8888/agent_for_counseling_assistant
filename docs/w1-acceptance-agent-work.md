@@ -78,6 +78,40 @@ Required visible Chinese assertions:
 
 Product defects discovered by browser testing receive a failing automated contract test before a fix.
 
+## Agent D — Real Template Mapping Fix
+
+Status: assigned after the real-template runner exposed seven missing canonical sections
+
+Owned files:
+
+- `scripts/fill_docx_template.py`
+- `scripts/test_fill_docx_template.py`
+
+Deliverables:
+
+- Add explicit W1 fixed-summary mappings for the real initial-interview template blocks.
+- Preserve existing content and unrelated workflow mappings.
+- Prove the seven missing canonical sections fill and survive DOCX reopen.
+- Do not weaken the acceptance runner or report contract.
+
+## Agent E — W1 Chinese Browser Product Fix
+
+Status: assigned after browser acceptance exposed misclassification and missing download affordance
+
+Owned files:
+
+- `scripts/web_workbench.py`
+- `scripts/test_web_workbench.py`
+- `web-workbench/app.js`
+- `web-workbench/index.html` only if required
+
+Deliverables:
+
+- Route an explicit Chinese “初访准备、不要初访总结” request to W1 `intake_prep`.
+- Show mode-specific user-visible text in Chinese when Chinese is selected.
+- Expose a visible downloadable Word artifact after successful W1 runs requesting Word.
+- Add failing automated contract tests before product fixes.
+
 ## Closure — Integration Agent
 
 Blocked until template, hosted, and browser reports pass.
@@ -96,8 +130,10 @@ It may set only W1's three remaining gates to passed, using report paths. W2-W6 
 - [x] Agent A quality review approved
 - [ ] Agent B implementation and real run complete
 - [ ] Agent B spec and quality reviews approved
+- [ ] Agent D real-template mapping defect fixed
 - [ ] Agent C implementation and hosted real runs complete
 - [ ] Agent C spec and quality reviews approved
+- [ ] Agent E Chinese browser defects fixed
 - [ ] Chinese browser acceptance passes both W1 modes
 - [ ] Three sanitized reports validate
 - [ ] Matrix derives W1 complete and W2-W6 unchanged
