@@ -199,6 +199,13 @@ class W1AcceptanceTests(unittest.TestCase):
             "access_token: abc123",
             "session_id = opaque-value",
             "cookie_name=private",
+            "client_secret=private",
+            "API key: private",
+            "api_key=private",
+            "credential: private",
+            "credentials = private",
+            "private key: private",
+            "private_key=private",
             "前缀 password : private 后缀",
         )
         for value in unsafe:
@@ -210,7 +217,16 @@ class W1AcceptanceTests(unittest.TestCase):
 
     def test_report_allows_non_assignment_uses_of_sensitive_words(self):
         report = valid_web_report()
-        report["notes"] = ["password guidance", "token budget", "session summary", "cookie policy"]
+        report["notes"] = [
+            "password guidance",
+            "token budget",
+            "session summary",
+            "cookie policy",
+            "secret management guidance",
+            "API key rotation guidance",
+            "credential storage policy",
+            "private key handling guidance",
+        ]
         validate_web_report(report)
 
     def test_write_report_is_stable_sanitized_json(self):

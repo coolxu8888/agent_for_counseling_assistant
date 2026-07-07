@@ -41,7 +41,8 @@ _SENSITIVE_KEY = re.compile(
 )
 _SENSITIVE_VALUE = re.compile(
     r"(?:\b(?:authorization|cookie|set-cookie)\s*:|\bbearer\s+[A-Za-z0-9._~+/=-]+|\bsk-[A-Za-z0-9_-]+|"
-    r"\b(?:[a-z0-9]+_)*(?:password|token|session|cookie)(?:_[a-z0-9]+)*\s*[:=]\s*\S)",
+    r"\b(?:(?:[a-z0-9]+[_-])*(?:password|token|session|cookie|secret|credentials?)"
+    r"|api(?:[ _-]+)key|private(?:[ _-]+)key)(?:[_-][a-z0-9]+)*\s*[:=]\s*\S)",
     re.IGNORECASE,
 )
 _DIRECT_PATH = re.compile(r"(?:^|\s)(?:/[A-Za-z0-9_.-]|[A-Za-z]:[\\/]|\\\\)[^\s]*")
