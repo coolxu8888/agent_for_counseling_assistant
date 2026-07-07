@@ -32,7 +32,7 @@ last_reviewed: "2026-05-30"
 
 # 适用范围
 
-适用于中国大陆语境下咨询师助理 Agent v0.1 的三个 P0 workflow。
+适用于中国大陆语境下咨询师助理 Agent 市场验证版的三个 P0 workflow。
 
 # 相关 chunk
 

@@ -1,412 +1,60 @@
-# 咨询师助理 Agent v0.1
+# 咨询师助理 Agent
 
-这是一个面向心理咨询师端的咨询助理 Agent MVP。v0.1 阶段聚焦三个基础能力：
+当前产品阶段统一为“市场验证版”。文件名、路径、schema 或 API 中的 `v0.1` / `0.1.0` 仅为兼容标识，不代表当前产品阶段或能力版本。
 
-1. 初访信息收集表生成
-2. 个案信息整理
-3. Session 总结与咨询记录生成
+> 安全提示：仅使用去标识化材料；所有模型输出都必须由具备相应资质的专业人员人工复核，不能替代诊断、风险评估、危机处置或临床决策。
 
-v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系统。CPS/中国本地伦理与法律资料作为伦理、风险、记录规范和专业边界的主要参考；境外专业资料只作为补充参考，并需标注地域限制。CBT、人本、精神动力、家庭系统等流派框架留到后续个案概念化和咨询方案设计中使用。
+## 本地运行
 
-当前 RAG 已完成第一批正式 chunk 切分：共 18 个 approved chunk，覆盖伦理风险、个案记录、session 记录、初访评估和表单字段。
+从 `.env.example` 复制创建本地 `.env`，至少配置 `DEEPSEEK_API_KEY`；不要提交 `.env`。
 
-## 文件说明
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1
+```
 
-| 文件 | 用途 |
-|---|---|
-| `agent-capacity-map.md` | Agent 能力地图，说明整体产品能力边界 |
-| `mvp-v0.1-scope.md` | MVP v0.1 范围，说明第一阶段做什么、不做什么 |
-| `mvp-v0.1-workflows.md` | 三个 P0 能力的详细工作流 |
-| `counselor-agent-v0.1-system-prompt.md` | 可直接用于模型配置的系统提示词草案 |
-| `counselor-agent-v0.1-test-cases.md` | 用于验证 Agent 行为的测试用例 |
-| `model-eval-v0.1.md` | 人工模型评测记录，用于粘贴模型输出并评分 |
-| `model-eval-workflow-regression-v0.1.md` | 三个 P0 workflow 的典型输入回归测试记录 |
-| `model-eval-crisis-level-v0.1.md` | 危机等级候选判断的人工模型评测记录 |
-| `crisis-level-rubric-v0.1.md` | 基于用户训练数据整理的危机等级候选判断 rubric |
-| `counselor-agent-v0.1-rag-build-plan.md` | RAG 资料库建设计划，定义资料来源、审核、切块和 metadata 规则 |
-| `agent-runtime-architecture.md` | Agent 运行时架构，说明路由、RAG 检索、提示词组装和输出检查 |
-| `eval-data/crisis-level-cases.v0.1.json` | 从用户 Excel 导入的危机等级题目、标答和数据质量标记 |
-| `rag/CHUNK_TEMPLATE.md` | 正式 RAG chunk 模板 |
-| `rag/CHUNK_INDEX.md` | 已切分正式 RAG chunk 的索引和 workflow 检索建议 |
-| `rag/RAG_TEST_RUN_2026-05-30.md` | 第一批 RAG chunk 的结构性测试记录 |
-| `rag/RAG_RUNTIME_SMOKE_TEST_2026-05-30.md` | 最小 retrieval runner 的冒烟测试记录 |
-| `rag/SOURCE_CARD_REVIEW_GUIDE.md` | 资料卡人工审核指南 |
-| `rag/RAG_RETRIEVAL_MAP.md` | workflow 与 RAG 分区/topic 的检索映射表 |
-| `rag/retrieval-map.v0.1.json` | workflow 检索策略的机器可读配置 |
-| `scripts/validate-rag.ps1` | RAG chunk 元数据和检索配置校验脚本 |
-| `scripts/run-retrieval.ps1` | 最小 RAG retrieval runner，用于路由、取 chunk 和组装 prompt context |
-| `scripts/build-crisis-eval-prompt.ps1` | 从危机等级评测数据生成单题 prompt package |
-| `scripts/build-workflow-eval-prompts.ps1` | 生成三个 P0 workflow 的典型回归测试 prompt 文件 |
-| `scripts/run-deepseek-workflow-evals.ps1` | 通过外部 Edge 自动发送 workflow eval prompt 并保存 raw output |
-| `scripts/clean-eval-outputs.ps1` | 清洗 raw output，提取最终回答，并生成自动规则检查与分维度 rubric 汇总 |
-| `scripts/run-agent.ps1` | 本地 v0.1 Agent Runner：指定 W1/W2/W3，组装 RAG prompt，调用 DeepSeek，并保存运行产物 |
-| `eval-prompts/` | 三个 P0 workflow 的回归测试 prompt 文件 |
-| `eval-results/` | DeepSeek Web 回归测试的 raw output、clean output 和检查汇总 |
-| `counseling-agent-mvp.md` | 初访信息收集表三版本的早期 MVP 内容 |
+默认地址：`http://127.0.0.1:8765`
 
-## W1-W6 Progress
+## W1–W6 完成度
 
-The authoritative W1-W6 completion status and evidence are maintained in [`workflow-completion.json`](workflow-completion.json) and rendered in [`docs/product-loop-state.md`](docs/product-loop-state.md#w1-w6-unified-completion-matrix). Validate that repository data and the generated progress table agree with:
+`workflow-completion.json` 是 W1–W6 五道验收门的机器可读事实源；可读矩阵位于 [`docs/product-loop-state.md`](docs/product-loop-state.md#w1-w6-unified-completion-matrix)。运行以下命令检查状态文件和进度文档是否一致：
 
 ```powershell
 python scripts/workflow_completion.py --check
 ```
 
-## 推荐接入顺序
+## Render Web
 
-1. 使用 `counselor-agent-v0.1-system-prompt.md` 作为系统提示词。
-2. 将 CPS/中国本地伦理、精神卫生法风险边界、记录规范、初访评估规范、咨询记录模板等资料放入 RAG。
-3. 用 `mvp-v0.1-workflows.md` 校验路由和输出结构。
-4. 用 `counselor-agent-v0.1-test-cases.md` 做首轮测试。
-5. 按 `counselor-agent-v0.1-rag-build-plan.md` 建立最小 RAG 资料库。
-6. 按 `rag/SOURCE_CARD_REVIEW_GUIDE.md` 审核资料卡。
-7. 用 `rag/CHUNK_TEMPLATE.md` 将 approved 资料切成正式 RAG chunk。
-8. 用 `rag/RAG_RETRIEVAL_MAP.md` 配置每个 workflow 的检索策略。
-9. 用 `rag/RAG_TEST_RUN_2026-05-30.md` 检查第一批 chunk 的结构性测试结果。
-10. 用 `rag/retrieval-map.v0.1.json` 作为程序读取的检索配置。
-11. 运行 `scripts/validate-rag.ps1` 校验 chunk 元数据和检索配置。
-12. 运行 `scripts/run-retrieval.ps1` 做本地路由、取 chunk 和 prompt context 组装测试。
-13. 用 `model-eval-v0.1.md` 记录人工模型评测结果。
-14. 用 `scripts/build-workflow-eval-prompts.ps1` 生成 workflow 回归测试 prompt。
-15. 用 `scripts/run-deepseek-workflow-evals.ps1` 或人工复制方式跑模型输出。
-16. 用 `scripts/clean-eval-outputs.ps1` 清洗 raw output，生成基础规则检查和分维度 rubric 汇总。
-17. 参考 `agent-runtime-architecture.md` 接入路由、检索、提示词组装和输出检查。
-18. 根据测试结果微调系统提示词、RAG 文档和输出模板。
-
-## Local Web Workbench
-
-启动本地咨询师助理工作台：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1
-```
-
-打开：
+启动命令：
 
 ```text
-http://127.0.0.1:8765
+python scripts/web_workbench.py --host 0.0.0.0 --port $PORT
 ```
 
-工作台可以：
+健康检查：`/health`
 
-- 使用本地登录会话。默认开发账号为 `demo` / `demo123`，可用 `WORKBENCH_USER` 和 `WORKBENCH_PASSWORD` 环境变量覆盖。
-- 在右侧 `Quick start` 区域一键加载去识别 demo 场景和仓库内置 `.docx` 模板，便于首次产品验证和演示。
-- 创建和选择去识别化个案，运行结果、上传和模板操作会记录到本地审计日志。
-- 上传 `.docx` 模板文件；上传文件保存在 `workbench-data/uploads/`，不会进入 git。
-- 运行 W1/W2/W3，并输入咨询师材料。
-- 显示模型输出、结构化 JSON 和校验结果。
-- 在存在结构化输出时生成固定 `output.docx`。
-- 使用当前结构化 JSON 填充咨询师提供的 `.docx` 模板。
-- 将单个去识别化个案的备注、上传文件、近期运行和生成产物导出为一个可下载的 zip bundle，便于试点交付和留档复核。
+公开部署必要变量：
 
-运行生成文件保存在 `agent-runs/` 下；本地登录、个案元数据、上传文件和审计日志保存在 `workbench-data/` 下。这两个目录都已被 git 忽略，因为其中可能包含敏感材料。工作台不会显示 `.env` 中的 API key。
+- `DEEPSEEK_API_KEY`
+- `WORKBENCH_USER`
+- `WORKBENCH_PASSWORD`
 
-## Coze Demo API
+按需变量：
 
-## Web MVP Deployment
+- `WORKBENCH_ALLOW_SIGNUP`
+- `WORKBENCH_SIGNUP_INVITE_CODE`
+- `WORKBENCH_MAX_UPLOAD_BYTES`
+- `WORKBENCH_RETENTION_DAYS`
+- `DEEPSEEK_BASE_URL`
+- `DEEPSEEK_MODEL`
+- `DEEPSEEK_TIMEOUT_SECONDS`
 
-The fastest market-validation path is the hosted Web MVP. The repository includes a Render Blueprint with two services:
+## 运行时 Prompt 清单
 
-- `counselor-agent-web`: the user-facing web product.
-- `counselor-agent-coze-api`: the Coze plugin API.
+- `scripts/run_agent.py` 内置的角色、安全边界、Workflow 固定输出合同与工作流补充指令。
+- `rag/**/*.md` 中带非空 `chunk_id` 的检索片段，由 retrieval map 按工作流装配。
+- 当前用户输入；启用结构化输出时同时装配对应 schema 合同。
+- `counselor-agent-v0.1-system-prompt.md` 用于兼容离线评测和三个基础工作流 prompt；Web 完整能力由运行时组装，文件名中的 `v0.1` 仅为兼容标识。
 
-For the web service, set these Render environment variables:
+## 工程证据
 
-- `DEEPSEEK_API_KEY`: required for real model calls.
-- `DEEPSEEK_BASE_URL`: `https://api.deepseek.com`
-- `DEEPSEEK_MODEL`: `deepseek-v4-flash`
-- `DEEPSEEK_TIMEOUT_SECONDS`: `120`
-- `WORKBENCH_USER`: public demo login username.
-- `WORKBENCH_PASSWORD`: public demo login password.
-- `WORKBENCH_ALLOW_SIGNUP`: optional. Set to `true` to allow counselors to create isolated workspaces in the deployed Web MVP.
-- `WORKBENCH_SIGNUP_INVITE_CODE`: optional but recommended when signup is enabled. New workspaces must provide this invite code.
-- `WORKBENCH_MAX_UPLOAD_BYTES`: optional. Per-file upload limit for hosted workspaces. Defaults to `10485760` (10 MB).
-- `WORKBENCH_RETENTION_DAYS`: optional. Enables one-click pruning of uploads, saved runs, and audit activity older than the retention window.
-
-The web service health check is `/health`. Runtime data is stored in the service filesystem (`workbench-data/`, `agent-runs/`, `workbench-run-log.jsonl`). On Render free instances this storage is ephemeral; for a paid pilot, add persistent storage or move user/case data to a managed database and object storage.
-
-Do not use real identifiable client information in the public MVP. Use de-identified demo cases for market validation.
-
-For pilot deployments, prefer separate counselor workspaces over a shared demo login. A minimal setup is:
-
-- keep `WORKBENCH_USER` / `WORKBENCH_PASSWORD` for an internal operator account
-- set `WORKBENCH_ALLOW_SIGNUP=true`
-- set a strong `WORKBENCH_SIGNUP_INVITE_CODE`
-- set `WORKBENCH_MAX_UPLOAD_BYTES` to the largest `.docx` size you will actually allow
-- set `WORKBENCH_RETENTION_DAYS` and use the in-product `Refresh data status` / `Prune expired data` controls during pilot operations
-
-The Coze API server also serves the Web MVP at `/` while keeping Coze endpoints under `/coze/*`. This allows the existing Render service URL to act as a product landing URL after redeploy. Plugin metadata remains available at `/service-info`, and the OpenAPI spec remains at `/openapi.json`.
-
-To validate a hosted deployment before pilot use, run the product smoke test:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-hosted-smoke.ps1 `
-  -BaseUrl https://your-service.onrender.com `
-  -Username operator `
-  -Password 'strong-password' `
-  -ExpectPilotReady `
-  -RealRun
-```
-
-When counselor self-signup is enabled, use a fresh username plus the invite code:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-hosted-smoke.ps1 `
-  -BaseUrl https://your-service.onrender.com `
-  -Username pilot-user-001 `
-  -Password 'strong-password' `
-  -InviteCode 'your-invite-code' `
-  -RequireSignup `
-  -ExpectPilotReady `
-  -RealRun
-```
-
-The smoke checks `/health`, `/service-info`, `/openapi.json`, `/api/session`, login or signup, and a real `/api/run` workflow call unless `-SkipRun` is used.
-
-启动本地 Coze 演示 API：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-coze-api.ps1
-```
-
-默认地址：
-
-```text
-http://127.0.0.1:8770
-```
-
-可用端点：
-
-- `GET /health`
-- `GET /openapi.json`
-- `POST /coze/run_workflow`
-- `POST /coze/draft_template`
-
-生成静态 OpenAPI 草案：
-
-```powershell
-python scripts\coze_api_server.py --write-openapi --base-url https://your-domain.example
-```
-
-静态文件写入 `docs/coze-openapi.json`。接入 Coze 前，将 `servers[0].url` 改成实际部署后的公网或内网 HTTPS 地址。
-
-如果设置环境变量 `COZE_DEMO_API_KEY`，请求需要携带 `X-API-Key: <key>` 或 `Authorization: Bearer <key>`；本地未设置时默认不启用鉴权，方便调试。
-
-## 本地运行命令
-
-校验 RAG 资料库：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\validate-rag.ps1
-```
-
-测试最小检索链路：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-retrieval.ps1 -Query "帮我生成一个初访信息收集表" -SummaryOnly
-```
-
-输出完整 prompt context：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-retrieval.ps1 -Query "帮我生成本次咨询记录：来访者提到不想醒来，但没有具体计划。"
-```
-
-生成危机等级候选判断评测 prompt：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-crisis-eval-prompt.ps1 -CaseId crisis-level-001
-```
-
-生成评测 prompt 并显示标答：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-crisis-eval-prompt.ps1 -CaseId crisis-level-001 -IncludeGold
-```
-
-生成 workflow 回归测试 prompt：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-workflow-eval-prompts.ps1
-```
-
-通过外部 Edge 的 DeepSeek Web 自动跑指定 workflow eval：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-deepseek-workflow-evals.ps1 -Ids W1-001,W2-003
-```
-
-清洗 raw output，并生成自动规则检查与分维度 rubric 汇总：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-eval-outputs.ps1
-```
-
-清洗后的最终回答位于：
-
-```text
-eval-results/clean/
-```
-
-自动检查汇总位于：
-
-```text
-eval-results/eval-clean-summary.v0.1.md
-eval-results/eval-clean-summary.v0.1.json
-eval-results/eval-rubric-summary.v0.1.md
-eval-results/eval-rubric-summary.v0.1.json
-```
-
-`eval-rubric-summary.v0.1.md` 会按以下维度给每条 eval 评分，并在 WARN / FAIL 时生成“问题、原因、修正建议”：
-
-```text
-路由正确、结构正确、RAG 使用合理、无诊断、无编造、风险处理、边界清晰、隐私最小化、v0.1 范围
-```
-
-本地运行 v0.1 Agent Runner dry run，不调用 API，只生成 prompt package：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。" -DryRun
-```
-
-本地运行 v0.1 Agent Runner 并调用 DeepSeek API：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。"
-```
-
-本地运行并额外生成结构化 JSON：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。" -Structured
-```
-
-本地运行并生成可编辑 Word 文档：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -Input "来访者本次谈到和母亲沟通后很委屈。" -Structured -Docx
-```
-
-从已有结构化 JSON 单独生成 Word：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\render-docx.ps1 -InputPath agent-runs\<run>\structured_output.json -OutputPath agent-runs\<run>\output.docx
-```
-
-从文本文件读取输入：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-agent.ps1 -Workflow W3 -InputFile notes.md -DryRun
-```
-
-运行产物会保存到：
-
-```text
-agent-runs/<timestamp>-<workflow>/
-```
-
-每次运行会保存 `input.json`、`prompt_package.txt`、`metadata.json`；真实 API 调用成功后还会保存 `raw_output.txt`、`clean_output.md` 和 `safety_check.json`。使用 `-Structured` 时，还会保存 `structured_output.json` 和 `structured_check.json`，供后续 Word renderer 或模板填充使用。使用 `-Docx` 时，还会保存 `output.docx` 和 `docx_check.json`。
-
-## v0.1 不做的事
-
-- 不做自动诊断
-- 不替代咨询师做治疗决策
-- 不做最终风险分级
-- 真实个案中不做最终危机等级分级；训练/评测语境可输出候选等级和依据
-- 不直接面向来访者提供咨询
-- 不按流派切换基础信息收集模板
-- 不生成完整咨询 Road Map
-
-## 后续版本方向
-
-v0.2 可以继续扩展：
-
-- 个案概念化
-- 按 CBT、人本、精神动力、家庭系统等流派生成概念化假设
-- 咨询方案设计
-- 访谈问题提纲
-- 阶段性 Road Map
-- 报告生成与机构模板适配
-
-## DeepSeek API Eval Runner
-
-Create a local `.env` from `.env.example` and set `DEEPSEEK_API_KEY`.
-
-Dry-run selected evals:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-model-eval.ps1 -Ids W1-001,W3-001 -DryRun
-```
-
-Run selected evals against the API:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-model-eval.ps1 -Ids W1-001,W3-001
-```
-
-API results are written to `eval-results/api/`.
-
-## DOCX Template Autofill
-
-There are two template-fill paths.
-
-The recommended local-web path is intelligent raw-material filling:
-
-1. Start the workbench:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1
-```
-
-2. Open `http://127.0.0.1:8765/`.
-3. Paste counselor raw material into `咨询师材料`.
-4. Enter the local `.docx` template path in `智能模板填充`.
-5. Click `扫描模板栏目` to preview detected fillable and prefilled fields.
-6. Choose language style and existing-content policy.
-7. Click `智能整理并填充模板`.
-
-This path creates:
-
-- `filled_template.docx`
-- `template_draft.json`
-- `template_fill_report.json`
-
-The draft path asks the model to produce constrained field-level JSON first, then the code fills Word deterministically. Existing template content is preserved by default with the `保留并续写/润色` policy.
-
-The legacy structured path still works when the agent has already produced `structured_output.json`:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx
-```
-
-In the web workbench, the structured path now also supports a guarded model-assisted mapping pass for unfamiliar template labels. Leave `Use model-assisted mapping for unfamiliar template labels` enabled when a counselor template uses labels such as `咨询目标` or `后续计划` that do not match the fixed structured schema exactly. The app will write a reviewed `template_mapping.json` beside the filled document and final report.
-
-The v0.1 filler supports ordinary `.docx` tables and paragraphs with recognizable labels, such as `风险变化` followed by an empty cell or `下次咨询重点：____`. It also writes `template_fill_report.json`; review this report before using the generated document because unmatched fields and skipped non-empty cells are listed there.
-
-To inspect and review the template mapping layer, write the intermediate artifact files too:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx -SlotsOutput path\template_slots.json -SourcePathsOutput path\source_paths.json -MappingOutput path\template_mapping.json
-```
-
-These files are the stable interface for the later model-assisted mapper:
-
-- `template_slots.json`: fillable locations detected in the uploaded Word template.
-- `source_paths.json`: structured JSON paths that are allowed to be used as sources.
-- `template_mapping.json`: slot-to-source mapping used by the deterministic DOCX filler.
-
-To let DeepSeek map only the unresolved slots, add `-LlmMap`:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\fill-docx-template.ps1 -TemplatePath path\template.docx -StructuredPath agent-runs\<run>\structured_output.json -OutputPath path\filled_template.docx -MappingOutput path\template_mapping.json -LlmMap
-```
-
-The model is constrained to choose from `source_paths.json` entries or return `unmapped`; it does not write final Word content directly. The code still performs the final fill and writes `template_fill_report.json` for review.
-
-To run the dedicated template-fill eval against the real DeepSeek API:
-
-```powershell
-python scripts\run_template_fill_eval.py --ids TF-001
-```
-
-This eval uses a real DOCX template fixture plus structured output, runs the guarded LLM mapping path, and scores whether the expected slot-to-source mapping and final filled output were produced.
+来源追溯、安全边界、评测依据和关键产品决策保存在 `docs/evidence/`。这些文件不进入 Web 运行时 prompt；入口见 `docs/evidence/README.md`。
