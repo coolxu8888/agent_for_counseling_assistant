@@ -943,6 +943,47 @@ class FillDocxTemplateTest(unittest.TestCase):
             document_xml,
         )
 
+    def test_fill_docx_template_fills_all_w1_sections_in_real_template_and_survives_reopen(self):
+        template_path = next((Path(__file__).resolve().parents[1] / "docs").glob("*20210906.docx"))
+        structured = self.sample_w1_summary_structured()
+        section_ids = [
+            "main_distress",
+            "basic_situation",
+            "functioning",
+            "support_coping",
+            "history",
+            "psychological_tests",
+            "risk_crisis",
+        ]
+        structured["sections"] = [
+            {
+                "id": section_id,
+                "heading": section_id.replace("_", " ").title(),
+                "known_facts": [f"W1 reopen probe: {section_id}"],
+                "unclear_or_missing": [f"Missing: {section_id}"],
+                "follow_up_questions": [f"Ask: {section_id}?"],
+            }
+            for section_id in section_ids
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            structured_path = tmp_path / "structured_output.json"
+            output_path = tmp_path / "filled_template.docx"
+            report_path = tmp_path / "template_fill_report.json"
+            structured_path.write_text(json.dumps(structured, ensure_ascii=False), encoding="utf-8")
+
+            report = fill_docx_template(template_path, structured_path, output_path, report_path)
+            reopened_xml = self.read_document_xml(output_path)
+
+        filled_paths = {item["source_path"] for item in report["filled_fields"]}
+        self.assertEqual(
+            filled_paths,
+            {f"sections[{index}].known_facts" for index in range(len(section_ids))},
+        )
+        for section_id in section_ids:
+            self.assertIn(f"W1 reopen probe: {section_id}", reopened_xml)
+
     def test_fill_docx_template_fills_single_cell_table_block(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

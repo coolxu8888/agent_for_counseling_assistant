@@ -68,7 +68,12 @@ def is_table_block_label(text):
     normalized = normalize_label(text)
     if not normalized:
         return False
-    return normalized in BLOCK_SLOT_LABELS
+    normalized_without_number = re.sub(r"^\d+", "", normalized)
+    return (
+        normalized in BLOCK_SLOT_LABELS
+        or normalized_without_number in BLOCK_SLOT_LABELS
+        or normalized in globals().get("W1_FIXED_SUMMARY_BLOCK_LABELS", set())
+    )
 
 
 def render_value(value):
@@ -174,6 +179,21 @@ W1_SUMMARY_SECTION_ALIASES = {
     ],
 }
 
+# Stable mappings for the shipped W1 fixed-summary form. These labels are keyed
+# by canonical section id so English model headings still fill the Chinese form.
+W1_FIXED_SUMMARY_LABELS = {
+    "main_distress": "\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270",
+    "basic_situation": "\u6765\u8bbf\u8005\u57fa\u672c\u60c5\u51b5\uff08\u91cd\u5927\u751f\u6d3b\u4e8b\u4ef6\uff0c\u5bb6\u5ead\u72b6\u51b5\uff0c\u4eba\u9645\u5173\u7cfb\u72b6\u51b5\uff0c\u5b66\u4e60\u72b6\u51b5\uff0c\u604b\u7231\u72b6\u51b5\u7b49\uff09",
+    "functioning": "\u6765\u8bbf\u8005\u8ba4\u77e5\u3001\u60c5\u611f\u3001\u884c\u4e3a\u53ca\u793e\u4f1a\u529f\u80fd\u7684\u57fa\u672c\u72b6\u51b5",
+    "support_coping": "\u6765\u8bbf\u8005\u4e3b\u8981\u793e\u4f1a\u652f\u6301\u548c\u5e94\u5bf9\u65b9\u5f0f",
+    "history": "\u6765\u8bbf\u8005\u65e2\u5f80\u54a8\u8be2\uff08\u6c42\u52a9\uff09\u53f2\u3001\u7cbe\u795e\u75be\u75c5\u53f2\u548c\u5c31\u8bca\u3001\u670d\u836f\u60c5\u51b5",
+    "psychological_tests": "6.\u6765\u8bbf\u8005\u5fc3\u7406\u6d4b\u8bd5\u7ed3\u679c",
+    "risk_crisis": "\u5371\u673a\u8bc4\u4f30\u60c5\u51b5\uff08\u81ea\u4f24\u3001\u81ea\u6740\u6216\u4f24\u5bb3\u4ed6\u4eba\u60c5\u51b5\uff09",
+}
+W1_FIXED_SUMMARY_BLOCK_LABELS = {
+    normalize_label(label) for label in W1_FIXED_SUMMARY_LABELS.values()
+}
+
 W1_SUMMARY_BUCKET_ALIASES = {
     "known_facts": ["known facts", "documented facts", "facts"],
     "unclear_or_missing": [
@@ -196,6 +216,8 @@ def _w1_summary_aliases(section):
     heading = section.get("heading") or section.get("title") or ""
     aliases = [heading]
     aliases.extend(W1_SUMMARY_SECTION_ALIASES.get(section_id, []))
+    if section_id in W1_FIXED_SUMMARY_LABELS:
+        aliases.append(W1_FIXED_SUMMARY_LABELS[section_id])
     return [alias for alias in aliases if alias]
 
 
@@ -954,6 +976,14 @@ def fill_tables(root, source_map, report):
     for table_index, table in enumerate(root.iter(TBL_TAG)):
         for row_index, row in enumerate(table.iter(TR_TAG)):
             cells = list(row.iter(TC_TAG))
+            if len(cells) == 1:
+                label = element_text(cells[0]).strip()
+                if is_table_block_label(label):
+                    match = find_source_match(label, source_map)
+                    if match:
+                        location = f"table[{table_index}].row[{row_index}].cell[0]"
+                        set_element_text(cells[0], f"{label}\n{match['value']}")
+                        _record_filled(report, label, match, location)
             for cell_index, cell in enumerate(cells[:-1]):
                 label = element_text(cell).strip()
                 match = find_source_match(label, source_map)
