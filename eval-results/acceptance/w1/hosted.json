@@ -1,0 +1,375 @@
+{
+  "base_url": "https://counselor-agent-coze-api.onrender.com",
+  "deployed_version": "4260519",
+  "report_type": "hosted",
+  "scenarios": [
+    {
+      "artifact": {
+        "download_assertion": "passed",
+        "editable": true,
+        "filename": "output.docx",
+        "format": "docx"
+      },
+      "http_status": 200,
+      "mode": "intake_prep",
+      "model_run": {
+        "real_model": true,
+        "status": "success"
+      },
+      "route_status": "passed",
+      "sanitized_input": "请根据以下去标识化线索准备咨询提问清单：来访者近期因工作调整睡眠变差，已获得家人支持；请区分已知信息与待了解问题。",
+      "structured_result": {
+        "sections": [
+          {
+            "fields": [
+              {
+                "id": "client_identifier",
+                "known_clues_used": [],
+                "label": "来访者识别信息",
+                "notes": "遵循最小必要原则，只收集本次服务所需信息。",
+                "required": true,
+                "risk_signal": false,
+                "sensitive": true,
+                "suggested_questions": [
+                  "如何称呼来访者？是否需要记录年龄、身份或联系方式？"
+                ],
+                "value": ""
+              }
+            ],
+            "heading": "基本信息",
+            "id": "basic_information"
+          },
+          {
+            "fields": [
+              {
+                "id": "main_concern",
+                "known_clues_used": [
+                  "工作调整导致睡眠变差"
+                ],
+                "label": "主要困扰/主诉",
+                "notes": "记录来访者原话优先，区分事实与咨询师假设。",
+                "required": true,
+                "risk_signal": false,
+                "sensitive": false,
+                "suggested_questions": [
+                  "这次最希望谈的是什么？这个困扰从什么时候开始？频率和持续时间？",
+                  "工作调整的具体内容是什么？对睡眠的影响程度？"
+                ],
+                "value": "近期因工作调整睡眠变差。"
+              }
+            ],
+            "heading": "来访原因与当前困扰",
+            "id": "presenting_concern"
+          },
+          {
+            "fields": [
+              {
+                "id": "consulting_goals",
+                "known_clues_used": [],
+                "label": "咨询期待与目标",
+                "notes": "用于帮助咨询师理解来访动机和合作目标。",
+                "required": true,
+                "risk_signal": false,
+                "sensitive": false,
+                "suggested_questions": [
+                  "如果咨询有帮助，你希望首先发生什么变化？是改善睡眠、缓解工作压力，还是其他？",
+                  "对咨询有什么期待或顾虑？"
+                ],
+                "value": ""
+              }
+            ],
+            "heading": "咨询目的与个人需求",
+            "id": "goals_needs"
+          },
+          {
+            "fields": [
+              {
+                "id": "biological_status",
+                "known_clues_used": [
+                  "工作调整导致睡眠变差"
+                ],
+                "label": "生物/身体状态",
+                "notes": "仅收集与咨询目标和风险评估相关的信息。",
+                "required": false,
+                "risk_signal": false,
+                "sensitive": true,
+                "suggested_questions": [
+                  "近期睡眠、食欲、精力和身体健康状况如何？有无其他身体不适或慢性病？",
+                  "有无精神科就诊史、用药史？有无物质使用（酒精、药物等）？",
+                  "家族精神健康或重大疾病情况？"
+                ],
+                "value": "睡眠变差（与工作调整相关）。"
+              },
+              {
+                "id": "psychological_status",
+                "known_clues_used": [],
+                "label": "情绪、认知与行为状态",
+                "notes": "避免诊断化措辞。",
+                "required": false,
+                "risk_signal": false,
+                "sensitive": false,
+                "suggested_questions": [
+                  "最近主要情绪是什么？痛苦程度如何？",
+                  "有没有反复出现的想法或担忧？自我评价有无变化？",
+                  "行为上是否有回避、拖延、社交减少等？"
+                ],
+                "value": ""
+              },
+              {
+                "id": "social_status",
+                "known_clues_used": [
+                  "已获得家人支持"
+                ],
+                "label": "家庭、人际、学习/工作与支持系统",
+                "notes": "关注支持资源、压力源与功能受损情况。",
+                "required": false,
+                "risk_signal": false,
+                "sensitive": true,
+                "suggested_questions": [
+                  "目前有哪些支持资源？家人支持的具体形式？",
+                  "工作调整对收入、职业发展、同事关系有何影响？",
+                  "近期有无其他重大生活事件？文化或身份相关压力？"
+                ],
+                "value": "已获得家人支持。"
+              }
+            ],
+            "heading": "生物-心理-社会信息",
+            "id": "bio_psycho_social"
+          },
+          {
+            "fields": [
+              {
+                "id": "risk_screening",
+                "known_clues_used": [
+                  "已获得家人支持"
+                ],
+                "label": "自伤/自杀/他伤及其他安全风险筛查",
+                "notes": "不得输出最终风险等级；如出现风险线索，提示咨询师按机构流程进一步评估。",
+                "required": true,
+                "risk_signal": true,
+                "sensitive": true,
+                "suggested_questions": [
+                  "近期是否有伤害自己、不想活、伤害他人或处于不安全环境的想法/行为？",
+                  "有无具体计划、意图、准备行为？既往有无尝试史？",
+                  "物质使用（酒精、药物滥用等）？",
+                  "现实检验有无异常（幻觉、妄想等）？"
+                ],
+                "value": "保护因素：已获得家人支持。"
+              }
+            ],
+            "heading": "风险评估",
+            "id": "risk_assessment"
+          },
+          {
+            "fields": [
+              {
+                "id": "informed_consent",
+                "known_clues_used": [],
+                "label": "保密例外、记录使用与服务边界",
+                "notes": "本表不构成诊断、最终风险判断或治疗方案。",
+                "required": true,
+                "risk_signal": false,
+                "sensitive": false,
+                "suggested_questions": [
+                  "是否已说明保密原则、保密例外（自伤/自杀/他伤、虐待、法律/机构要求）、记录用途和服务边界？",
+                  "来访者是否同意并理解？"
+                ],
+                "value": ""
+              }
+            ],
+            "heading": "知情同意与边界说明",
+            "id": "consent_boundary"
+          },
+          {
+            "fields": [
+              {
+                "id": "missing_information",
+                "known_clues_used": [],
+                "label": "待补充信息与后续追问",
+                "notes": "用于咨询师访谈准备，不替代专业判断。",
+                "required": false,
+                "risk_signal": false,
+                "sensitive": false,
+                "suggested_questions": [
+                  "哪些关键信息仍缺失？下次访谈需要优先追问什么？",
+                  "来访者整体表现观察（情绪、合作度、言语逻辑等）？"
+                ],
+                "value": ""
+              }
+            ],
+            "heading": "咨询师初步记录",
+            "id": "counselor_notes"
+          }
+        ],
+        "status": "PASS"
+      },
+      "visible_label": "首访准备",
+      "workflow": "W1"
+    },
+    {
+      "artifact": {
+        "download_assertion": "passed",
+        "editable": true,
+        "filename": "output.docx",
+        "format": "docx"
+      },
+      "http_status": 200,
+      "mode": "initial_interview_summary",
+      "model_run": {
+        "real_model": true,
+        "status": "success"
+      },
+      "route_status": "passed",
+      "sanitized_input": "请把以下已完成的去标识化材料整理为固定初访总结模板：成年人，近期工作压力增加，睡眠受影响，有稳定支持者，否认当前自伤想法。",
+      "structured_result": {
+        "sections": [
+          {
+            "follow_up_questions": [
+              "工作压力主要源于哪些方面？持续时间多久？",
+              "睡眠受影响的具体情况（入睡困难/中途醒来/早醒）？",
+              "当前情绪感受如何？是否有其他困扰（人际/健康/经济等）？"
+            ],
+            "heading": "Main distress",
+            "id": "main_distress",
+            "known_facts": [
+              "近期工作压力增加",
+              "睡眠受影响"
+            ],
+            "unclear_or_missing": [
+              "工作压力的具体来源、持续时间",
+              "睡眠受影响的具体表现（入睡困难/早醒/睡眠质量下降）",
+              "当前情绪状态（如焦虑、抑郁、烦躁等）"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "来访者的年龄、性别、职业？",
+              "婚姻状况、居住情况（独居/与家人同住/合租等）？",
+              "是否有紧急联系人？"
+            ],
+            "heading": "Basic situation",
+            "id": "basic_situation",
+            "known_facts": [
+              "来访者为成年人"
+            ],
+            "unclear_or_missing": [
+              "具体年龄、性别、职业、婚姻状况、居住情况、联系方式、紧急联系人"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "工作压力是否影响了工作表现或出勤？",
+              "睡眠受影响后，白天精力、注意力、情绪如何？",
+              "日常生活（饮食、家务、社交）有无变化？"
+            ],
+            "heading": "Functioning",
+            "id": "functioning",
+            "known_facts": [],
+            "unclear_or_missing": [
+              "工作功能是否受影响（如效率、出勤、人际关系）",
+              "日常生活功能（饮食、自理、社会活动）",
+              "睡眠受影响对白天功能的影响程度"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "稳定支持者是谁？与来访者的关系如何？",
+              "来访者通常会怎样应对压力？",
+              "除了这位支持者，还有其他可求助的人或资源吗？"
+            ],
+            "heading": "Support and coping",
+            "id": "support_coping",
+            "known_facts": [
+              "有稳定支持者"
+            ],
+            "unclear_or_missing": [
+              "支持者的具体身份（家人/朋友/伴侣等）",
+              "支持的形式（情感支持/实际帮助/陪伴）",
+              "来访者自身的应对策略（如运动、倾诉、回避等）"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "以前是否接受过心理咨询或治疗？效果如何？",
+              "是否曾因情绪/睡眠问题服用过药物？",
+              "直系亲属有无精神疾病或自杀史？"
+            ],
+            "heading": "Prior help-seeking and treatment history",
+            "id": "history",
+            "known_facts": [],
+            "unclear_or_missing": [
+              "既往是否有心理咨询或精神科就诊经历",
+              "既往是否有药物治疗（如抗抑郁、抗焦虑、安眠药等）",
+              "家族精神健康或重大疾病史"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "是否需要或已经使用过相关心理测验（如PHQ-9、GAD-7、PSQI等）？"
+            ],
+            "heading": "Psychological tests",
+            "id": "psychological_tests",
+            "known_facts": [],
+            "unclear_or_missing": [
+              "未提及任何心理测验或评估结果"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "最近是否出现过任何自杀念头（即使一闪而过）？",
+              "是否有过具体计划或准备（如搜集药片、写遗书等）？",
+              "过去是否有过自伤或自杀行为？",
+              "是否有伤害他人的想法或冲动？",
+              "目前是否有规律使用酒精或药物？",
+              "有没有感觉异常（听到别人听不到的声音、感觉被监视等）？",
+              "当前生活环境是否安全？（有无家暴、欺凌等）",
+              "除了支持者，还有哪些因素让您觉得值得活下去？"
+            ],
+            "heading": "Risk and crisis information",
+            "id": "risk_crisis",
+            "known_facts": [
+              "来访者否认当前自伤想法"
+            ],
+            "unclear_or_missing": [
+              "自杀相关想法（包括被动自杀意念如“不想活”“想消失”）",
+              "自杀计划、准备行为、手段可及性",
+              "既往自伤或自杀尝试",
+              "伤害他人的想法或行为",
+              "物质使用（酒精、药物、其他成瘾行为）",
+              "现实检验（幻觉、妄想、现实感）",
+              "不安全环境（家庭暴力、校园欺凌、人身安全威胁等）",
+              "保护因素（除支持者外的其他因素，如宗教信仰、未来计划等）"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "咨询师可优先补充风险评估中的缺失信息，尤其是自杀相关维度",
+              "考虑使用标准化问卷（如PHQ-9、GAD-7、PSQI）进行量化评估"
+            ],
+            "heading": "Handling suggestions",
+            "id": "handling_suggestion",
+            "known_facts": [],
+            "unclear_or_missing": [
+              "未提供咨询师初步处理的意见或计划"
+            ]
+          },
+          {
+            "follow_up_questions": [
+              "来访者希望通过咨询达到什么目标？对咨询有何具体期待？"
+            ],
+            "heading": "Other notes",
+            "id": "other_notes",
+            "known_facts": [],
+            "unclear_or_missing": [
+              "来访者咨询动机、咨询目标、对咨询的期望均未提供"
+            ]
+          }
+        ],
+        "status": "PASS"
+      },
+      "visible_label": "首访总结",
+      "workflow": "W1"
+    }
+  ],
+  "timestamp_utc": "2026-07-07T13:28:09.264899Z"
+}
