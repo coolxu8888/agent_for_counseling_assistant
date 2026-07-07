@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-07-04",
+  "workflows": {
+    "W1": {
+      "name": "Initial interview",
+      "gates": {
+        "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W1 coverage."}]},
+        "real_model_eval": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/eval-rubric-summary.v0.1.json", "description": "Rubric decisions for the committed W1 evaluation cases."}, {"type": "path", "value": "eval-results/eval-clean-summary.v0.1.json", "description": "Sanitized consolidated clean-output summary supporting the rubric."}, {"type": "path", "value": "eval-results/W1-001-deepseek-raw.txt"}, {"type": "path", "value": "eval-results/W1-002-deepseek-raw.txt"}, {"type": "path", "value": "eval-results/W1-003-deepseek-raw.txt"}]},
+        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a browser-level workflow test of visible W1 structured results and export."},
+        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W1 model-output report."},
+        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed successful W1 fill report against the real intake DOCX."}
+      }
+    },
+    "W2": {
+      "name": "Case background organization",
+      "gates": {
+        "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W2 coverage."}]},
+        "real_model_eval": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/eval-rubric-summary.v0.1.json", "description": "Rubric decisions for the committed W2 evaluation cases."}, {"type": "path", "value": "eval-results/eval-clean-summary.v0.1.json", "description": "Sanitized consolidated clean-output summary supporting the rubric."}, {"type": "path", "value": "eval-results/W2-001-deepseek-raw.txt"}, {"type": "path", "value": "eval-results/W2-002-deepseek-raw.txt"}, {"type": "path", "value": "eval-results/W2-003-deepseek-raw.txt"}]},
+        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a workflow-specific Web test of W2 structured results and export."},
+        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W2 model-output report."},
+        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a successful W2 fill report against a real counselor BPS DOCX."}
+      }
+    },
+    "W3": {
+      "name": "Session summary and counseling record",
+      "gates": {
+        "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W3 coverage."}]},
+        "real_model_eval": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/eval-rubric-summary.v0.1.json", "description": "Rubric decisions for the committed W3 evaluation cases."}, {"type": "path", "value": "eval-results/eval-clean-summary.v0.1.json", "description": "Sanitized consolidated clean-output summary supporting the rubric."}, {"type": "path", "value": "eval-results/W3-001-deepseek-raw.txt"}, {"type": "path", "value": "eval-results/W3-003-deepseek-raw.txt"}]},
+        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a browser-level workflow test of visible W3 structured results and export."},
+        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W3 model-output report."},
+        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a successful W3 fill report against a real SOAP, DAP, or BIRP DOCX."}
+      }
+    },
+    "W4": {
+      "name": "Case conceptualization",
+      "gates": {
+        "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W4 coverage."}]},
+        "real_model_eval": {"status": "unverified", "evidence": [], "note": "Missing committed W4 raw/clean real-model results and rubric evidence."},
+        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a workflow-specific Web presentation test for W4 output."},
+        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W4 workflow report."},
+        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a real W4 template and successful fill report."}
+      }
+    },
+    "W5": {
+      "name": "Bounded next-session plan",
+      "gates": {
+        "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W5 coverage."}]},
+        "real_model_eval": {"status": "unverified", "evidence": [], "note": "Missing committed W5 raw/clean real-model results and rubric evidence."},
+        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a workflow-specific Web result and export test for W5."},
+        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W5 workflow report."},
+        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a successful W5 fill report against a real counselor DOCX."}
+      }
+    },
+    "W6": {
+      "name": "Counseling roadmap",
+      "gates": {
+        "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W6 coverage."}]},
+        "real_model_eval": {"status": "unverified", "evidence": [], "note": "Missing committed W6 raw/clean real-model results and rubric evidence."},
+        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a workflow-specific Web result and export test for W6."},
+        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W6 workflow report."},
+        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a real W6 roadmap template and successful fill report."}
+      }
+    }
+  }
+}
