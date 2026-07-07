@@ -11,8 +11,71 @@
       "handling_suggestion",
       "other_notes"
     ],
+    "helper_filled_fields": [
+      {
+        "confidence": "high",
+        "location": "table[0].row[0].cell[0]",
+        "source_path": "sections[0].known_facts",
+        "template_label": "来访者主要困扰"
+      },
+      {
+        "confidence": "high",
+        "location": "table[0].row[1].cell[0]",
+        "source_path": "sections[1].known_facts",
+        "template_label": "来访者基本情况（重大生活事件，家庭状况，人际关系状况，学习状况，恋爱状况等）"
+      },
+      {
+        "confidence": "high",
+        "location": "table[0].row[2].cell[0]",
+        "source_path": "sections[2].known_facts",
+        "template_label": "来访者认知、情感、行为及社会功能的基本状况"
+      },
+      {
+        "confidence": "high",
+        "location": "table[0].row[3].cell[0]",
+        "source_path": "sections[3].known_facts",
+        "template_label": "来访者主要社会支持和应对方式"
+      },
+      {
+        "confidence": "high",
+        "location": "table[0].row[4].cell[0]",
+        "source_path": "sections[4].known_facts",
+        "template_label": "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况"
+      },
+      {
+        "confidence": "high",
+        "location": "table[0].row[5].cell[0]",
+        "source_path": "sections[5].known_facts",
+        "template_label": "6.来访者心理测试结果"
+      },
+      {
+        "confidence": "high",
+        "location": "table[0].row[6].cell[0]",
+        "source_path": "sections[6].known_facts",
+        "template_label": "危机评估情况（自伤、自杀或伤害他人情况）"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[20]",
+        "source_path": "sections[7].known_facts",
+        "template_label": "处理建议"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[23]",
+        "source_path": "sections[8].known_facts",
+        "template_label": "其他备注"
+      }
+    ],
     "issues": [],
-    "unfilled_fields": []
+    "status": "WARN",
+    "unfilled_fields": [
+      {
+        "location": "paragraph[25]",
+        "reason": "No matching structured field",
+        "template_label": "咨询师签名"
+      }
+    ]
   },
   "mode": "initial_interview_summary",
   "output_verification": {
@@ -35,6 +98,6 @@
     "path": "docs/4.心理咨询初始访谈表_20210906.docx",
     "sha256": "98f401ec41241f123e9b019ca8a9cf541665d91be8abdfc6b96a88f55063a8c5"
   },
-  "timestamp_utc": "2026-07-07T12:29:00.481891Z",
+  "timestamp_utc": "2026-07-07T12:55:06.484616Z",
   "workflow": "W1"
 }

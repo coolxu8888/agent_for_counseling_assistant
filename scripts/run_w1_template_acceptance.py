@@ -82,6 +82,22 @@ def _document_text(docx_path: Path) -> str:
     return "\n".join((node.text or "") for node in root.iter(TEXT_TAG))
 
 
+def _sanitize_helper_items(items, allowed_keys: tuple[str, ...]) -> list[dict]:
+    if not isinstance(items, list):
+        return []
+    sanitized = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        clean = {
+            key: item[key]
+            for key in allowed_keys
+            if key in item and isinstance(item[key], (str, bool, int, float, type(None)))
+        }
+        sanitized.append(clean)
+    return sanitized
+
+
 def run_template_acceptance(
     template_path: Path,
     structured_path: Path,
@@ -104,6 +120,11 @@ def run_template_acceptance(
         helper_report = fill_helper(
             Path(template_path), Path(structured_path), output, helper_report_path
         )
+        helper_status = helper_report.get("status") if isinstance(helper_report, dict) else None
+        if helper_status == "FAIL":
+            raise AcceptanceFailure("shipped template filler reported FAIL")
+        if helper_status not in {"PASS", "WARN"}:
+            raise AcceptanceFailure("shipped template filler returned an invalid status")
         if not output.is_file():
             raise AcceptanceFailure("shipped template filler did not create a DOCX output")
         reopened_text = _document_text(output)
@@ -118,12 +139,18 @@ def run_template_acceptance(
                 "filled DOCX is missing canonical mapped content: " + ", ".join(missing)
             )
 
-    raw_issues = helper_report.get("issues", []) if isinstance(helper_report, dict) else []
-    issues = [
-        {"level": str(item.get("level", "WARN")), "message": str(item.get("message", "fill issue"))[:300]}
-        for item in raw_issues
-        if isinstance(item, dict)
-    ]
+    helper_filled = _sanitize_helper_items(
+        helper_report.get("filled_fields", []),
+        ("template_label", "source_path", "confidence", "location"),
+    )
+    unfilled = _sanitize_helper_items(
+        helper_report.get("unfilled_fields", []),
+        ("template_label", "reason", "location"),
+    )
+    issues = _sanitize_helper_items(
+        helper_report.get("issues", []),
+        ("level", "message", "template_label", "location"),
+    )
     report = {
         "report_type": "template",
         "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -131,8 +158,10 @@ def run_template_acceptance(
         "mode": "initial_interview_summary",
         "source_template": source,
         "fill": {
+            "status": helper_status,
             "filled_fields": list(W1_SUMMARY_SECTIONS),
-            "unfilled_fields": [],
+            "helper_filled_fields": helper_filled,
+            "unfilled_fields": unfilled,
             "issues": issues,
         },
         "output_verification": {

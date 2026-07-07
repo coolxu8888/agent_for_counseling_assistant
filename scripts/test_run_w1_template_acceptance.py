@@ -63,7 +63,11 @@ class W1TemplateAcceptanceTests(unittest.TestCase):
             template = root / "docs" / TEMPLATE_NAME
             structured = root / "fixture.json"
             report = root / "eval-results" / "acceptance" / "w1" / "real-template.json"
-            write_docx(template, [f"{section_id}:" for section_id in W1_SUMMARY_SECTIONS])
+            write_docx(
+                template,
+                [f"{section_id}:" for section_id in W1_SUMMARY_SECTIONS]
+                + ["咨询师签名："],
+            )
             structured.write_text(json.dumps(structured_result()), encoding="utf-8")
             calls = []
 
@@ -81,6 +85,11 @@ class W1TemplateAcceptanceTests(unittest.TestCase):
             self.assertEqual(result["output_verification"]["status"], "PASS")
             self.assertEqual(
                 set(result["fill"]["filled_fields"]), set(W1_SUMMARY_SECTIONS)
+            )
+            self.assertEqual(result["fill"]["status"], "WARN")
+            self.assertEqual(len(result["fill"]["helper_filled_fields"]), 9)
+            self.assertEqual(
+                result["fill"]["unfilled_fields"][0]["template_label"], "咨询师签名"
             )
             validate_template_report(json.loads(report.read_text(encoding="utf-8")), root)
             self.assertEqual(list(report.parent.glob("*.docx")), [])
@@ -110,6 +119,29 @@ class W1TemplateAcceptanceTests(unittest.TestCase):
                 run_template_acceptance(
                     template, structured, root / "unsafe-report.json", repo_root=root
                 )
+
+    def test_run_rejects_helper_fail_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            template = root / "docs" / TEMPLATE_NAME
+            structured = root / "fixture.json"
+            report = root / "eval-results" / "acceptance" / "w1" / "real-template.json"
+            write_docx(template, [f"{section_id}:" for section_id in W1_SUMMARY_SECTIONS])
+            structured.write_text(json.dumps(structured_result()), encoding="utf-8")
+
+            def failing_filler(*_args, **_kwargs):
+                return {
+                    "status": "FAIL",
+                    "filled_fields": [],
+                    "unfilled_fields": [],
+                    "issues": [{"level": "ERROR", "message": "mapping failed"}],
+                }
+
+            with self.assertRaisesRegex(AcceptanceFailure, "reported FAIL"):
+                run_template_acceptance(
+                    template, structured, report, repo_root=root, fill_helper=failing_filler
+                )
+            self.assertFalse(report.exists())
 
 
 if __name__ == "__main__":
