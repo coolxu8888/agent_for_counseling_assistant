@@ -3,6 +3,7 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from w1_acceptance import (
     W1_SUMMARY_SECTIONS,
@@ -54,6 +55,7 @@ def valid_hosted_report():
         deployed_version="abc1234",
     )
     for scenario in report["scenarios"]:
+        scenario["http_status"] = 200
         scenario["model_run"] = {"status": "success", "real_model": True}
         scenario["sanitized_input"] = "去标识化场景"
     return report
@@ -68,16 +70,20 @@ class W1AcceptanceTests(unittest.TestCase):
             validate_web_report(report)
 
     def test_w1_web_report_requires_chinese_visible_labels_and_full_assertions(self):
-        for mutation in (
-            lambda s: s.update(visible_label="Initial interview preparation"),
-            lambda s: s.update(structured_result={"status": "PASS", "sections": []}),
-            lambda s: s.update(artifact={"format": "docx", "editable": True}),
-        ):
-            report = valid_web_report()
-            mutation(report["scenarios"][0])
-            with self.subTest(report=report):
-                with self.assertRaises(W1AcceptanceError):
-                    validate_web_report(report)
+        report = valid_web_report()
+        report["scenarios"][0]["visible_label"] = "Initial interview preparation"
+        with self.assertRaisesRegex(W1AcceptanceError, "visible_label"):
+            validate_web_report(report)
+
+        report = valid_web_report()
+        report["scenarios"][0]["structured_result"] = {"status": "PASS", "sections": []}
+        with self.assertRaisesRegex(W1AcceptanceError, "sections"):
+            validate_web_report(report)
+
+        report = valid_web_report()
+        report["scenarios"][0]["artifact"] = {"format": "docx", "editable": True}
+        with self.assertRaisesRegex(W1AcceptanceError, "download assertion"):
+            validate_web_report(report)
 
     def test_w1_web_report_requires_the_mode_specific_all_chinese_label(self):
         for mode, unsafe_label in (
@@ -94,21 +100,38 @@ class W1AcceptanceTests(unittest.TestCase):
 
     def test_w1_hosted_report_requires_model_and_artifact_assertions(self):
         validate_hosted_report(valid_hosted_report())
-        mutations = (
-            lambda r: r["scenarios"][0].pop("model_run"),
-            lambda r: r["scenarios"][0]["model_run"].update(real_model=False),
-            lambda r: r["scenarios"][0].update(route_status="passed"),
-            lambda r: r["scenarios"][0]["artifact"].update(editable=False),
-            lambda r: r.update(base_url="http://internal.example"),
-        )
-        for mutation in mutations:
-            report = valid_hosted_report()
-            mutation(report)
-            if "model_run" in report["scenarios"][0] and mutation == mutations[2]:
-                report["scenarios"][0].pop("structured_result")
-            with self.subTest(report=report):
-                with self.assertRaises(W1AcceptanceError):
-                    validate_hosted_report(report)
+        report = valid_hosted_report()
+        report["scenarios"][0].pop("model_run")
+        with self.assertRaisesRegex(W1AcceptanceError, "real-model run"):
+            validate_hosted_report(report)
+
+        report = valid_hosted_report()
+        report["scenarios"][0]["model_run"]["real_model"] = False
+        with self.assertRaisesRegex(W1AcceptanceError, "real-model run"):
+            validate_hosted_report(report)
+
+        report = valid_hosted_report()
+        report["scenarios"][0].pop("structured_result")
+        with self.assertRaisesRegex(W1AcceptanceError, "structured_result"):
+            validate_hosted_report(report)
+
+        report = valid_hosted_report()
+        report["scenarios"][0]["artifact"]["editable"] = False
+        with self.assertRaisesRegex(W1AcceptanceError, "editable"):
+            validate_hosted_report(report)
+
+        report = valid_hosted_report()
+        report["scenarios"][0].pop("http_status")
+        with self.assertRaisesRegex(W1AcceptanceError, "HTTP 200"):
+            validate_hosted_report(report)
+
+    def test_hosted_public_host_form_is_offline_but_full_scenarios_are_reachability_evidence(self):
+        report = valid_hosted_report()
+        report["base_url"] = "https://definitely-does-not-exist-w1-acceptance.com"
+        validate_hosted_report(report)
+        report["scenarios"][1].pop("model_run")
+        with self.assertRaisesRegex(W1AcceptanceError, "real-model run"):
+            validate_hosted_report(report)
 
     def test_w1_hosted_report_rejects_non_public_hosts_offline(self):
         for url in (
@@ -120,7 +143,6 @@ class W1AcceptanceTests(unittest.TestCase):
             "https://service",
             "https://service.local",
             "https://example.invalid",
-            "https://user:password@app.render.com",
         ):
             report = valid_hosted_report()
             report["base_url"] = url
@@ -152,29 +174,51 @@ class W1AcceptanceTests(unittest.TestCase):
     def test_template_report_requires_exact_real_repo_template_and_actual_hash(self):
         root, report = self._valid_template_report()
         validate_template_report(report, root)
-        for mutation in (
-            lambda r: r["source_template"].update(path="docs/another.docx"),
-            lambda r: r["source_template"].update(sha256="0" * 64),
-        ):
-            changed = json.loads(json.dumps(report, ensure_ascii=False))
-            mutation(changed)
-            with self.assertRaises(W1AcceptanceError):
-                validate_template_report(changed, root)
+        changed = json.loads(json.dumps(report, ensure_ascii=False))
+        changed["source_template"]["path"] = "docs/another.docx"
+        with self.assertRaisesRegex(W1AcceptanceError, "source_template.path"):
+            validate_template_report(changed, root)
+
+        changed = json.loads(json.dumps(report, ensure_ascii=False))
+        changed["source_template"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(W1AcceptanceError, "sha256"):
+            validate_template_report(changed, root)
+
+    def test_template_report_rejects_resolved_path_outside_repo_root(self):
+        root, report = self._valid_template_report()
+        escaped = root.parent / "outside-template.docx"
+        original_resolve = Path.resolve
+
+        def escaping_resolve(path, *args, **kwargs):
+            if str(path).endswith("4.心理咨询初始访谈表_20210906.docx"):
+                return escaped
+            return original_resolve(path, *args, **kwargs)
+
+        with patch.object(Path, "resolve", escaping_resolve):
+            with self.assertRaisesRegex(W1AcceptanceError, "inside repo_root"):
+                validate_template_report(report, root)
 
     def test_template_report_requires_reopened_canonical_sections_with_meaningful_coverage(self):
         root, report = self._valid_template_report()
-        mutations = (
-            lambda r: r["output_verification"].update(reopened=False),
-            lambda r: r["output_verification"]["required_sections"].pop(W1_SUMMARY_SECTIONS[0]),
-            lambda r: r["output_verification"]["required_sections"].update({W1_SUMMARY_SECTIONS[0]: ""}),
-            lambda r: r["fill"].update(filled_fields=[W1_SUMMARY_SECTIONS[0]]),
-        )
-        for mutation in mutations:
-            changed = json.loads(json.dumps(report, ensure_ascii=False))
-            mutation(changed)
-            with self.subTest(report=changed):
-                with self.assertRaises(W1AcceptanceError):
-                    validate_template_report(changed, root)
+        changed = json.loads(json.dumps(report, ensure_ascii=False))
+        changed["output_verification"]["reopened"] = False
+        with self.assertRaisesRegex(W1AcceptanceError, "reopened"):
+            validate_template_report(changed, root)
+
+        changed = json.loads(json.dumps(report, ensure_ascii=False))
+        changed["output_verification"]["required_sections"].pop(W1_SUMMARY_SECTIONS[0])
+        with self.assertRaisesRegex(W1AcceptanceError, "canonical"):
+            validate_template_report(changed, root)
+
+        changed = json.loads(json.dumps(report, ensure_ascii=False))
+        changed["output_verification"]["required_sections"][W1_SUMMARY_SECTIONS[0]] = ""
+        with self.assertRaisesRegex(W1AcceptanceError, "meaningful"):
+            validate_template_report(changed, root)
+
+        changed = json.loads(json.dumps(report, ensure_ascii=False))
+        changed["fill"]["filled_fields"] = [W1_SUMMARY_SECTIONS[0]]
+        with self.assertRaisesRegex(W1AcceptanceError, "filled_fields"):
+            validate_template_report(changed, root)
 
     def test_report_rejects_secret_cookie_and_server_path_fields(self):
         unsafe_values = (
@@ -192,6 +236,50 @@ class W1AcceptanceTests(unittest.TestCase):
             with self.subTest(key=key, value=value):
                 with self.assertRaises(W1AcceptanceError):
                     validate_web_report(report)
+
+    def test_report_rejects_camel_case_sensitive_keys_but_allows_counters(self):
+        for key in ("apiKey", "accessToken", "clientSecret", "sessionId", "privateKey"):
+            report = valid_web_report()
+            report[key] = "redacted"
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(W1AcceptanceError, "forbidden"):
+                    validate_web_report(report)
+        report = valid_web_report()
+        report.update(token_count=12, session_count=2, cookie_count=0)
+        validate_web_report(report)
+
+    def test_report_rejects_credentialed_urls_and_jwts_in_nested_values(self):
+        for value in (
+            "https://user:pass@example.com/api",
+            "prefix https://user:pass@example.com/api suffix",
+            "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+        ):
+            report = valid_web_report()
+            report["nested"] = {"items": [value]}
+            with self.subTest(value=value):
+                with self.assertRaises(W1AcceptanceError):
+                    validate_web_report(report)
+
+    def test_web_and_hosted_base_urls_reject_userinfo(self):
+        web = valid_web_report()
+        web["base_url"] = "http://user:pass@localhost:8000"
+        with self.assertRaises(W1AcceptanceError):
+            validate_web_report(web)
+        hosted = valid_hosted_report()
+        hosted["base_url"] = "https://user:pass@app.render.com"
+        with self.assertRaises(W1AcceptanceError):
+            validate_hosted_report(hosted)
+
+    def test_report_allows_url_routes_but_rejects_absolute_server_paths(self):
+        report = valid_web_report()
+        report["routes"] = ["/api/v1", "/health", "GET /api/run"]
+        validate_web_report(report)
+        for value in ("/srv/app/output.docx", "/var/tmp/report.json", r"C:\\server\\output.docx", r"\\server\share\output.docx"):
+            changed = valid_web_report()
+            changed["path"] = value
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(W1AcceptanceError, "filesystem path"):
+                    validate_web_report(changed)
 
     def test_report_rejects_sensitive_assignments_inside_ordinary_strings(self):
         unsafe = (

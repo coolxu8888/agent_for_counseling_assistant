@@ -35,17 +35,16 @@ class W1AcceptanceError(ValueError):
     """Raised when a report cannot serve as durable W1 evidence."""
 
 
-_SENSITIVE_KEY = re.compile(
-    r"(?:^|_)(?:api_key|authorization|cookies?|credentials?|passwords?|private_key|secrets?|sessions?|tokens?)(?:_|$)",
-    re.IGNORECASE,
-)
 _SENSITIVE_VALUE = re.compile(
     r"(?:\b(?:authorization|cookie|set-cookie)\s*:|\bbearer\s+[A-Za-z0-9._~+/=-]+|\bsk-[A-Za-z0-9_-]+|"
     r"\b(?:(?:[a-z0-9]+[_-])*(?:password|token|session|cookie|secret|credentials?)"
     r"|api(?:[ _-]+)key|private(?:[ _-]+)key)(?:[_-][a-z0-9]+)*\s*[:=]\s*\S)",
     re.IGNORECASE,
 )
-_DIRECT_PATH = re.compile(r"(?:^|\s)(?:/[A-Za-z0-9_.-]|[A-Za-z]:[\\/]|\\\\)[^\s]*")
+_CREDENTIALED_URL = re.compile(r"https?://[^\s/@:]+:[^\s/@]+@", re.IGNORECASE)
+_JWT = re.compile(r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}(?![A-Za-z0-9_-])")
+_WINDOWS_PATH = re.compile(r"(?:^|\s)(?:[A-Za-z]:[\\/]|\\\\)[^\s]+")
+_UNIX_SERVER_PATH = re.compile(r"(?:^|\s)/(?:app|etc|home|mnt|opt|private|root|srv|tmp|usr|var)(?:/|\s|$)", re.IGNORECASE)
 
 
 def _fail(message: str) -> None:
@@ -57,20 +56,37 @@ def _require(condition: bool, message: str) -> None:
         _fail(message)
 
 
+def _key_tokens(key: str) -> list[str]:
+    snake = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key)
+    return re.findall(r"[a-z0-9]+", snake.lower())
+
+
+def _is_sensitive_key(key: str) -> bool:
+    tokens = _key_tokens(key)
+    if any(tokens[index : index + 2] in (["api", "key"], ["private", "key"]) for index in range(len(tokens) - 1)):
+        return True
+    sensitive = {"authorization", "cookie", "cookies", "credential", "credentials", "password", "passwords", "secret", "secrets", "session", "sessions", "token", "tokens"}
+    indices = [index for index, token in enumerate(tokens) if token in sensitive]
+    if not indices:
+        return False
+    telemetry_suffixes = {"count", "counts", "length", "total"}
+    return not all(index + 1 == len(tokens) - 1 and tokens[-1] in telemetry_suffixes for index in indices)
+
+
 def _validate_sanitized(value: Any, location: str = "report") -> None:
     if isinstance(value, dict):
         for key, child in value.items():
             _require(isinstance(key, str), f"{location} contains a non-string key")
-            if _SENSITIVE_KEY.search(key):
+            if _is_sensitive_key(key):
                 _fail(f"{location}.{key} is a forbidden secret or cookie field")
             _validate_sanitized(child, f"{location}.{key}")
     elif isinstance(value, list):
         for index, child in enumerate(value):
             _validate_sanitized(child, f"{location}[{index}]")
     elif isinstance(value, str):
-        if _SENSITIVE_VALUE.search(value):
+        if _SENSITIVE_VALUE.search(value) or _CREDENTIALED_URL.search(value) or _JWT.search(value):
             _fail(f"{location} contains secret or cookie material")
-        if _DIRECT_PATH.search(value):
+        if _WINDOWS_PATH.search(value) or _UNIX_SERVER_PATH.search(value):
             _fail(f"{location} contains a direct server filesystem path")
     elif value is not None and not isinstance(value, (bool, int, float)):
         _fail(f"{location} contains unsupported data type {type(value).__name__}")
@@ -100,10 +116,10 @@ def _validate_url(value: Any, *, hosted: bool) -> None:
     _require(isinstance(value, str), "base_url must be a URL")
     parsed = urlparse(value)
     expected_scheme = ("https",) if hosted else ("http", "https")
-    _require(parsed.scheme in expected_scheme and bool(parsed.netloc), "base_url must be a valid public HTTPS URL" if hosted else "base_url must be an HTTP URL")
+    _require(parsed.scheme in expected_scheme and bool(parsed.netloc), "base_url must be a valid HTTPS URL with a public host form" if hosted else "base_url must be an HTTP URL")
+    _require(parsed.username is None and parsed.password is None, "base_url must not contain URL userinfo credentials")
     if hosted:
         host = (parsed.hostname or "").lower()
-        _require(parsed.username is None and parsed.password is None, "hosted base_url must be public and contain no user information")
         try:
             parsed.port
         except ValueError:
@@ -157,13 +173,14 @@ def validate_web_report(report: dict) -> None:
 
 
 def validate_hosted_report(report: dict) -> None:
-    """Validate full hosted real-model evidence, not route-only smoke output."""
+    """Validate offline URL form plus full HTTP/model scenario evidence; never perform network I/O."""
     scenarios = _validate_base(report, "hosted")
     _validate_url(report.get("base_url"), hosted=True)
     version = report.get("deployed_version")
     _require(isinstance(version, str) and bool(version.strip()), "deployed_version is required")
     for index, scenario in enumerate(scenarios):
         _validate_scenario(scenario, index)
+        _require(scenario.get("http_status") == 200, f"scenarios[{index}] must record a real HTTP 200 response")
         model_run = scenario.get("model_run")
         _require(
             isinstance(model_run, dict)
@@ -190,6 +207,7 @@ def validate_template_report(report: dict, repo_root: Path) -> None:
     _require(relative == W1_TEMPLATE_PATH, f"source_template.path must identify {W1_TEMPLATE_PATH}")
     root = Path(repo_root).resolve()
     template = (root / relative).resolve()
+    _require(template.is_relative_to(root), "resolved source template must remain inside repo_root")
     _require(template.is_file(), "source template must be the real repository W1 DOCX")
     expected_hash = source.get("sha256")
     _require(isinstance(expected_hash, str) and len(expected_hash) == 64, "source_template.sha256 is required")
