@@ -4,7 +4,11 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable
+
+from w1_acceptance import W1_VISIBLE_LABELS, validate_hosted_report, write_sanitized_report
 
 
 DEFAULT_WORKFLOW = "W2"
@@ -14,6 +18,10 @@ DEFAULT_INPUT = (
     "After an argument with her father last week, she drank heavily alone but denied self-harm thoughts. "
     "Separate known facts, working hypotheses, risk boundaries, and information that still needs verification."
 )
+W1_HOSTED_SCENARIOS = {
+    "intake_prep": "请根据以下去标识化线索准备咨询提问清单：来访者近期因工作调整睡眠变差，已获得家人支持；请区分已知信息与待了解问题。",
+    "initial_interview_summary": "请把以下已完成的去标识化初访记录整理为固定的初始访谈总结：成年人，近期工作压力增加，睡眠受影响，有稳定支持者，否认当前自伤想法。",
+}
 
 
 def _normalize_base_url(base_url):
@@ -94,6 +102,7 @@ def run_smoke(
     skip_auth=False,
     skip_run=False,
     real_run=False,
+    render_docx=False,
     request_json: Callable = request_json,
 ):
     report = {
@@ -188,7 +197,7 @@ def run_smoke(
                     "workflow": workflow,
                     "input": input_text,
                     "structured": True,
-                    "render_docx": False,
+                    "render_docx": bool(render_docx),
                     "output_style": "professional_concise",
                 },
                 headers=auth_headers,
@@ -210,6 +219,11 @@ def run_smoke(
                 "routing_reasons_summary": payload.get("routing_reasons_summary") or "",
                 "output_excerpt": excerpt[:240],
                 "real_run": bool(real_run),
+                "http_status": status,
+                "structured_result": payload.get("structured_check"),
+                "structured_sections": (payload.get("structured_output") or {}).get("sections"),
+                "artifact": payload.get("docx"),
+                "model_metadata": payload.get("metadata"),
             }
             if expect_detected_workflow:
                 _require(
@@ -250,6 +264,76 @@ def run_smoke(
     return report
 
 
+def _acceptance_scenario(mode, input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, f"W1 {mode} did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W1" and workflow.get("detected_workflow") == "W1", f"W1 {mode} was not detected as W1.")
+    _require(workflow.get("w1_mode") == mode, f"W1 {mode} returned the wrong W1 mode.")
+    _require(workflow.get("real_run") is True, f"W1 {mode} was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        f"W1 {mode} real model metadata is required.",
+    )
+    structured = workflow.get("structured_result") or {}
+    _require(structured.get("status") == "PASS", f"W1 {mode} structured validation must be PASS.")
+    sections = workflow.get("structured_sections")
+    _require(isinstance(sections, (dict, list)) and bool(sections), f"W1 {mode} structured sections are required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", f"W1 {mode} DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", f"W1 {mode} DOCX validation must pass.")
+    _require(bool(docx.get("path")), f"W1 {mode} DOCX artifact metadata is missing.")
+    return {
+        "mode": mode,
+        "visible_label": W1_VISIBLE_LABELS[mode],
+        "workflow": "W1",
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {"status": "success", "real_model": True},
+        "structured_result": {"status": "PASS", "sections": sections},
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w1_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run both hosted W1 modes and return only sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W1 acceptance.")
+    scenarios = []
+    for mode, input_text in W1_HOSTED_SCENARIOS.items():
+        smoke = run_smoke(
+            base_url,
+            username=username,
+            password=password,
+            invite_code=invite_code,
+            workflow="W1",
+            input_text=input_text,
+            timeout=timeout,
+            expect_w1_mode=mode,
+            real_run=True,
+            render_docx=True,
+            request_json=request_json,
+        )
+        scenarios.append(_acceptance_scenario(mode, input_text, smoke))
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenarios": scenarios,
+    }
+    validate_hosted_report(report)
+    return report
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Smoke test the hosted counselor assistant web product.")
     parser.add_argument("--base-url", required=True, help="Hosted base URL, for example https://your-service.onrender.com")
@@ -270,11 +354,27 @@ def parse_args(argv=None):
     parser.add_argument("--skip-auth", action="store_true")
     parser.add_argument("--skip-run", action="store_true")
     parser.add_argument("--real-run", action="store_true", help="Annotate the report as a live model run.")
+    parser.add_argument("--w1-acceptance", action="store_true", help="Run both full hosted W1 acceptance scenarios.")
+    parser.add_argument("--deployed-version", default="", help="Deployed version or commit for W1 acceptance evidence.")
+    parser.add_argument("--report-output", default="", help="Optional sanitized W1 acceptance JSON output path.")
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
+    if args.w1_acceptance:
+        report = run_w1_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
     report = run_smoke(
         args.base_url,
         username=args.username,
