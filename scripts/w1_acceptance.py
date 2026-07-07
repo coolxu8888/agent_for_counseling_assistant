@@ -47,6 +47,8 @@ _JWT = re.compile(r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Z
 _WINDOWS_DRIVE_PATH = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]+[^\s,;)\]}]+")
 _WINDOWS_UNC_PATH = re.compile(r"(?<![A-Za-z0-9_\\])\\\\[^\\/\s]+[\\/][^\s,;)\]}]+")
 _UNIX_ABSOLUTE_PATH = re.compile(r"(?<![A-Za-z0-9:/])(/[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)+)")
+_REPEATED_UNIX_SEPARATOR = re.compile(r"(?<!:)/{2,}")
+_HTTP_ROUTE_PREFIX = re.compile(r"^\s*(?:DELETE|GET|HEAD|OPTIONS|PATCH|POST|PUT)\s+", re.IGNORECASE)
 
 
 def _fail(message: str) -> None:
@@ -75,16 +77,22 @@ def _is_sensitive_key(key: str) -> bool:
     return not all(index + 1 == len(tokens) - 1 and tokens[-1] in telemetry_suffixes for index in indices)
 
 
-def _contains_absolute_filesystem_path(value: str) -> bool:
+def _contains_absolute_filesystem_path(value: str, location: str) -> bool:
     if _WINDOWS_DRIVE_PATH.search(value) or _WINDOWS_UNC_PATH.search(value):
         return True
-    for match in _UNIX_ABSOLUTE_PATH.finditer(value):
+    repeated_separator = bool(_REPEATED_UNIX_SEPARATOR.search(value))
+    normalized = _REPEATED_UNIX_SEPARATOR.sub("/", value)
+    route_field = bool(re.search(r"(?:^|\.)(?:routes?|endpoints?)(?:\[|\.|$)", location, re.IGNORECASE))
+    method_route = bool(_HTTP_ROUTE_PREFIX.match(normalized))
+    for match in _UNIX_ABSOLUTE_PATH.finditer(normalized):
         candidate = match.group(1)
         segments = candidate.split("/")[1:]
-        if candidate.startswith("/api/") and all(segment not in {".", ".."} for segment in segments):
+        safe_segments = all(segment not in {".", ".."} for segment in segments)
+        route_shaped = route_field or method_route or candidate.startswith("/api/") or candidate.startswith("/health/")
+        if not repeated_separator and route_shaped and safe_segments:
             continue
         return True
-    return False
+    return repeated_separator
 
 
 def _validate_sanitized(value: Any, location: str = "report") -> None:
@@ -100,7 +108,7 @@ def _validate_sanitized(value: Any, location: str = "report") -> None:
     elif isinstance(value, str):
         if _SENSITIVE_VALUE.search(value) or _CREDENTIALED_URL.search(value) or _JWT.search(value):
             _fail(f"{location} contains secret or cookie material")
-        if _contains_absolute_filesystem_path(value):
+        if _contains_absolute_filesystem_path(value, location):
             _fail(f"{location} contains a direct server filesystem path")
     elif isinstance(value, float) and not math.isfinite(value):
         _fail(f"{location} contains a non-finite number")

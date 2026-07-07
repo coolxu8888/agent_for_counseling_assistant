@@ -272,9 +272,22 @@ class W1AcceptanceTests(unittest.TestCase):
 
     def test_report_allows_url_routes_but_rejects_absolute_server_paths(self):
         report = valid_web_report()
-        report["routes"] = ["/api/v1", "/health", "GET /api/run", "https://app.render.com/api/v1"]
+        report["routes"] = [
+            "/api/v1",
+            "/health",
+            "/v1/models",
+            "/health/live",
+            "GET /api/run",
+            "GET /v1/models",
+            "GET /health/live",
+            "https://app.render.com/api/v1",
+        ]
         validate_web_report(report)
         for value in (
+            "//server/share/output.docx",
+            "//etc/passwd",
+            "/api//etc/passwd",
+            "/api/../etc/passwd",
             "/workspace/private/output.docx",
             "saved=(/data/output.docx),done",
             "/run/secrets/key",
@@ -288,6 +301,11 @@ class W1AcceptanceTests(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaisesRegex(W1AcceptanceError, "filesystem path"):
                     validate_web_report(changed)
+
+        report = valid_web_report()
+        report["routes"] = ["/v1/../private", "/health//private"]
+        with self.assertRaisesRegex(W1AcceptanceError, "filesystem path"):
+            validate_web_report(report)
 
     def test_report_recursively_rejects_non_finite_numbers(self):
         for value in (float("nan"), float("inf"), float("-inf")):
