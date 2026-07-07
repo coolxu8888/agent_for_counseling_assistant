@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import re
 from datetime import datetime
@@ -12,6 +13,22 @@ from urllib.parse import urlparse
 
 
 W1_MODES = ("intake_prep", "initial_interview_summary")
+W1_VISIBLE_LABELS = {
+    "intake_prep": "初始访谈准备",
+    "initial_interview_summary": "初始访谈总结",
+}
+W1_TEMPLATE_PATH = "docs/4.心理咨询初始访谈表_20210906.docx"
+W1_SUMMARY_SECTIONS = (
+    "main_distress",
+    "basic_situation",
+    "functioning",
+    "support_coping",
+    "history",
+    "psychological_tests",
+    "risk_crisis",
+    "handling_suggestion",
+    "other_notes",
+)
 
 
 class W1AcceptanceError(ValueError):
@@ -23,11 +40,11 @@ _SENSITIVE_KEY = re.compile(
     re.IGNORECASE,
 )
 _SENSITIVE_VALUE = re.compile(
-    r"(?:\b(?:authorization|cookie|set-cookie)\s*:|\bbearer\s+[A-Za-z0-9._~+/=-]+|\bsk-[A-Za-z0-9_-]+)",
+    r"(?:\b(?:authorization|cookie|set-cookie)\s*:|\bbearer\s+[A-Za-z0-9._~+/=-]+|\bsk-[A-Za-z0-9_-]+|"
+    r"\b(?:[a-z0-9]+_)*(?:password|token|session|cookie)(?:_[a-z0-9]+)*\s*[:=]\s*\S)",
     re.IGNORECASE,
 )
 _DIRECT_PATH = re.compile(r"(?:^|\s)(?:/[A-Za-z0-9_.-]|[A-Za-z]:[\\/]|\\\\)[^\s]*")
-_HAN = re.compile(r"[\u3400-\u9fff]")
 
 
 def _fail(message: str) -> None:
@@ -85,7 +102,24 @@ def _validate_url(value: Any, *, hosted: bool) -> None:
     _require(parsed.scheme in expected_scheme and bool(parsed.netloc), "base_url must be a valid public HTTPS URL" if hosted else "base_url must be an HTTP URL")
     if hosted:
         host = (parsed.hostname or "").lower()
-        _require(host not in {"localhost", "127.0.0.1", "::1"} and not host.endswith(".local"), "hosted base_url must be public")
+        _require(parsed.username is None and parsed.password is None, "hosted base_url must be public and contain no user information")
+        try:
+            parsed.port
+        except ValueError:
+            _fail("hosted base_url must be a valid public URL")
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            labels = host.split(".")
+            public_form = (
+                len(labels) >= 2
+                and all(re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) for label in labels)
+                and bool(re.fullmatch(r"[a-z]{2,63}", labels[-1]))
+                and not host.endswith((".invalid", ".test", ".example", ".localhost", ".local", ".internal"))
+            )
+            _require(public_form, "hosted base_url must use a public host form")
+        else:
+            _require(address.is_global, "hosted base_url must use a public IP address")
 
 
 def _validate_artifact(value: Any, location: str) -> None:
@@ -101,9 +135,10 @@ def _validate_scenario(scenario: Any, index: int) -> None:
     location = f"scenarios[{index}]"
     _require(isinstance(scenario, dict), f"{location} must be an object")
     _require(scenario.get("workflow") == "W1", f"{location}.workflow must be W1")
-    _require(scenario.get("mode") in W1_MODES, f"{location}.mode is invalid")
+    mode = scenario.get("mode")
+    _require(mode in W1_MODES, f"{location}.mode is invalid")
     label = scenario.get("visible_label")
-    _require(isinstance(label, str) and bool(_HAN.search(label)), f"{location}.visible_label must be Chinese")
+    _require(label == W1_VISIBLE_LABELS[mode], f"{location}.visible_label must be the mode-specific Chinese label")
     _require(scenario.get("route_status") == "passed", f"{location}.route_status must pass")
     structured = scenario.get("structured_result")
     _require(isinstance(structured, dict) and structured.get("status") == "PASS", f"{location}.structured_result must pass")
@@ -151,18 +186,23 @@ def validate_template_report(report: dict, repo_root: Path) -> None:
     source = report.get("source_template")
     _require(isinstance(source, dict), "source_template identity is required")
     relative = source.get("path")
-    _require(isinstance(relative, str) and bool(relative), "source_template.path is required")
+    _require(relative == W1_TEMPLATE_PATH, f"source_template.path must identify {W1_TEMPLATE_PATH}")
     root = Path(repo_root).resolve()
     template = (root / relative).resolve()
-    docs = (root / "docs").resolve()
-    _require(template.is_relative_to(docs) and template.suffix.lower() == ".docx" and template.is_file(), "source template must be a real DOCX under docs")
+    _require(template.is_file(), "source template must be the real repository W1 DOCX")
     expected_hash = source.get("sha256")
     _require(isinstance(expected_hash, str) and len(expected_hash) == 64, "source_template.sha256 is required")
     _require(hashlib.sha256(template.read_bytes()).hexdigest() == expected_hash.lower(), "source_template.sha256 does not match the real template")
 
     fill = report.get("fill")
     _require(isinstance(fill, dict), "fill results are required")
-    _require(isinstance(fill.get("filled_fields"), list) and len(fill["filled_fields"]) > 0, "filled_fields must be non-empty")
+    filled_fields = fill.get("filled_fields")
+    _require(
+        isinstance(filled_fields, list)
+        and len(filled_fields) == len(W1_SUMMARY_SECTIONS)
+        and set(filled_fields) == set(W1_SUMMARY_SECTIONS),
+        "filled_fields must cover every canonical W1 summary section",
+    )
     _require(isinstance(fill.get("unfilled_fields"), list), "unfilled_fields must be recorded")
     _require(isinstance(fill.get("issues"), list), "issues must be recorded")
 
@@ -170,7 +210,12 @@ def validate_template_report(report: dict, repo_root: Path) -> None:
     _require(isinstance(verification, dict), "output_verification is required")
     _require(verification.get("status") == "PASS" and verification.get("reopened") is True, "filled output must be reopened and pass")
     sections = verification.get("required_sections")
-    _require(isinstance(sections, dict) and bool(sections) and all(value is True for value in sections.values()), "all required template sections must contain mapped content")
+    _require(
+        isinstance(sections, dict)
+        and set(sections) == set(W1_SUMMARY_SECTIONS)
+        and all(isinstance(value, str) and len(value.strip()) >= 2 for value in sections.values()),
+        "all canonical W1 summary sections must contain meaningful mapped content",
+    )
 
 
 def write_sanitized_report(path: Path, report: dict) -> None:
