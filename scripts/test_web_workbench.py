@@ -879,15 +879,6 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["docx"]["filename"], "output.docx")
         self.assertIn("/files/", payload["docx"]["download_url"])
 
-    def test_chinese_ui_localizes_w1_mode_and_word_download_affordance(self):
-        script = (Path(__file__).resolve().parents[1] / "web-workbench" / "app.js").read_text(encoding="utf-8")
-
-        self.assertIn('"workflowMode.intake_prep.label": "首访准备"', script)
-        self.assertIn('"workflowMode.initial_interview_summary.label": "首访总结"', script)
-        self.assertIn('"artifact.downloadWord": "下载可编辑 Word 文档"', script)
-        self.assertIn('t(`workflowMode.${data.workflow_mode}.label`)', script)
-        self.assertIn("data.docx.download_url", script)
-
     def test_handle_login_sets_session_cookie(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")

@@ -1182,7 +1182,9 @@ function updateRunResult(data) {
     "docxPath",
     data.docx && data.docx.path ? data.docx.path : null,
     true,
-    t("artifact.downloadWord"),
+    data.docx && data.docx.filename
+      ? `${t("artifact.downloadWord")} (${data.docx.filename})`
+      : t("artifact.downloadWord"),
     data.docx && data.docx.download_url ? data.docx.download_url : "",
   );
   renderIntentSummary(data);
