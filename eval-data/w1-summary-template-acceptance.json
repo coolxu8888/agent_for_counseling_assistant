@@ -1,0 +1,16 @@
+{
+  "workflow": "W1",
+  "document_type": "initial_session_summary",
+  "deidentified": true,
+  "sections": [
+    {"id": "main_distress", "heading": "来访者主要困扰", "known_facts": ["近期因学业安排变化出现焦虑和睡眠延迟。"], "unclear_or_missing": ["困扰的持续时间仍需核实。"], "follow_up_questions": ["这种困扰最早从什么时候开始？"]},
+    {"id": "basic_situation", "heading": "来访者基本情况（重大生活事件，家庭状况，人际关系状况，学习状况，恋爱状况等）", "known_facts": ["目前在校住宿，与同学保持日常联系。"], "unclear_or_missing": ["家庭互动情况尚未详细记录。"], "follow_up_questions": ["近期家庭或人际关系有何变化？"]},
+    {"id": "functioning", "heading": "来访者认知、情感、行为及社会功能的基本状况", "known_facts": ["能够正常上课，但注意力较以往下降。"], "unclear_or_missing": ["饮食及其他日常功能尚未记录。"], "follow_up_questions": ["最近饮食和日常活动有何变化？"]},
+    {"id": "support_coping", "heading": "来访者主要社会支持和应对方式", "known_facts": ["感到压力时会与一位朋友交流并散步。"], "unclear_or_missing": ["校内支持资源使用情况未知。"], "follow_up_questions": ["还有哪些人或资源能提供支持？"]},
+    {"id": "history", "heading": "来访者既往咨询（求助）史、精神疾病史和就诊、服药情况", "known_facts": ["自述此前未接受心理咨询或精神科治疗。"], "unclear_or_missing": ["家族相关病史尚未核实。"], "follow_up_questions": ["家人是否有相关就医或治疗经历？"]},
+    {"id": "psychological_tests", "heading": "6.来访者心理测试结果", "known_facts": ["本次访谈前未完成心理测评。"], "unclear_or_missing": ["是否需要安排量表评估待定。"], "follow_up_questions": ["是否愿意根据需要完成后续测评？"]},
+    {"id": "risk_crisis", "heading": "危机评估情况（自伤、自杀或伤害他人情况）", "known_facts": ["本次材料中未报告自伤、自杀或伤人意念。"], "unclear_or_missing": ["计划、手段可及性及既往史仍需直接询问。"], "follow_up_questions": ["近期是否出现伤害自己或他人的想法、计划或准备？"]},
+    {"id": "handling_suggestion", "heading": "处理建议", "known_facts": ["建议继续完成初始评估并共同明确咨询目标。"], "unclear_or_missing": ["会谈频率需与来访者协商。"], "follow_up_questions": ["对后续会谈频率有何期待？"]},
+    {"id": "other_notes", "heading": "其他备注", "known_facts": ["本材料为去标识化验收夹具，不含真实来访者信息。"], "unclear_or_missing": ["无其他已记录事项。"], "follow_up_questions": ["是否还有希望补充的重要信息？"]}
+  ]
+}
