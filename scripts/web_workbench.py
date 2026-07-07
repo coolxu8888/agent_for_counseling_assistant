@@ -943,6 +943,7 @@ def prepare_w1_runner_input(text, w1_mode):
         str(text),
         flags=re.IGNORECASE,
     )
+    cleaned = re.sub(r"首次访谈|首访", "访谈前", cleaned)
     return cleaned.rstrip() + " 请仅输出访谈前准备提纲。"
 
 

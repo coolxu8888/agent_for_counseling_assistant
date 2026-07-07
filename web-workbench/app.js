@@ -412,6 +412,7 @@ function applyLocale(locale = DEFAULT_LOCALE) {
   renderWorkspaceGovernance(null);
   renderDeploymentReadiness(state.deploymentReadiness);
   renderWorkflowModeSummary(state.lastRunData);
+  renderWordDownloadAction(state.lastRunData);
   renderIntentSummary(state.lastRunData);
   if (state.demoCatalog) {
     renderDemoCatalog(state.demoCatalog);
@@ -1097,6 +1098,28 @@ function renderWorkflowModeSummary(data) {
   box.append(title, body);
 }
 
+function renderWordDownloadAction(data) {
+  const box = $("docxDownloadAction");
+  if (!box) {
+    return;
+  }
+  clearNode(box);
+  const artifact = data && data.docx;
+  if (!artifact || !artifact.path || !artifact.download_url) {
+    box.hidden = true;
+    return;
+  }
+  const link = document.createElement("a");
+  link.className = "download-link";
+  link.href = artifact.download_url;
+  link.download = "";
+  link.textContent = artifact.filename
+    ? `${t("artifact.downloadWord")} (${artifact.filename})`
+    : t("artifact.downloadWord");
+  box.appendChild(link);
+  box.hidden = false;
+}
+
 function renderW1SummaryBrief(data) {
   const box = $("w1SummaryBrief");
   if (!box) {
@@ -1189,6 +1212,7 @@ function updateRunResult(data) {
   );
   renderIntentSummary(data);
   renderWorkflowModeSummary(data);
+  renderWordDownloadAction(data);
   renderW1SummaryBrief(data);
   renderW3RecordBrief(data);
   updateTemplateAvailability();
