@@ -1,0 +1,40 @@
+{
+  "fill": {
+    "filled_fields": [
+      "main_distress",
+      "basic_situation",
+      "functioning",
+      "support_coping",
+      "history",
+      "psychological_tests",
+      "risk_crisis",
+      "handling_suggestion",
+      "other_notes"
+    ],
+    "issues": [],
+    "unfilled_fields": []
+  },
+  "mode": "initial_interview_summary",
+  "output_verification": {
+    "reopened": true,
+    "required_sections": {
+      "basic_situation": "目前在校住宿，与同学保持日常联系。",
+      "functioning": "能够正常上课，但注意力较以往下降。",
+      "handling_suggestion": "建议继续完成初始评估并共同明确咨询目标。",
+      "history": "自述此前未接受心理咨询或精神科治疗。",
+      "main_distress": "近期因学业安排变化出现焦虑和睡眠延迟。",
+      "other_notes": "本材料为去标识化验收夹具，不含真实来访者信息。",
+      "psychological_tests": "本次访谈前未完成心理测评。",
+      "risk_crisis": "本次材料中未报告自伤、自杀或伤人意念。",
+      "support_coping": "感到压力时会与一位朋友交流并散步。"
+    },
+    "status": "PASS"
+  },
+  "report_type": "template",
+  "source_template": {
+    "path": "docs/4.心理咨询初始访谈表_20210906.docx",
+    "sha256": "98f401ec41241f123e9b019ca8a9cf541665d91be8abdfc6b96a88f55063a8c5"
+  },
+  "timestamp_utc": "2026-07-07T12:29:00.481891Z",
+  "workflow": "W1"
+}
