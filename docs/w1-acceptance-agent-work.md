@@ -102,6 +102,7 @@ Owned files:
 
 - `scripts/web_workbench.py`
 - `scripts/test_web_workbench.py`
+- `scripts/test_web_workbench_frontend.mjs`
 - `web-workbench/app.js`
 - `web-workbench/index.html` only if required
 
