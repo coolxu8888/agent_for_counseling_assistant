@@ -263,6 +263,14 @@ class WebWorkbenchTest(unittest.TestCase):
             "W1",
         )
 
+    def test_detect_workflow_treats_explicit_summary_negation_as_w1_prep(self):
+        details = web_workbench.detect_workflow_details(
+            "请准备首次访谈提纲，列出需要核实的信息和风险追问。不要写成咨询记录，也不要写成初访总结。"
+        )
+
+        self.assertEqual(details["workflow"], "W1")
+        self.assertEqual(details["w1_mode"], "intake_prep")
+
     def test_detect_workflow_prefers_w3_for_post_session_note_requests(self):
         self.assertEqual(
             web_workbench.detect_workflow(
@@ -828,6 +836,57 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["workflow_mode_label"], "Initial interview prep")
         self.assertIn("prefill", payload["workflow_mode_notice"].lower())
         self.assertIn("poor sleep for two weeks", payload["workflow_mode_notice"].lower())
+
+    def test_handle_run_passes_explicit_summary_negation_to_runner_as_prep_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("prep answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success","w1_mode":"intake_prep"}', encoding="utf-8")
+            fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result) as fake_run:
+                status, _headers, body = web_workbench.handle_api_run(
+                    {
+                        "workflow": "AUTO",
+                        "input": "请准备首次访谈提纲。不要写成咨询记录，也不要写成初访总结。",
+                    }
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["w1_mode"], "intake_prep")
+        self.assertNotIn("初访总结", fake_run.call_args.kwargs["inline_input"])
+
+    def test_handle_run_generates_word_artifact_when_w1_input_requests_word(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "agent-runs" / "run-1"
+            run_dir.mkdir(parents=True)
+            (run_dir / "clean_output.md").write_text("prep answer", encoding="utf-8")
+            (run_dir / "metadata.json").write_text('{"status":"success","w1_mode":"intake_prep"}', encoding="utf-8")
+            (run_dir / "output.docx").write_bytes(b"docx")
+            (run_dir / "docx_check.json").write_text('{"status":"PASS"}', encoding="utf-8")
+            fake_result = web_workbench.AgentRunResult("W1", "success", run_dir)
+            with patch.object(web_workbench, "run_agent_once", return_value=fake_result) as fake_run:
+                status, _headers, body = web_workbench.handle_api_run(
+                    {"workflow": "AUTO", "input": "请准备首次访谈提纲并生成可编辑的 Word 文档。"}
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertTrue(fake_run.call_args.kwargs["docx"])
+        self.assertTrue(fake_run.call_args.kwargs["structured"])
+        self.assertEqual(payload["docx"]["status"], "PASS")
+        self.assertEqual(payload["docx"]["filename"], "output.docx")
+        self.assertIn("/files/", payload["docx"]["download_url"])
+
+    def test_chinese_ui_localizes_w1_mode_and_word_download_affordance(self):
+        script = (Path(__file__).resolve().parents[1] / "web-workbench" / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('"workflowMode.intake_prep.label": "首访准备"', script)
+        self.assertIn('"workflowMode.initial_interview_summary.label": "首访总结"', script)
+        self.assertIn('"artifact.downloadWord": "下载可编辑 Word 文档"', script)
+        self.assertIn('t(`workflowMode.${data.workflow_mode}.label`)', script)
+        self.assertIn("data.docx.download_url", script)
 
     def test_handle_login_sets_session_cookie(self):
         with tempfile.TemporaryDirectory() as tmp:

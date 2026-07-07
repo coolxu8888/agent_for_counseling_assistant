@@ -914,6 +914,48 @@ def has_negated_initial_interview_summary_scope(text):
     return any(re.search(pattern, text) for pattern in patterns)
 
 
+def is_explicit_w1_prep_with_summary_negation(text):
+    text = str(text or "").strip().lower()
+    prep_requested = any(
+        re.search(pattern, text)
+        for pattern in [
+            r"(?:准备|制定|生成|列出).*(?:首次访谈|首访|初访).*(?:提纲|问题|清单)",
+            r"(?:首次访谈|首访|初访).*(?:准备|提纲|问题清单)",
+            r"(?:prepare|create).*(?:first|initial) interview.*(?:guide|outline|questions|checklist)",
+        ]
+    )
+    summary_negated = any(
+        re.search(pattern, text)
+        for pattern in [
+            r"(?:不要|别|并非|不是).{0,12}(?:写成|整理成|生成)?\s*(?:初访总结|首访总结)",
+            r"(?:do not|don't|not).{0,20}(?:write|make|turn|as)?.{0,12}(?:initial|first) interview summary",
+        ]
+    )
+    return prep_requested and summary_negated
+
+
+def prepare_w1_runner_input(text, w1_mode):
+    if w1_mode != "intake_prep" or not is_explicit_w1_prep_with_summary_negation(text):
+        return text
+    cleaned = re.sub(
+        r"(?:也)?(?:不要|别|并非|不是).{0,12}(?:写成|整理成|生成)?\s*(?:初访总结|首访总结)[。；;，,]?",
+        "",
+        str(text),
+        flags=re.IGNORECASE,
+    )
+    return cleaned.rstrip() + " 请仅输出访谈前准备提纲。"
+
+
+def requests_word_artifact(text):
+    return bool(
+        re.search(
+            r"(?:word|\.docx|可编辑文档|可编辑的文档|文档下载|下载文档)",
+            str(text or ""),
+            flags=re.IGNORECASE,
+        )
+    )
+
+
 def detect_workflow_details(user_input):
     text = str(user_input or "").strip().lower()
     scores = {workflow: 0 for workflow in ROUTING_RULES}
@@ -1071,7 +1113,11 @@ def detect_workflow_details(user_input):
         "routing_reasons_summary": summarize_routing_reasons(top_candidates),
     }
     if workflow == "W1":
-        details["w1_mode"] = detect_w1_mode(user_input)
+        details["w1_mode"] = (
+            "intake_prep"
+            if is_explicit_w1_prep_with_summary_negation(user_input)
+            else detect_w1_mode(user_input)
+        )
     return details
 
 
@@ -1501,6 +1547,8 @@ def load_run_payload(result):
                 else "skipped"
             ),
             "path": path_for_ui(docx_path) if docx_path.exists() else None,
+            "filename": docx_path.name if docx_path.exists() else None,
+            "download_url": f"/files/{quote(path_for_ui(docx_path), safe='')}" if docx_path.exists() else None,
             "check": docx_check,
         },
         "issues": issues,
@@ -1571,8 +1619,9 @@ def handle_api_run(payload):
     )
 
     structured = bool(payload.get("structured", True))
-    render_docx = bool(payload.get("render_docx", False))
+    render_docx = bool(payload.get("render_docx", False)) or requests_word_artifact(user_input)
     dry_run = bool(payload.get("dry_run", False))
+    user_input = prepare_w1_runner_input(user_input, route_details.get("w1_mode")) if workflow == "W1" else user_input
 
     try:
         result = run_agent_once(
