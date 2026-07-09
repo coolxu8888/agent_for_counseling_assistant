@@ -118,4 +118,28 @@ assert.equal(anchor.href, payload.docx.download_url);
 assert.match(anchor.textContent, /下载可编辑 Word 文档/);
 assert.match(anchor.textContent, /output\.docx/);
 
+const w2Payload = {
+  status: "success",
+  workflow: "W2",
+  detected_workflow: "W2",
+  run_dir: "agent-runs/run-2",
+  clean_output: "已生成个案背景整理。",
+  structured_output: { workflow: "W2", document_type: "case_summary" },
+  docx: {
+    status: "PASS",
+    path: "agent-runs/run-2/output.docx",
+    filename: "output.docx",
+    download_url: "/files/agent-runs%2Frun-2%2Foutput.docx",
+  },
+};
+
+context.__payload = w2Payload;
+vm.runInContext('applyLocale("zh-CN"); updateRunResult(__payload);', context);
+
+assert.match(getElement("intentDisplay").textContent, /个案背景|BPS/);
+assert.equal(docxBox.hidden, false, "W2 Word output must render in the visible action region");
+assert.equal(docxBox.children.length, 1, "W2 successful Word output must render one visible download anchor");
+assert.equal(docxBox.children[0].href, w2Payload.docx.download_url);
+assert.match(docxBox.children[0].textContent, /Word/);
+
 console.log("web-workbench frontend DOM contract: PASS");

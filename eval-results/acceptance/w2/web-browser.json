@@ -1,0 +1,99 @@
+{
+  "base_url": "http://127.0.0.1:8766",
+  "report_type": "web",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "route_status": "passed",
+    "structured_result": {
+      "fields": {
+        "bio_psycho_social": {
+          "biological": {
+            "follow_up_questions": [
+              "继续核实睡眠时长、饮酒频率、食欲和身体不适。"
+            ],
+            "information_gaps": [
+              "饮酒是否反复出现、是否伴随其他物质使用仍不清楚。"
+            ],
+            "known_facts": [
+              "来访者近半年存在失眠。"
+            ],
+            "working_hypotheses": [
+              "睡眠不足可能加重情绪波动和工作表现焦虑。"
+            ]
+          },
+          "psychological": {
+            "follow_up_questions": [
+              "继续询问家庭冲突后最强烈的自动想法和情绪强度。"
+            ],
+            "information_gaps": [
+              "自责、羞耻和回避的具体触发链条仍需核实。"
+            ],
+            "known_facts": [
+              "来访者对工作表现有明显焦虑。"
+            ],
+            "working_hypotheses": [
+              "家庭压力和工作评价担忧可能共同维持焦虑。"
+            ]
+          },
+          "social": {
+            "follow_up_questions": [
+              "询问当前可以联系的朋友、同事或家人支持。"
+            ],
+            "information_gaps": [
+              "同伴支持和现实求助资源尚未充分记录。"
+            ],
+            "known_facts": [
+              "家庭催婚压力持续存在。"
+            ],
+            "working_hypotheses": [
+              "家庭沟通压力可能削弱来访者的支持感。"
+            ]
+          }
+        },
+        "boundary_notes": [
+          "这是督导用个案背景整理，不是诊断、最终风险等级或咨询记录。"
+        ],
+        "case_overview": {
+          "information_gaps": [
+            "支持系统、风险升级史和饮酒模式仍需补充。"
+          ],
+          "known_facts": [
+            "来访者为 24 岁新入职员工，存在失眠、家庭压力和工作焦虑。"
+          ],
+          "working_hypotheses": [
+            "家庭压力、工作评价焦虑和睡眠问题可能相互影响。"
+          ]
+        },
+        "presenting_concerns": [
+          "失眠、家庭催婚压力、工作表现焦虑，以及冲突后的独自饮酒。"
+        ],
+        "protective_factors": [
+          "仍能工作，能描述困扰，愿意接受咨询帮助。"
+        ],
+        "recommended_focus": [
+          "优先澄清压力时间线、支持网络、饮酒情境和风险追问。"
+        ],
+        "risk_formulation": {
+          "follow_up_questions": [
+            "继续询问自伤自杀意念、意图、计划、工具可及性、饮酒后的风险变化和可联系支持。"
+          ],
+          "missing_or_unclear": [
+            "材料未充分说明既往自伤史、工具可及性和近期风险升级。"
+          ],
+          "observed_clues": [
+            "家庭争执后曾独自大量饮酒，但材料称无报告的自伤计划。"
+          ]
+        }
+      },
+      "status": "PASS"
+    },
+    "visible_label": "个案背景（BPS）",
+    "workflow": "W2"
+  },
+  "timestamp_utc": "2026-07-09T08:00:00Z"
+}
