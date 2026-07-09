@@ -32,7 +32,7 @@ Deliverables:
 
 ## Agent B — Real Template
 
-Status: assigned — Agent A approved
+Status: complete — implementation, real run, spec review, and quality review approved
 
 Owned files:
 
@@ -50,7 +50,7 @@ Deliverables:
 
 ## Agent C — Hosted Evidence Tooling
 
-Status: assigned — Agent A approved
+Status: complete — implementation, hosted real runs, spec review, and quality review approved
 
 Owned files:
 
@@ -80,7 +80,7 @@ Product defects discovered by browser testing receive a failing automated contra
 
 ## Agent D — Real Template Mapping Fix
 
-Status: assigned after the real-template runner exposed seven missing canonical sections
+Status: complete — mapping defect fixed and review approved
 
 Owned files:
 
@@ -96,7 +96,7 @@ Deliverables:
 
 ## Agent E — W1 Chinese Browser Product Fix
 
-Status: assigned after browser acceptance exposed misclassification and missing download affordance
+Status: complete — Chinese browser defects fixed and review approved
 
 Owned files:
 
@@ -115,7 +115,7 @@ Deliverables:
 
 ## Closure — Integration Agent
 
-Blocked until template, hosted, and browser reports pass.
+Status: complete — matrix derives W1 complete from evidence.
 
 Owned files:
 
@@ -129,14 +129,14 @@ It may set only W1's three remaining gates to passed, using report paths. W2-W6 
 - [x] Agent A implementation complete
 - [x] Agent A spec review approved
 - [x] Agent A quality review approved
-- [ ] Agent B implementation and real run complete
-- [ ] Agent B spec and quality reviews approved
-- [ ] Agent D real-template mapping defect fixed
-- [ ] Agent C implementation and hosted real runs complete
-- [ ] Agent C spec and quality reviews approved
-- [ ] Agent E Chinese browser defects fixed
-- [ ] Chinese browser acceptance passes both W1 modes
-- [ ] Three sanitized reports validate
-- [ ] Matrix derives W1 complete and W2-W6 unchanged
-- [ ] Broader W1 regression passes
-- [ ] Notion synchronized
+- [x] Agent B implementation and real run complete
+- [x] Agent B spec and quality reviews approved
+- [x] Agent D real-template mapping defect fixed
+- [x] Agent C implementation and hosted real runs complete
+- [x] Agent C spec and quality reviews approved
+- [x] Agent E Chinese browser defects fixed
+- [x] Chinese browser acceptance passes both W1 modes
+- [x] Three sanitized reports validate
+- [x] Matrix derives W1 complete and W2-W6 unchanged
+- [x] Broader W1 regression passes
+- [x] Notion synchronized
