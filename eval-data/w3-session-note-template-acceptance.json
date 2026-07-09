@@ -1,0 +1,42 @@
+{
+  "workflow": "W3",
+  "document_type": "session_note",
+  "deidentified": true,
+  "title": "W3 SOAP counseling-record acceptance fixture",
+  "record_format": "SOAP",
+  "sections": [
+    {
+      "id": "subjective",
+      "heading": "Subjective",
+      "content": "W3 probe subjective: client reported panic decreased compared with last week."
+    },
+    {
+      "id": "objective",
+      "heading": "Objective",
+      "content": "W3 probe objective: counselor observed steadier breathing after grounding practice."
+    },
+    {
+      "id": "assessment",
+      "heading": "Assessment",
+      "content": "W3 probe assessment: distress appears reduced while family conflict remains a trigger."
+    },
+    {
+      "id": "plan",
+      "heading": "Plan",
+      "content": "W3 probe plan: continue grounding practice and review support options."
+    }
+  ],
+  "risk_change": {
+    "content": "Client denied current intent or plan in this de-identified note.",
+    "change_documentation": "W3 probe risk change: panic intensity decreased from last week.",
+    "follow_up_actions": [
+      "W3 probe risk follow-up: recheck ideation, intent, plan, means, and supports."
+    ]
+  },
+  "next_session_focus": [
+    "W3 probe next focus: review grounding and family-boundary stressors."
+  ],
+  "boundary_notes": [
+    "W3 probe boundary: this record documents provided material only and is not a diagnosis."
+  ]
+}

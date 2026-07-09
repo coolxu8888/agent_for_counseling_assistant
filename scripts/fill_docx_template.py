@@ -369,6 +369,28 @@ def build_source_map(data):
     return _extend_case_summary_split_aliases(entries, data)
 
 
+_W3_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_session_note_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "session_note":
+        return entries
+
+    risk_change = data.get("risk_change") or {}
+    _add_entry(entries, "record_format", data.get("record_format"), ["Record format", "记录格式", "SOAP", "DAP", "BIRP"])
+    _add_entry(entries, "risk_change.content", risk_change.get("content"), ["Risk current status", "Current risk status", "风险现状"])
+    _add_entry(entries, "risk_change.change_documentation", risk_change.get("change_documentation"), ["Risk change", "Risk change documentation", "风险变化"])
+    _add_entry(entries, "risk_change.follow_up_actions", risk_change.get("follow_up_actions"), ["Risk follow-up actions", "Risk follow up", "风险后续跟进"])
+    _add_entry(entries, "next_session_focus", data.get("next_session_focus"), ["Next session focus", "Next-session focus", "Follow-up plan", "下次咨询重点"])
+    _add_entry(entries, "boundary_notes", data.get("boundary_notes"), ["Boundary notes", "边界说明", "注意事项"])
+    return entries
+
+
+def build_source_map(data):
+    entries = _W3_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_session_note_template_aliases(entries, data)
+
+
 def find_source_match(template_label, source_map):
     normalized = normalize_label(template_label)
     if not normalized:

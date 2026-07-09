@@ -29,7 +29,7 @@ Deliverables:
 
 ## Task B — W3 Real Template
 
-Status: pending
+Status: complete — implementation, real run, and verification passed
 
 Owned files:
 
@@ -95,8 +95,8 @@ It may set only W3's three remaining gates to passed, using validated report pat
 
 - [x] Task A implementation complete
 - [x] Task A verification passed
-- [ ] Task B implementation and real run complete
-- [ ] Task B verification passed
+- [x] Task B implementation and real run complete
+- [x] Task B verification passed
 - [ ] Task C browser evidence complete
 - [ ] Task C verification passed
 - [ ] Task D implementation and hosted real run complete
