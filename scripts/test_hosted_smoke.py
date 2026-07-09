@@ -192,6 +192,7 @@ class HostedSmokeTest(unittest.TestCase):
         self.assertEqual(report["scenario"]["visible_label"], W2_VISIBLE_LABEL)
         self.assertEqual(report["scenario"]["structured_result"]["status"], "PASS")
         self.assertIn("bio_psycho_social", report["scenario"]["structured_result"]["fields"])
+        self.assertIn("trusted friend", report["scenario"]["sanitized_input"])
         self.assertTrue(report["scenario"]["model_run"]["real_model"])
         self.assertEqual(report["scenario"]["artifact"]["download_assertion"], "passed")
         serialized = json.dumps(report, ensure_ascii=False)

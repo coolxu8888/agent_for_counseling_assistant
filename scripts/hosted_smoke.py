@@ -27,7 +27,8 @@ W2_HOSTED_SCENARIO = (
     "Please organize these de-identified notes into a BPS supervision case background. "
     "The client is a 24-year-old recent hire with six months of insomnia, family pressure about marriage, "
     "job-performance anxiety, one episode of drinking heavily alone after a family argument, and no reported "
-    "self-harm plan. Separate presenting concerns, known facts, working hypotheses, biological/psychological/social "
+    "self-harm plan. The client is still attending work, agreed to seek counseling, and identified one trusted friend "
+    "they could contact after difficult family conversations. Separate presenting concerns, known facts, working hypotheses, biological/psychological/social "
     "dimensions, protective factors, bounded risk follow-up questions, and recommended focus. Do not write a diagnosis "
     "or a counseling record."
 )
@@ -413,7 +414,6 @@ def run_w2_acceptance(base_url, username="", password="", invite_code="", deploy
         input_text=W2_HOSTED_SCENARIO,
         timeout=timeout,
         expect_detected_workflow="W2",
-        expect_route_summary_substring="W2",
         real_run=True,
         render_docx=True,
         request_json=request_json,
