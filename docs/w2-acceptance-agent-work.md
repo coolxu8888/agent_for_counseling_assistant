@@ -14,7 +14,7 @@ W2 is complete only after Web integration, hosted verification, and real-templat
 
 ## Agent A — W2 Acceptance Contract
 
-Status: assigned
+Status: implementation complete — tests passed, review pending
 
 Owned files:
 
@@ -30,7 +30,7 @@ Deliverables:
 
 ## Agent B — W2 Real Template
 
-Status: blocked until Agent A contract exists
+Status: complete — implementation and real run complete, review pending
 
 Owned files:
 
@@ -48,7 +48,7 @@ Deliverables:
 
 ## Agent C — Hosted Evidence Tooling
 
-Status: blocked until Agent A contract exists
+Status: tooling complete — real hosted run pending deployment
 
 Owned files:
 
@@ -64,7 +64,7 @@ Deliverables:
 
 ## Agent D — W2 Browser Acceptance
 
-Status: blocked until Agent A contract exists
+Status: complete — browser evidence complete, review pending
 
 Owned files:
 
@@ -93,13 +93,13 @@ It may set only W2's three remaining gates to passed, using validated report pat
 
 ## Controller Checklist
 
-- [ ] Agent A implementation complete
+- [x] Agent A implementation complete
 - [ ] Agent A spec and quality reviews approved
-- [ ] Agent B implementation and real run complete
+- [x] Agent B implementation and real run complete
 - [ ] Agent B spec and quality reviews approved
 - [ ] Agent C implementation and hosted real run complete
 - [ ] Agent C spec and quality reviews approved
-- [ ] Agent D browser evidence complete
+- [x] Agent D browser evidence complete
 - [ ] Three sanitized W2 reports validate
 - [ ] Matrix derives W2 complete and W1/W3-W6 unchanged
 - [ ] Broader W2 regression passes
