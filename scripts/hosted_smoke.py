@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from w1_acceptance import W1_VISIBLE_LABELS, validate_hosted_report, write_sanitized_report
+from w2_acceptance import W2_VISIBLE_LABEL, validate_hosted_report as validate_w2_hosted_report
 
 
 DEFAULT_WORKFLOW = "W2"
@@ -22,6 +23,14 @@ W1_HOSTED_SCENARIOS = {
     "intake_prep": "请根据以下去标识化线索准备咨询提问清单：来访者近期因工作调整睡眠变差，已获得家人支持；请区分已知信息与待了解问题。",
     "initial_interview_summary": "请把以下已完成的去标识化材料整理为固定初访总结模板：成年人，近期工作压力增加，睡眠受影响，有稳定支持者，否认当前自伤想法。",
 }
+W2_HOSTED_SCENARIO = (
+    "Please organize these de-identified notes into a BPS supervision case background. "
+    "The client is a 24-year-old recent hire with six months of insomnia, family pressure about marriage, "
+    "job-performance anxiety, one episode of drinking heavily alone after a family argument, and no reported "
+    "self-harm plan. Separate presenting concerns, known facts, working hypotheses, biological/psychological/social "
+    "dimensions, protective factors, bounded risk follow-up questions, and recommended focus. Do not write a diagnosis "
+    "or a counseling record."
+)
 
 
 def _normalize_base_url(base_url):
@@ -222,6 +231,7 @@ def run_smoke(
                 "http_status": status,
                 "structured_result": payload.get("structured_check"),
                 "structured_sections": (payload.get("structured_output") or {}).get("sections"),
+                "structured_output": payload.get("structured_output"),
                 "artifact": payload.get("docx"),
                 "model_metadata": payload.get("metadata"),
             }
@@ -334,6 +344,91 @@ def run_w1_acceptance(base_url, username="", password="", invite_code="", deploy
     return report
 
 
+def _w2_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W2 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W2" and workflow.get("detected_workflow") == "W2", "W2 was not detected as W2.")
+    _require(workflow.get("real_run") is True, "W2 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W2 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W2 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W2", "W2 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W2 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W2 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W2 DOCX artifact metadata is missing.")
+    return {
+        "workflow": "W2",
+        "visible_label": W2_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {
+                key: structured_output.get(key)
+                for key in (
+                    "presenting_concerns",
+                    "case_overview",
+                    "bio_psycho_social",
+                    "protective_factors",
+                    "risk_formulation",
+                    "recommended_focus",
+                    "boundary_notes",
+                )
+            },
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w2_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W2 BPS case-background scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W2 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W2",
+        input_text=W2_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W2",
+        expect_route_summary_substring="W2",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w2_acceptance_scenario(W2_HOSTED_SCENARIO, smoke),
+    }
+    validate_w2_hosted_report(report)
+    return report
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Smoke test the hosted counselor assistant web product.")
     parser.add_argument("--base-url", required=True, help="Hosted base URL, for example https://your-service.onrender.com")
@@ -355,8 +450,9 @@ def parse_args(argv=None):
     parser.add_argument("--skip-run", action="store_true")
     parser.add_argument("--real-run", action="store_true", help="Annotate the report as a live model run.")
     parser.add_argument("--w1-acceptance", action="store_true", help="Run both full hosted W1 acceptance scenarios.")
-    parser.add_argument("--deployed-version", default="", help="Deployed version or commit for W1 acceptance evidence.")
-    parser.add_argument("--report-output", default="", help="Optional sanitized W1 acceptance JSON output path.")
+    parser.add_argument("--w2-acceptance", action="store_true", help="Run full hosted W2 acceptance scenario.")
+    parser.add_argument("--deployed-version", default="", help="Deployed version or commit for acceptance evidence.")
+    parser.add_argument("--report-output", default="", help="Optional sanitized acceptance JSON output path.")
     return parser.parse_args(argv)
 
 
@@ -364,6 +460,19 @@ def main(argv=None):
     args = parse_args(argv)
     if args.w1_acceptance:
         report = run_w1_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.w2_acceptance:
+        report = run_w2_acceptance(
             args.base_url,
             username=args.username,
             password=args.password,

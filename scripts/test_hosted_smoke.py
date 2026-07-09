@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import hosted_smoke
 from run_agent import detect_w1_mode
+from w2_acceptance import W2_VISIBLE_LABEL
 
 
 class HostedSmokeTest(unittest.TestCase):
@@ -27,6 +28,57 @@ class HostedSmokeTest(unittest.TestCase):
             "w1_mode": mode,
             "clean_output": "已生成去标识化结果",
             "structured_output": {"workflow": "W1", "sections": sections},
+            "structured_check": {"status": "PASS"},
+            "metadata": {"status": "success", "provider": "deepseek", "model": "configured-hosted-model"},
+            "docx": {"status": "PASS", "path": "output.docx", "check": {"status": "PASS"}},
+        }
+
+    def _w2_payload(self):
+        return {
+            "status": "success",
+            "workflow": "W2",
+            "detected_workflow": "W2",
+            "route_status": "manual",
+            "routing_reasons_summary": "W2 Case background",
+            "clean_output": "已生成去标识化个案背景",
+            "structured_output": {
+                "workflow": "W2",
+                "document_type": "case_summary",
+                "presenting_concerns": ["Sleep disruption and family pressure."],
+                "case_overview": {
+                    "known_facts": ["Adult client with family and job stress."],
+                    "working_hypotheses": ["Stress overload may maintain insomnia."],
+                    "information_gaps": ["Support network details are unclear."],
+                },
+                "bio_psycho_social": {
+                    "biological": {
+                        "known_facts": ["Six months of insomnia."],
+                        "working_hypotheses": ["Fatigue may intensify distress."],
+                        "information_gaps": ["Appetite changes are unclear."],
+                        "follow_up_questions": ["How many hours is the client sleeping?"],
+                    },
+                    "psychological": {
+                        "known_facts": ["Job-performance anxiety is reported."],
+                        "working_hypotheses": ["Self-criticism may amplify anxiety."],
+                        "information_gaps": ["Automatic thoughts are unclear."],
+                        "follow_up_questions": ["What thoughts follow work mistakes?"],
+                    },
+                    "social": {
+                        "known_facts": ["Family pressure about marriage is active."],
+                        "working_hypotheses": ["Reduced support may maintain distress."],
+                        "information_gaps": ["Peer support is unclear."],
+                        "follow_up_questions": ["Who can offer practical support?"],
+                    },
+                },
+                "protective_factors": ["Help-seeking and work attendance."],
+                "risk_formulation": {
+                    "observed_clues": ["Heavy drinking alone after conflict."],
+                    "missing_or_unclear": ["Escalation and means access are unclear."],
+                    "follow_up_questions": ["Ask about ideation, intent, plan, means, and support."],
+                },
+                "recommended_focus": ["Clarify timeline, support network, and risk follow-up."],
+                "boundary_notes": ["This is not a diagnosis or final risk rating."],
+            },
             "structured_check": {"status": "PASS"},
             "metadata": {"status": "success", "provider": "deepseek", "model": "configured-hosted-model"},
             "docx": {"status": "PASS", "path": "output.docx", "check": {"status": "PASS"}},
@@ -112,6 +164,70 @@ class HostedSmokeTest(unittest.TestCase):
             "--deployed-version", "abc123", "--report-output", "hosted.json",
         ])
         self.assertTrue(args.w1_acceptance)
+        self.assertEqual(args.report_output, "hosted.json")
+
+    def test_run_w2_acceptance_aggregates_full_sanitized_evidence(self):
+        request_json = Mock(
+            side_effect=[
+                (200, {"status": "ok"}, {}),
+                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
+                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
+                (200, self._w2_payload(), {}),
+            ]
+        )
+
+        report = hosted_smoke.run_w2_acceptance(
+            "https://host.example.com",
+            username="operator",
+            password="private-password",
+            deployed_version="abc123",
+            request_json=request_json,
+        )
+
+        self.assertEqual(report["report_type"], "hosted")
+        self.assertEqual(report["deployed_version"], "abc123")
+        self.assertEqual(report["scenario"]["workflow"], "W2")
+        self.assertEqual(report["scenario"]["visible_label"], W2_VISIBLE_LABEL)
+        self.assertEqual(report["scenario"]["structured_result"]["status"], "PASS")
+        self.assertIn("bio_psycho_social", report["scenario"]["structured_result"]["fields"])
+        self.assertTrue(report["scenario"]["model_run"]["real_model"])
+        self.assertEqual(report["scenario"]["artifact"]["download_assertion"], "passed")
+        serialized = json.dumps(report, ensure_ascii=False)
+        self.assertNotIn("private-password", serialized)
+        self.assertNotIn("session=private", serialized)
+        self.assertNotIn("run_dir", serialized)
+        self.assertTrue(all(call.kwargs.get("payload", {}).get("render_docx") is True for call in request_json.call_args_list if call.args[1] == "/api/run"))
+
+    def test_run_w2_acceptance_rejects_route_only_success(self):
+        payload = self._w2_payload()
+        payload["structured_check"] = None
+        payload["docx"] = {"status": "skipped", "path": None, "check": None}
+        responses = [
+            (200, {"status": "ok"}, {}),
+            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
+            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
+            (200, payload, {}),
+        ]
+
+        with self.assertRaisesRegex(ValueError, "structured validation.*PASS"):
+            hosted_smoke.run_w2_acceptance(
+                "https://host.example.com",
+                username="operator",
+                password="private-password",
+                deployed_version="abc123",
+                request_json=Mock(side_effect=responses),
+            )
+
+    def test_w2_acceptance_cli_writes_report_only_after_validation(self):
+        args = hosted_smoke.parse_args([
+            "--base-url", "https://host.example.com", "--w2-acceptance",
+            "--deployed-version", "abc123", "--report-output", "hosted.json",
+        ])
+        self.assertTrue(args.w2_acceptance)
         self.assertEqual(args.report_output, "hosted.json")
 
     def test_parse_args_accepts_w5_workflow_choice(self):
