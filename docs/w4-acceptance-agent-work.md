@@ -61,7 +61,7 @@ Owned files:
 
 ## Task E — W4 Hosted Evidence
 
-Status: pending
+Status: complete - hosted real-model run and verification passed
 
 Owned files:
 
@@ -91,8 +91,8 @@ It may set only W4's four remaining gates to passed, using validated report path
 - [x] Task C verification passed
 - [x] Task D browser evidence complete
 - [x] Task D verification passed
-- [ ] Task E implementation and hosted real run complete
-- [ ] Task E verification passed
+- [x] Task E implementation and hosted real run complete
+- [x] Task E verification passed
 - [ ] Four sanitized W4 reports validate
 - [ ] Matrix derives W4 complete and W1-W3/W5-W6 unchanged
 - [ ] Broader W4 regression passes
