@@ -1697,6 +1697,7 @@ def _validate_w5(workflow, data):
             "do not turn this into a multi-session roadmap",
             "do not turn this plan into a multi-session roadmap",
             "do not turn this plan into a multi-session treatment roadmap",
+            "do not turn plan into multi-session roadmap",
             "not a multi-session treatment roadmap",
         ],
     ):

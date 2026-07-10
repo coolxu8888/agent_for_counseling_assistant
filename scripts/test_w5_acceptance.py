@@ -163,6 +163,10 @@ class W5AcceptanceTests(unittest.TestCase):
         validate_hosted_report(valid_hosted_report())
 
         report = valid_hosted_report()
+        report["scenario"]["structured_result"]["fields"]["session_goal"] = "Clarify one bounded goal for the next counseling session."
+        validate_hosted_report(report)
+
+        report = valid_hosted_report()
         report["base_url"] = "http://127.0.0.1:8766"
         with self.assertRaisesRegex(W5AcceptanceError, "public"):
             validate_hosted_report(report)

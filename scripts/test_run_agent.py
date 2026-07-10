@@ -1293,6 +1293,7 @@ AGENT_DONE_W3
             "do_not_do": [
                 "Do not assign mandatory exposure or unsafe homework.",
                 "Do not turn this plan into a multi-session treatment roadmap.",
+                "Do not turn plan into multi-session roadmap or full CBT protocol.",
                 "Do not diagnose or replace counselor judgment.",
             ],
             "boundary_notes": [

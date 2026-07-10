@@ -159,6 +159,14 @@ def _require_nonempty_list(value: Any, location: str) -> None:
     )
 
 
+def _require_nonempty_text_or_list(value: Any, location: str) -> None:
+    _require(
+        (isinstance(value, str) and bool(value.strip()))
+        or (isinstance(value, list) and any(isinstance(item, str) and item.strip() for item in value)),
+        f"{location} must contain at least one meaningful item",
+    )
+
+
 def _validate_w5_fields(fields: Any) -> None:
     _require(isinstance(fields, dict), "structured_result.fields must be an object")
     for field in W5_REQUIRED_FIELDS:
@@ -168,7 +176,7 @@ def _validate_w5_fields(fields: Any) -> None:
     for field in W5_REQUIRED_FIELDS:
         if field == "selected_framework":
             continue
-        _require_nonempty_list(fields.get(field), field)
+        _require_nonempty_text_or_list(fields.get(field), field)
 
 
 def _validate_artifact(value: Any, location: str) -> None:
