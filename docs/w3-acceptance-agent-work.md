@@ -47,7 +47,7 @@ Deliverables:
 
 ## Task C — W3 Browser Acceptance
 
-Status: pending
+Status: complete — browser evidence and verification passed
 
 Owned files:
 
@@ -97,8 +97,8 @@ It may set only W3's three remaining gates to passed, using validated report pat
 - [x] Task A verification passed
 - [x] Task B implementation and real run complete
 - [x] Task B verification passed
-- [ ] Task C browser evidence complete
-- [ ] Task C verification passed
+- [x] Task C browser evidence complete
+- [x] Task C verification passed
 - [ ] Task D implementation and hosted real run complete
 - [ ] Task D verification passed
 - [ ] Three sanitized W3 reports validate

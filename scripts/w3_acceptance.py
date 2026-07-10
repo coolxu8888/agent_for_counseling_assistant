@@ -13,7 +13,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 
-W3_VISIBLE_LABEL = "咨询记录（SOAP/DAP/BIRP）"
+W3_VISIBLE_LABEL = "咨询记录"
 W3_TEMPLATE_PATH = "docs/w3-soap-session-note-template.docx"
 W3_REQUIRED_FIELDS = (
     "record_format",

@@ -1,0 +1,53 @@
+{
+  "base_url": "http://127.0.0.1:8766",
+  "report_type": "web",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "route_status": "passed",
+    "structured_result": {
+      "fields": {
+        "boundary_notes": [
+          "本记录仅整理已提供的去标识化会谈材料，不构成诊断或最终风险评级。"
+        ],
+        "next_session_focus": [
+          "下次继续回顾 grounding 练习、家庭沟通压力和支持资源。"
+        ],
+        "record_format": "SOAP",
+        "risk_change": {
+          "change_since_last_contact": [
+            "来访者报告惊恐较上周下降，但工作汇报仍触发担忧。"
+          ],
+          "current_status": [
+            "来访者否认当前自杀计划或意图。"
+          ],
+          "follow_up_actions": [
+            "继续核实意念、意图、计划、手段、保护因素与可联系支持。"
+          ]
+        },
+        "session_sections": {
+          "assessment": [
+            "焦虑强度较前下降，但家庭沟通和工作表现压力仍是触发因素。"
+          ],
+          "objective": [
+            "咨询师回顾了 grounding 练习，并确认今晚可联系一位朋友。"
+          ],
+          "plan": [
+            "继续练习 grounding，下次回顾风险变化、沟通准备和支持资源。"
+          ],
+          "subjective": [
+            "来访者表示与上周相比惊恐下降了一些，但仍担心明天工作汇报出错。"
+          ]
+        }
+      },
+      "status": "PASS"
+    },
+    "visible_label": "咨询记录",
+    "workflow": "W3"
+  },
+  "timestamp_utc": "2026-07-10T00:00:00Z"
+}

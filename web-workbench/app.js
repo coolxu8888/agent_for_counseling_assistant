@@ -1157,29 +1157,36 @@ function renderW3RecordBrief(data) {
     return;
   }
   const title = document.createElement("strong");
-  title.textContent = "W3 record brief";
+  const zh = state.locale === "zh-CN";
+  title.textContent = zh ? "W3 咨询记录摘要" : "W3 record brief";
   const body = document.createElement("span");
   const brief = data && data.w3_record_brief;
   if (!brief) {
-    body.textContent = "Session-record highlights will appear here after a W3 counseling-record run.";
+    body.textContent = zh
+      ? "运行 W3 咨询记录后，这里会显示本次记录的关键摘要。"
+      : "Session-record highlights will appear here after a W3 counseling-record run.";
   } else {
     const parts = [];
     if (brief.record_format) {
-      parts.push(`Format: ${brief.record_format}`);
+      parts.push(`${zh ? "格式" : "Format"}: ${brief.record_format}`);
     }
     if (brief.behavior_highlight) {
-      parts.push(`Behavior/data: ${brief.behavior_highlight}`);
+      parts.push(`${zh ? "行为/资料" : "Behavior/data"}: ${brief.behavior_highlight}`);
     }
     if (brief.intervention_highlight) {
-      parts.push(`Intervention: ${brief.intervention_highlight}`);
+      parts.push(`${zh ? "干预" : "Intervention"}: ${brief.intervention_highlight}`);
     }
     if (brief.risk_highlight) {
-      parts.push(`Risk highlight: ${brief.risk_highlight}`);
+      parts.push(`${zh ? "风险重点" : "Risk highlight"}: ${brief.risk_highlight}`);
     }
     if (brief.next_focus) {
-      parts.push(`Next focus: ${brief.next_focus}`);
+      parts.push(`${zh ? "下次重点" : "Next focus"}: ${brief.next_focus}`);
     }
-    body.textContent = parts.join(" | ") || "Session-record highlights will appear here after a W3 counseling-record run.";
+    body.textContent = parts.join(" | ") || (
+      zh
+        ? "运行 W3 咨询记录后，这里会显示本次记录的关键摘要。"
+        : "Session-record highlights will appear here after a W3 counseling-record run."
+    );
   }
   box.innerHTML = "";
   box.append(title, body);

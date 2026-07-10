@@ -142,4 +142,47 @@ assert.equal(docxBox.children.length, 1, "W2 successful Word output must render 
 assert.equal(docxBox.children[0].href, w2Payload.docx.download_url);
 assert.match(docxBox.children[0].textContent, /Word/);
 
+const w3Payload = {
+  status: "success",
+  workflow: "W3",
+  detected_workflow: "W3",
+  run_dir: "agent-runs/run-3",
+  clean_output: "已生成本次咨询记录。",
+  structured_output: {
+    workflow: "W3",
+    document_type: "session_note",
+    record_format: "SOAP",
+  },
+  w3_record_brief: {
+    record_format: "SOAP",
+    behavior_highlight: "来访者报告惊恐较上周下降。",
+    intervention_highlight: "咨询师回顾了 grounding 练习。",
+    risk_highlight: "否认当前自杀计划或意图。",
+    next_focus: "下次继续回顾风险变化和支持资源。",
+  },
+  docx: {
+    status: "PASS",
+    path: "agent-runs/run-3/output.docx",
+    filename: "output.docx",
+    download_url: "/files/agent-runs%2Frun-3%2Foutput.docx",
+  },
+};
+
+context.__payload = w3Payload;
+vm.runInContext('applyLocale("zh-CN"); updateRunResult(__payload);', context);
+
+assert.match(getElement("intentDisplay").textContent, /咨询记录/);
+assert.doesNotMatch(getElement("intentDisplay").textContent, /Session note/);
+const w3Brief = getElement("w3RecordBrief");
+assert.equal(w3Brief.children.length, 2, "W3 record brief must render a visible summary card");
+assert.match(w3Brief.children[0].textContent, /W3 咨询记录摘要/);
+assert.match(w3Brief.children[1].textContent, /格式: SOAP/);
+assert.match(w3Brief.children[1].textContent, /风险重点/);
+assert.match(w3Brief.children[1].textContent, /下次重点/);
+assert.doesNotMatch(w3Brief.children[1].textContent, /Risk highlight|Next focus/);
+assert.equal(docxBox.hidden, false, "W3 Word output must render in the visible action region");
+assert.equal(docxBox.children.length, 1, "W3 successful Word output must render one visible download anchor");
+assert.equal(docxBox.children[0].href, w3Payload.docx.download_url);
+assert.match(docxBox.children[0].textContent, /Word/);
+
 console.log("web-workbench frontend DOM contract: PASS");
