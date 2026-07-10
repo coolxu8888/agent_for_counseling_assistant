@@ -46,10 +46,10 @@
       "name": "Bounded next-session plan",
       "gates": {
         "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W5 coverage."}]},
-        "real_model_eval": {"status": "unverified", "evidence": [], "note": "Missing committed W5 raw/clean real-model results and rubric evidence."},
-        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a workflow-specific Web result and export test for W5."},
-        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W5 workflow report."},
-        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a successful W5 fill report against a real counselor DOCX."}
+        "real_model_eval": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w5/real-model.json", "description": "Validated W5 real-model evaluation evidence using passing W5-001 and W5-008 DeepSeek runs."}]},
+        "web_integration": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w5/web-browser.json", "description": "Validated browser evidence for visible Chinese W5 next-session-plan output and editable DOCX download."}]},
+        "hosted_verification": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w5/hosted.json", "description": "Validated hosted real-model evidence for W5 next-session-plan output and editable DOCX download."}]},
+        "real_template_verification": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w5/real-template.json", "description": "Validated fill-and-reopen evidence for canonical W5 next-session-plan fields in the real DOCX."}]}
       }
     },
     "W6": {

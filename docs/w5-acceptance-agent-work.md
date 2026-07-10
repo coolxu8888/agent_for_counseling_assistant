@@ -69,7 +69,7 @@ Owned files:
 
 ## Closure - Integration
 
-Status: pending
+Status: complete - workflow-completion derives W5 complete while W1-W4 remain complete and W6 remains incomplete
 
 Owned files:
 
@@ -92,7 +92,7 @@ It may set only W5's four remaining gates to passed, using validated report path
 - [x] Task E implementation complete
 - [x] Task E hosted real run complete
 - [x] Task E verification passed
-- [ ] Four sanitized W5 reports validate
-- [ ] Matrix derives W5 complete and W1-W4/W6 unchanged
-- [ ] Broader W5 regression passes
-- [ ] Notion synchronized
+- [x] Four sanitized W5 reports validate
+- [x] Matrix derives W5 complete and W1-W4/W6 unchanged
+- [x] Broader W5 regression passes
+- [x] Notion synchronized
