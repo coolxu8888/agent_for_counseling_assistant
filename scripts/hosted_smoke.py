@@ -38,7 +38,8 @@ W2_HOSTED_SCENARIO = (
     "or a counseling record."
 )
 W3_HOSTED_SCENARIO = (
-    "Please write a SOAP counseling record from this de-identified session note. "
+    "Please write a SOAP counseling record from this de-identified session note. Use exact section headings "
+    "Subjective, Objective, Assessment, Plan, and Risk change. "
     "The client reported that panic decreased compared with last week, but they still worry about tomorrow's work presentation. "
     "They denied current suicide plan or intent, while last week they had said they sometimes wanted to disappear for a bit. "
     "The counselor reviewed the risk change, practiced grounding, confirmed the client can contact one trusted friend tonight, "

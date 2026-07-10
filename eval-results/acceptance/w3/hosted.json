@@ -1,0 +1,68 @@
+{
+  "base_url": "https://counselor-agent-coze-api.onrender.com",
+  "deployed_version": "c6dce74",
+  "report_type": "hosted",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "http_status": 200,
+    "model_run": {
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "real_model": true,
+      "status": "success"
+    },
+    "route_status": "passed",
+    "sanitized_input": "Please write a SOAP counseling record from this de-identified session note. Use exact section headings Subjective, Objective, Assessment, Plan, and Risk change. The client reported that panic decreased compared with last week, but they still worry about tomorrow's work presentation. They denied current suicide plan or intent, while last week they had said they sometimes wanted to disappear for a bit. The counselor reviewed the risk change, practiced grounding, confirmed the client can contact one trusted friend tonight, and explained that worsening suicidal thoughts require timely follow-up. Keep the risk change, follow-up actions, next-session focus, and documentation boundaries clear. Do not write a case background or treatment roadmap.",
+    "structured_result": {
+      "fields": {
+        "boundary_notes": [
+          "本记录不替代咨询师专业判断。",
+          "风险变化是基于来访者自述和咨询师观察的初步描述，不构成最终风险等级判定。",
+          "所有干预措施均在咨询师专业边界内进行，涉及自杀风险时应按机构流程和伦理规范处理。"
+        ],
+        "next_session_focus": [
+          "评估焦虑缓解程度。",
+          "再评估自杀想法变化。",
+          "巩固 grounding 技巧及支持资源使用情况。"
+        ],
+        "record_format": "SOAP",
+        "risk_change": {
+          "change_since_last_contact": [
+            "上周存在模糊自杀意念（“想消失一会儿”），本周明确否认自杀计划或意图。"
+          ],
+          "current_status": [
+            "来访者上周偶尔出现“想消失一会儿”的念头，本周否认自杀计划或意图。当前风险为低，但应持续关注。"
+          ],
+          "follow_up_actions": [
+            "确认来访者今晚可联系一位信任的朋友。",
+            "说明恶化自杀想法需及时联系咨询师或危机热线。",
+            "下次咨询继续评估风险变化。"
+          ]
+        },
+        "session_sections": {
+          "assessment": [
+            "恐慌症状较前改善，但工作压力相关焦虑仍存在。自杀风险较上周有所下降：从“想消失一会儿”的想法转变为否认当前计划/意图。保护因素包括信任的朋友支持网以及来访者愿意进行安全沟通。需要继续监测自杀想法及焦虑水平。"
+          ],
+          "objective": [
+            "咨询师回顾了风险变化，确认来访者当前否认自杀计划/意图。咨询师引导来访者进行 grounding 练习。咨询师与来访者确认今晚可联系一位信任的朋友。咨询师说明如果自杀想法恶化需及时跟进。"
+          ],
+          "plan": [
+            "1. 下次咨询继续评估焦虑及自杀风险变化。\n2. 建议来访者在演示前使用 grounding 技巧。\n3. 提醒来访者按时联系支持资源，并记录情绪变化。\n4. 若自杀想法再现或加重，及时联系咨询师或危机热线。"
+          ],
+          "subjective": [
+            "来访者报告恐慌程度较上周有所减轻，但仍对明天的工作演示感到担忧。来访者明确表示当前无自杀计划或自杀意图。上周咨询中曾提及“有时想消失一会儿”。"
+          ]
+        }
+      },
+      "status": "PASS"
+    },
+    "visible_label": "咨询记录",
+    "workflow": "W3"
+  },
+  "timestamp_utc": "2026-07-10T07:38:49.853007Z"
+}

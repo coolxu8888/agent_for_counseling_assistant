@@ -65,7 +65,7 @@ Deliverables:
 
 ## Task D — W3 Hosted Evidence Tooling
 
-Status: pending
+Status: complete — implementation, hosted real run, and verification passed
 
 Owned files:
 
@@ -99,8 +99,8 @@ It may set only W3's three remaining gates to passed, using validated report pat
 - [x] Task B verification passed
 - [x] Task C browser evidence complete
 - [x] Task C verification passed
-- [ ] Task D implementation and hosted real run complete
-- [ ] Task D verification passed
+- [x] Task D implementation and hosted real run complete
+- [x] Task D verification passed
 - [ ] Three sanitized W3 reports validate
 - [ ] Matrix derives W3 complete and W1/W2/W4-W6 unchanged
 - [ ] Broader W3 regression passes
