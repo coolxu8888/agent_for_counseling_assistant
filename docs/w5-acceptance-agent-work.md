@@ -59,7 +59,7 @@ Owned files:
 
 ## Task E - W5 Hosted Evidence
 
-Status: implementation complete - `--w5-acceptance` runner and W5 validator regression pass locally; real hosted verification must be rerun after deployment contains the W5 bounded-scope fix
+Status: complete - real hosted W5 run returned HTTP 200, real model success, structured PASS, and editable DOCX evidence in the sanitized hosted report
 
 Owned files:
 
@@ -90,8 +90,8 @@ It may set only W5's four remaining gates to passed, using validated report path
 - [x] Task D browser evidence complete
 - [x] Task D verification passed
 - [x] Task E implementation complete
-- [ ] Task E hosted real run complete
-- [ ] Task E verification passed
+- [x] Task E hosted real run complete
+- [x] Task E verification passed
 - [ ] Four sanitized W5 reports validate
 - [ ] Matrix derives W5 complete and W1-W4/W6 unchanged
 - [ ] Broader W5 regression passes

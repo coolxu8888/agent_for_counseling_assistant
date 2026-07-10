@@ -785,7 +785,7 @@ def main(argv=None):
         )
         if args.report_output:
             write_sanitized_report(Path(args.report_output), report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0
     if args.w2_acceptance:
         report = run_w2_acceptance(
@@ -798,7 +798,7 @@ def main(argv=None):
         )
         if args.report_output:
             write_sanitized_report(Path(args.report_output), report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0
     if args.w3_acceptance:
         report = run_w3_acceptance(
@@ -811,7 +811,7 @@ def main(argv=None):
         )
         if args.report_output:
             write_w3_sanitized_report(Path(args.report_output), report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0
     if args.w4_acceptance:
         report = run_w4_acceptance(
@@ -824,7 +824,7 @@ def main(argv=None):
         )
         if args.report_output:
             write_w4_sanitized_report(Path(args.report_output), report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0
     if args.w5_acceptance:
         report = run_w5_acceptance(
@@ -837,7 +837,7 @@ def main(argv=None):
         )
         if args.report_output:
             write_w5_sanitized_report(Path(args.report_output), report)
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        print(json.dumps(report, ensure_ascii=True, indent=2))
         return 0
     report = run_smoke(
         args.base_url,
@@ -859,7 +859,7 @@ def main(argv=None):
         skip_run=args.skip_run,
         real_run=args.real_run,
     )
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=True, indent=2))
     return 0
 
 
