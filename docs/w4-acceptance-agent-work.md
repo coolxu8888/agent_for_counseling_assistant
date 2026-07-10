@@ -29,7 +29,7 @@ Deliverables:
 
 ## Task B — W4 Real Model Evaluation
 
-Status: pending
+Status: complete — real model eval run and verification passed
 
 Owned files:
 
@@ -85,8 +85,8 @@ It may set only W4's four remaining gates to passed, using validated report path
 
 - [x] Task A implementation complete
 - [x] Task A verification passed
-- [ ] Task B real-model evidence complete
-- [ ] Task B verification passed
+- [x] Task B real-model evidence complete
+- [x] Task B verification passed
 - [ ] Task C implementation and real run complete
 - [ ] Task C verification passed
 - [ ] Task D browser evidence complete
