@@ -21,6 +21,12 @@ from w4_acceptance import (
     validate_hosted_report as validate_w4_hosted_report,
     write_sanitized_report as write_w4_sanitized_report,
 )
+from w5_acceptance import (
+    W5_REQUIRED_FIELDS,
+    W5_VISIBLE_LABEL,
+    validate_hosted_report as validate_w5_hosted_report,
+    write_sanitized_report as write_w5_sanitized_report,
+)
 
 
 DEFAULT_WORKFLOW = "W2"
@@ -61,6 +67,14 @@ W4_HOSTED_SCENARIO = (
     "predisposing factors, precipitating factors, maintaining factors, protective factors, risk considerations, "
     "working hypotheses, questions to verify, and boundary notes. Do not write a diagnosis, treatment plan, "
     "counseling record, next-session plan, or roadmap."
+)
+W5_HOSTED_SCENARIO = (
+    "Create a CBT next session plan for this de-identified case, limited to one upcoming counseling session. "
+    "The client is a 26-year-old teacher who becomes anxious before performance reviews, replays criticism for days, "
+    "and avoids replying to colleagues. She denied suicide plans, but sleep has worsened after a recent supervisor conflict. "
+    "Separate selected framework, session goal, focus areas, planned interventions, suggested questions, risk monitoring, "
+    "between-session tasks, do-not-do boundaries, and boundary notes. Do not write a diagnosis, counseling record, "
+    "case conceptualization, treatment plan, or multi-session roadmap."
 )
 
 
@@ -655,6 +669,79 @@ def run_w4_acceptance(base_url, username="", password="", invite_code="", deploy
     return report
 
 
+def _w5_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W5 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W5" and workflow.get("detected_workflow") == "W5", "W5 was not detected as W5.")
+    _require(workflow.get("real_run") is True, "W5 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W5 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W5 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W5", "W5 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W5 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W5 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W5 DOCX artifact metadata is missing.")
+    return {
+        "workflow": "W5",
+        "visible_label": W5_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {key: structured_output.get(key) for key in W5_REQUIRED_FIELDS},
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w5_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W5 next-session-plan scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W5 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W5",
+        input_text=W5_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W5",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w5_acceptance_scenario(W5_HOSTED_SCENARIO, smoke),
+    }
+    validate_w5_hosted_report(report)
+    return report
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Smoke test the hosted counselor assistant web product.")
     parser.add_argument("--base-url", required=True, help="Hosted base URL, for example https://your-service.onrender.com")
@@ -679,6 +766,7 @@ def parse_args(argv=None):
     parser.add_argument("--w2-acceptance", action="store_true", help="Run full hosted W2 acceptance scenario.")
     parser.add_argument("--w3-acceptance", action="store_true", help="Run full hosted W3 acceptance scenario.")
     parser.add_argument("--w4-acceptance", action="store_true", help="Run full hosted W4 acceptance scenario.")
+    parser.add_argument("--w5-acceptance", action="store_true", help="Run full hosted W5 acceptance scenario.")
     parser.add_argument("--deployed-version", default="", help="Deployed version or commit for acceptance evidence.")
     parser.add_argument("--report-output", default="", help="Optional sanitized acceptance JSON output path.")
     return parser.parse_args(argv)
@@ -736,6 +824,19 @@ def main(argv=None):
         )
         if args.report_output:
             write_w4_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.w5_acceptance:
+        report = run_w5_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_w5_sanitized_report(Path(args.report_output), report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     report = run_smoke(

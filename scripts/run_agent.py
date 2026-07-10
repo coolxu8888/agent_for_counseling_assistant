@@ -1652,6 +1652,7 @@ def _validate_w4(workflow, data):
         allowed_negated_phrases=[
             "not a treatment plan",
             "not a full treatment plan",
+            "or full treatment plan",
             "not a roadmap",
             "not a multi-session roadmap",
             "not a diagnosis or full treatment plan",
@@ -1687,12 +1688,16 @@ def _validate_w5(workflow, data):
         allowed_negated_phrases=[
             "not a treatment plan",
             "not a full treatment plan",
+            "or full treatment plan",
             "not a roadmap",
             "not a multi-session roadmap",
             "not a diagnosis or full treatment plan",
             "do not turn this into a full treatment roadmap",
             "do not turn this into a full treatment plan",
             "do not turn this into a multi-session roadmap",
+            "do not turn this plan into a multi-session roadmap",
+            "do not turn this plan into a multi-session treatment roadmap",
+            "not a multi-session treatment roadmap",
         ],
     ):
         issues.append(_structured_issue("$", "W5 must stay bounded to one upcoming session."))

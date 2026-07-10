@@ -1278,6 +1278,32 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
+    def test_validate_structured_output_w5_accepts_negated_multi_session_boundary_variants(self):
+        data = {
+            "workflow": "W5",
+            "document_type": "next_session_plan",
+            "title": "Next session plan",
+            "selected_framework": "cbt",
+            "session_goal": "Explore the connection between performance-review anxiety and avoidance in one next session.",
+            "focus_areas": ["Automatic thoughts, rumination, avoidance, sleep deterioration, and risk check."],
+            "planned_interventions": ["Use Socratic questions and discuss a small low-risk behavioral experiment."],
+            "suggested_questions": ["What do you imagine will happen if you reply to a colleague's message?"],
+            "risk_monitoring": ["Re-assess suicide ideation, self-harm, sleep deterioration, and support."],
+            "between_session_tasks": ["Keep an optional brief thought record, subject to counselor judgment."],
+            "do_not_do": [
+                "Do not assign mandatory exposure or unsafe homework.",
+                "Do not turn this plan into a multi-session treatment roadmap.",
+                "Do not diagnose or replace counselor judgment.",
+            ],
+            "boundary_notes": [
+                "This is a bounded plan for one upcoming session only. It is not a diagnosis, final risk judgment, or full treatment plan."
+            ],
+        }
+
+        check = validate_structured_output(normalize_workflow("W5"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
     def test_validate_structured_output_w6_requires_roadmap_sections(self):
         data = {
             "workflow": "W6",
