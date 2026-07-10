@@ -421,6 +421,34 @@ def build_source_map(data):
     return _extend_case_conceptualization_template_aliases(entries, data)
 
 
+_W5_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_next_session_plan_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "next_session_plan":
+        return entries
+
+    aliases = {
+        "selected_framework": ["Selected framework", "Framework", "理论框架", "框架选择", "咨询框架"],
+        "session_goal": ["Session goal", "会话目标", "会谈目标", "下次咨询目标"],
+        "focus_areas": ["Focus areas", "焦点领域", "重点关注领域", "关注领域"],
+        "planned_interventions": ["Planned interventions", "建议的干预", "干预方向", "干预方式"],
+        "suggested_questions": ["Suggested questions", "建议提问", "探索性问题", "建议探索的问题"],
+        "risk_monitoring": ["Risk monitoring", "风险检查点", "风险监测", "风险监控"],
+        "between_session_tasks": ["Between-session tasks", "Between session tasks", "会话间任务", "会谈间任务", "可选任务"],
+        "do_not_do": ["Do not do", "不做什么", "不进行", "不替代", "不扩展"],
+        "boundary_notes": ["Boundary notes", "边界说明", "专业边界提醒", "注意事项"],
+    }
+    for key, labels in aliases.items():
+        _add_entry(entries, key, data.get(key), labels)
+    return entries
+
+
+def build_source_map(data):
+    entries = _W5_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_next_session_plan_template_aliases(entries, data)
+
+
 def find_source_match(template_label, source_map):
     normalized = normalize_label(template_label)
     if not normalized:

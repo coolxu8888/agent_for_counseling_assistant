@@ -1,0 +1,31 @@
+{
+  "boundary_notes": [
+    "W5 probe boundary: single next-session plan only, adjusted by counselor judgment and risk assessment."
+  ],
+  "between_session_tasks": [
+    "W5 probe task: optionally record one trigger, automatic thought, and emotion rating before the next session."
+  ],
+  "deidentified": true,
+  "do_not_do": [
+    "W5 probe do-not-do: do not diagnose, write a multi-session roadmap, or replace counselor judgment."
+  ],
+  "document_type": "next_session_plan",
+  "focus_areas": [
+    "W5 probe focus: automatic thoughts, avoidance behavior, anxiety intensity, and risk check."
+  ],
+  "planned_interventions": [
+    "W5 probe intervention: use Socratic questions and a brief thought record if clinically appropriate."
+  ],
+  "risk_monitoring": [
+    "W5 probe risk: re-check suicide ideation, self-harm, sleep deterioration, and available support."
+  ],
+  "selected_framework": "CBT",
+  "session_goal": [
+    "W5 probe session goal: explore the criticism-anxiety-avoidance loop within one next session."
+  ],
+  "suggested_questions": [
+    "W5 probe question: what sentence appears first when you imagine feedback?"
+  ],
+  "title": "W5 next-session plan acceptance fixture",
+  "workflow": "W5"
+}
