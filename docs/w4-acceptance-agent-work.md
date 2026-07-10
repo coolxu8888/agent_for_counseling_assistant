@@ -38,7 +38,7 @@ Owned files:
 
 ## Task C — W4 Real Template
 
-Status: pending
+Status: complete — implementation, real run, and verification passed
 
 Owned files:
 
@@ -87,8 +87,8 @@ It may set only W4's four remaining gates to passed, using validated report path
 - [x] Task A verification passed
 - [x] Task B real-model evidence complete
 - [x] Task B verification passed
-- [ ] Task C implementation and real run complete
-- [ ] Task C verification passed
+- [x] Task C implementation and real run complete
+- [x] Task C verification passed
 - [ ] Task D browser evidence complete
 - [ ] Task D verification passed
 - [ ] Task E implementation and hosted real run complete

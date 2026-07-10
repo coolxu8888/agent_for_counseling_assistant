@@ -391,6 +391,36 @@ def build_source_map(data):
     return _extend_session_note_template_aliases(entries, data)
 
 
+_W4_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_case_conceptualization_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "case_conceptualization":
+        return entries
+
+    aliases = {
+        "selected_framework": ["Selected framework", "Framework", "理论取向", "概念化框架"],
+        "known_facts": ["Known facts", "已知事实"],
+        "presenting_patterns": ["Presenting patterns", "问题模式", "呈现模式"],
+        "predisposing_factors": ["Predisposing factors", "易感因素"],
+        "precipitating_factors": ["Precipitating factors", "诱发因素"],
+        "maintaining_factors": ["Maintaining factors", "维持因素"],
+        "protective_factors": ["Protective factors", "保护因素"],
+        "risk_considerations": ["Risk considerations", "风险考虑", "风险线索"],
+        "working_hypotheses": ["Working hypotheses", "工作假设", "概念化假设"],
+        "questions_to_verify": ["Questions to verify", "待核实问题", "需要核实的问题"],
+        "boundary_notes": ["Boundary notes", "边界说明", "注意事项"],
+    }
+    for key, labels in aliases.items():
+        _add_entry(entries, key, data.get(key), labels)
+    return entries
+
+
+def build_source_map(data):
+    entries = _W4_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_case_conceptualization_template_aliases(entries, data)
+
+
 def find_source_match(template_label, source_map):
     normalized = normalize_label(template_label)
     if not normalized:
