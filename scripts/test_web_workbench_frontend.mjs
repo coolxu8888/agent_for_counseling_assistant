@@ -214,4 +214,33 @@ assert.equal(docxBox.children.length, 1, "W4 successful Word output must render 
 assert.equal(docxBox.children[0].href, w4Payload.docx.download_url);
 assert.match(docxBox.children[0].textContent, /Word/);
 
+const w5Payload = {
+  status: "success",
+  workflow: "W5",
+  detected_workflow: "W5",
+  run_dir: "agent-runs/run-5",
+  clean_output: "已生成下次会谈计划。",
+  structured_output: {
+    workflow: "W5",
+    document_type: "next_session_plan",
+    selected_framework: "CBT",
+  },
+  docx: {
+    status: "PASS",
+    path: "agent-runs/run-5/output.docx",
+    filename: "output.docx",
+    download_url: "/files/agent-runs%2Frun-5%2Foutput.docx",
+  },
+};
+
+context.__payload = w5Payload;
+vm.runInContext('applyLocale("zh-CN"); updateRunResult(__payload);', context);
+
+assert.match(getElement("intentDisplay").textContent, /下次会谈计划/);
+assert.doesNotMatch(getElement("intentDisplay").textContent, /Next-session plan/);
+assert.equal(docxBox.hidden, false, "W5 Word output must render in the visible action region");
+assert.equal(docxBox.children.length, 1, "W5 successful Word output must render one visible download anchor");
+assert.equal(docxBox.children[0].href, w5Payload.docx.download_url);
+assert.match(docxBox.children[0].textContent, /Word/);
+
 console.log("web-workbench frontend DOM contract: PASS");

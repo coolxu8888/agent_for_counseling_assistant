@@ -50,7 +50,7 @@ Owned files:
 
 ## Task D - W5 Browser Acceptance
 
-Status: pending
+Status: complete - frontend DOM contract shows the Chinese W5 label and visible DOCX action; sanitized Web report validates
 
 Owned files:
 
@@ -87,8 +87,8 @@ It may set only W5's four remaining gates to passed, using validated report path
 - [x] Task B verification passed
 - [x] Task C implementation and real run complete
 - [x] Task C verification passed
-- [ ] Task D browser evidence complete
-- [ ] Task D verification passed
+- [x] Task D browser evidence complete
+- [x] Task D verification passed
 - [ ] Task E implementation and hosted real run complete
 - [ ] Task E verification passed
 - [ ] Four sanitized W5 reports validate
