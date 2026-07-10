@@ -1149,6 +1149,33 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
+    def test_validate_structured_output_w3_accepts_soap_chinese_risk_change_section_id(self):
+        data = {
+            "workflow": "W3",
+            "document_type": "session_note",
+            "title": "SOAP咨询记录",
+            "record_format": "SOAP",
+            "sections": [
+                {"id": "subjective", "heading": "Subjective", "content": "来访者报告惊恐较上周下降。"},
+                {"id": "objective", "heading": "Objective", "content": "咨询师回顾了 grounding 练习。"},
+                {"id": "assessment", "heading": "Assessment", "content": "焦虑有所下降但职场压力仍存在。"},
+                {"id": "risk_change", "heading": "风险变化", "content": "本周明确否认当前有自杀计划或意图。"},
+                {"id": "plan", "heading": "Plan", "content": "下次继续回顾风险变化和支持资源。"},
+            ],
+            "risk_change": {
+                "content": "本周明确否认当前有自杀计划或意图。",
+                "change_documentation": ["上周曾表达想消失，本周明确否认当前计划或意图。"],
+                "follow_up_actions": ["继续核实意念、意图、计划、手段和保护因素。"],
+            },
+            "next_session_focus": ["回顾工作汇报后的情绪反应和支持资源。"],
+            "missing_information": ["既往自伤史和当前治疗情况仍需核实。"],
+            "boundary_notes": ["本记录不替代咨询师专业判断。"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W3"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
     def test_validate_structured_output_w3_requires_risk_change_documentation_lists(self):
         data = {
             "workflow": "W3",

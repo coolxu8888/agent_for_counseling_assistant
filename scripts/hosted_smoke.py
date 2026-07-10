@@ -10,6 +10,11 @@ from typing import Callable
 
 from w1_acceptance import W1_VISIBLE_LABELS, validate_hosted_report, write_sanitized_report
 from w2_acceptance import W2_VISIBLE_LABEL, validate_hosted_report as validate_w2_hosted_report
+from w3_acceptance import (
+    W3_VISIBLE_LABEL,
+    validate_hosted_report as validate_w3_hosted_report,
+    write_sanitized_report as write_w3_sanitized_report,
+)
 
 
 DEFAULT_WORKFLOW = "W2"
@@ -31,6 +36,14 @@ W2_HOSTED_SCENARIO = (
     "they could contact after difficult family conversations. Separate presenting concerns, known facts, working hypotheses, biological/psychological/social "
     "dimensions, protective factors, bounded risk follow-up questions, and recommended focus. Do not write a diagnosis "
     "or a counseling record."
+)
+W3_HOSTED_SCENARIO = (
+    "Please write a SOAP counseling record from this de-identified session note. "
+    "The client reported that panic decreased compared with last week, but they still worry about tomorrow's work presentation. "
+    "They denied current suicide plan or intent, while last week they had said they sometimes wanted to disappear for a bit. "
+    "The counselor reviewed the risk change, practiced grounding, confirmed the client can contact one trusted friend tonight, "
+    "and explained that worsening suicidal thoughts require timely follow-up. Keep the risk change, follow-up actions, "
+    "next-session focus, and documentation boundaries clear. Do not write a case background or treatment roadmap."
 )
 
 
@@ -429,6 +442,129 @@ def run_w2_acceptance(base_url, username="", password="", invite_code="", deploy
     return report
 
 
+def _section_map(sections):
+    mapped = {}
+    if not isinstance(sections, list):
+        return mapped
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        section_id = str(section.get("id") or "").strip().lower()
+        if section_id:
+            mapped[section_id] = section
+    return mapped
+
+
+def _section_content_list(mapped_sections, *section_ids):
+    for section_id in section_ids:
+        section = mapped_sections.get(section_id)
+        if not isinstance(section, dict):
+            continue
+        content = str(section.get("content") or "").strip()
+        if content:
+            return [content]
+    return []
+
+
+def _listify(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _w3_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W3 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W3" and workflow.get("detected_workflow") == "W3", "W3 was not detected as W3.")
+    _require(workflow.get("real_run") is True, "W3 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W3 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W3 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W3", "W3 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W3 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W3 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W3 DOCX artifact metadata is missing.")
+
+    sections = _section_map(structured_output.get("sections"))
+    risk_change = structured_output.get("risk_change") if isinstance(structured_output.get("risk_change"), dict) else {}
+    return {
+        "workflow": "W3",
+        "visible_label": W3_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {
+                "record_format": str(structured_output.get("record_format") or "").upper(),
+                "session_sections": {
+                    "subjective": _section_content_list(sections, "subjective", "data", "behavior", "client_status", "theme"),
+                    "objective": _section_content_list(sections, "objective", "intervention"),
+                    "assessment": _section_content_list(sections, "assessment", "response"),
+                    "plan": _section_content_list(sections, "plan"),
+                },
+                "risk_change": {
+                    "current_status": _listify(risk_change.get("content")),
+                    "change_since_last_contact": _listify(risk_change.get("change_documentation") or risk_change.get("content")),
+                    "follow_up_actions": _listify(risk_change.get("follow_up_actions")),
+                },
+                "next_session_focus": _listify(structured_output.get("next_session_focus")),
+                "boundary_notes": _listify(structured_output.get("boundary_notes")),
+            },
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w3_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W3 counseling-record scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W3 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W3",
+        input_text=W3_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W3",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w3_acceptance_scenario(W3_HOSTED_SCENARIO, smoke),
+    }
+    validate_w3_hosted_report(report)
+    return report
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Smoke test the hosted counselor assistant web product.")
     parser.add_argument("--base-url", required=True, help="Hosted base URL, for example https://your-service.onrender.com")
@@ -451,6 +587,7 @@ def parse_args(argv=None):
     parser.add_argument("--real-run", action="store_true", help="Annotate the report as a live model run.")
     parser.add_argument("--w1-acceptance", action="store_true", help="Run both full hosted W1 acceptance scenarios.")
     parser.add_argument("--w2-acceptance", action="store_true", help="Run full hosted W2 acceptance scenario.")
+    parser.add_argument("--w3-acceptance", action="store_true", help="Run full hosted W3 acceptance scenario.")
     parser.add_argument("--deployed-version", default="", help="Deployed version or commit for acceptance evidence.")
     parser.add_argument("--report-output", default="", help="Optional sanitized acceptance JSON output path.")
     return parser.parse_args(argv)
@@ -482,6 +619,19 @@ def main(argv=None):
         )
         if args.report_output:
             write_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
+    if args.w3_acceptance:
+        report = run_w3_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_w3_sanitized_report(Path(args.report_output), report)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
     report = run_smoke(
