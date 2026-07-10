@@ -71,7 +71,7 @@ Owned files:
 
 ## Closure — Integration
 
-Status: pending
+Status: complete - matrix and regression verification passed
 
 Owned files:
 
@@ -93,7 +93,7 @@ It may set only W4's four remaining gates to passed, using validated report path
 - [x] Task D verification passed
 - [x] Task E implementation and hosted real run complete
 - [x] Task E verification passed
-- [ ] Four sanitized W4 reports validate
-- [ ] Matrix derives W4 complete and W1-W3/W5-W6 unchanged
-- [ ] Broader W4 regression passes
-- [ ] Notion synchronized
+- [x] Four sanitized W4 reports validate
+- [x] Matrix derives W4 complete and W1-W3/W5-W6 unchanged
+- [x] Broader W4 regression passes
+- [x] Notion synchronized

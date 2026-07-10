@@ -58,7 +58,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | W1 | Initial interview | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
 | W2 | Case background organization | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
 | W3 | Session summary and counseling record | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W4 | Case conceptualization | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
+| W4 | Case conceptualization | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
 | W5 | Bounded next-session plan | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
 | W6 | Counseling roadmap | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
 <!-- workflow-completion:end -->
