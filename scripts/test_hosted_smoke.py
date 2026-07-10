@@ -11,6 +11,7 @@ import hosted_smoke
 from run_agent import detect_w1_mode
 from w2_acceptance import W2_VISIBLE_LABEL
 from w3_acceptance import W3_VISIBLE_LABEL
+from w4_acceptance import W4_VISIBLE_LABEL
 
 
 class HostedSmokeTest(unittest.TestCase):
@@ -110,6 +111,34 @@ class HostedSmokeTest(unittest.TestCase):
                 },
                 "next_session_focus": ["Review grounding, risk changes, and support resources."],
                 "boundary_notes": ["This is not a diagnosis or final risk rating."],
+            },
+            "structured_check": {"status": "PASS"},
+            "metadata": {"status": "success", "provider": "deepseek", "model": "configured-hosted-model"},
+            "docx": {"status": "PASS", "path": "output.docx", "check": {"status": "PASS"}},
+        }
+
+    def _w4_payload(self):
+        return {
+            "status": "success",
+            "workflow": "W4",
+            "detected_workflow": "W4",
+            "route_status": "manual",
+            "routing_reasons_summary": "W4 case conceptualization",
+            "clean_output": "已生成去标识化个案概念化。",
+            "structured_output": {
+                "workflow": "W4",
+                "document_type": "case_conceptualization",
+                "selected_framework": "CBT",
+                "known_facts": ["Client becomes anxious before performance reviews."],
+                "presenting_patterns": ["Criticism, anxiety, rumination, and avoidance cycle."],
+                "predisposing_factors": ["History of frequent comparison to higher-performing cousins."],
+                "precipitating_factors": ["Recent conflict with supervisor."],
+                "maintaining_factors": ["Avoiding colleagues reduces short-term anxiety but maintains fear."],
+                "protective_factors": ["Help-seeking and no reported suicide plan."],
+                "risk_considerations": ["Continue checking ideation, intent, plan, means, and support."],
+                "working_hypotheses": ["Performance evaluation may activate inadequacy beliefs."],
+                "questions_to_verify": ["What evidence supports the predicted criticism?"],
+                "boundary_notes": ["Working hypothesis only; not a diagnosis or treatment plan."],
             },
             "structured_check": {"status": "PASS"},
             "metadata": {"status": "success", "provider": "deepseek", "model": "configured-hosted-model"},
@@ -330,6 +359,72 @@ class HostedSmokeTest(unittest.TestCase):
             "--deployed-version", "abc123", "--report-output", "hosted.json",
         ])
         self.assertTrue(args.w3_acceptance)
+        self.assertEqual(args.report_output, "hosted.json")
+
+    def test_run_w4_acceptance_aggregates_full_sanitized_evidence(self):
+        request_json = Mock(
+            side_effect=[
+                (200, {"status": "ok"}, {}),
+                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
+                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
+                (200, self._w4_payload(), {}),
+            ]
+        )
+
+        report = hosted_smoke.run_w4_acceptance(
+            "https://host.example.com",
+            username="operator",
+            password="private-password",
+            deployed_version="abc123",
+            request_json=request_json,
+        )
+
+        self.assertEqual(report["report_type"], "hosted")
+        self.assertEqual(report["deployed_version"], "abc123")
+        self.assertEqual(report["scenario"]["workflow"], "W4")
+        self.assertEqual(report["scenario"]["visible_label"], W4_VISIBLE_LABEL)
+        self.assertEqual(report["scenario"]["structured_result"]["status"], "PASS")
+        fields = report["scenario"]["structured_result"]["fields"]
+        self.assertEqual(fields["selected_framework"], "CBT")
+        self.assertIn("working_hypotheses", fields)
+        self.assertIn("questions_to_verify", fields)
+        self.assertIn("performance reviews", report["scenario"]["sanitized_input"])
+        self.assertTrue(report["scenario"]["model_run"]["real_model"])
+        self.assertEqual(report["scenario"]["artifact"]["download_assertion"], "passed")
+        run_calls = [call for call in request_json.call_args_list if call.args[1] == "/api/run"]
+        self.assertEqual(run_calls[0].kwargs["payload"]["workflow"], "W4")
+        self.assertTrue(all(call.kwargs.get("payload", {}).get("render_docx") is True for call in run_calls))
+
+    def test_run_w4_acceptance_rejects_route_only_success(self):
+        payload = self._w4_payload()
+        payload["structured_check"] = None
+        payload["docx"] = {"status": "skipped", "path": None, "check": None}
+        responses = [
+            (200, {"status": "ok"}, {}),
+            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
+            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
+            (200, payload, {}),
+        ]
+
+        with self.assertRaisesRegex(ValueError, "structured validation.*PASS"):
+            hosted_smoke.run_w4_acceptance(
+                "https://host.example.com",
+                username="operator",
+                password="private-password",
+                deployed_version="abc123",
+                request_json=Mock(side_effect=responses),
+            )
+
+    def test_w4_acceptance_cli_writes_report_only_after_validation(self):
+        args = hosted_smoke.parse_args([
+            "--base-url", "https://host.example.com", "--w4-acceptance",
+            "--deployed-version", "abc123", "--report-output", "hosted.json",
+        ])
+        self.assertTrue(args.w4_acceptance)
         self.assertEqual(args.report_output, "hosted.json")
 
     def test_parse_args_accepts_w5_workflow_choice(self):
