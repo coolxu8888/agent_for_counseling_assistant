@@ -1,0 +1,52 @@
+{
+  "base_url": "http://127.0.0.1:8766",
+  "report_type": "web",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "route_status": "passed",
+    "structured_result": {
+      "fields": {
+        "boundary_notes": [
+          "W4 probe boundary: working hypothesis, not diagnosis or treatment plan."
+        ],
+        "known_facts": [
+          "W4 probe known facts: client becomes anxious before performance reviews."
+        ],
+        "maintaining_factors": [
+          "W4 probe maintaining: avoidance reduces corrective feedback."
+        ],
+        "precipitating_factors": [
+          "W4 probe precipitating: recent supervisor conflict."
+        ],
+        "predisposing_factors": [
+          "W4 probe predisposing: family comparison history."
+        ],
+        "presenting_patterns": [
+          "W4 probe presenting pattern: criticism-anxiety-avoidance cycle."
+        ],
+        "protective_factors": [
+          "W4 probe protective: help-seeking and no reported suicide plan."
+        ],
+        "questions_to_verify": [
+          "W4 probe question: what evidence supports predicted criticism?"
+        ],
+        "risk_considerations": [
+          "W4 probe risk: continue checking ideation, intent, plan, means, and support."
+        ],
+        "selected_framework": "CBT",
+        "working_hypotheses": [
+          "W4 probe hypothesis: performance evaluation activates inadequacy beliefs."
+        ]
+      },
+      "status": "PASS"
+    },
+    "visible_label": "个案概念化",
+    "workflow": "W4"
+  },
+  "timestamp_utc": "2026-07-10T17:12:10Z"
+}

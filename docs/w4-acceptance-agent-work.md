@@ -50,7 +50,7 @@ Owned files:
 
 ## Task D — W4 Browser Acceptance
 
-Status: pending
+Status: complete - local Web evidence and verification passed
 
 Owned files:
 
@@ -89,8 +89,8 @@ It may set only W4's four remaining gates to passed, using validated report path
 - [x] Task B verification passed
 - [x] Task C implementation and real run complete
 - [x] Task C verification passed
-- [ ] Task D browser evidence complete
-- [ ] Task D verification passed
+- [x] Task D browser evidence complete
+- [x] Task D verification passed
 - [ ] Task E implementation and hosted real run complete
 - [ ] Task E verification passed
 - [ ] Four sanitized W4 reports validate
