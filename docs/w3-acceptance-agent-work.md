@@ -81,7 +81,7 @@ Deliverables:
 
 ## Closure — Integration
 
-Status: pending
+Status: complete — matrix derives W3 complete from evidence
 
 Owned files:
 
@@ -101,7 +101,7 @@ It may set only W3's three remaining gates to passed, using validated report pat
 - [x] Task C verification passed
 - [x] Task D implementation and hosted real run complete
 - [x] Task D verification passed
-- [ ] Three sanitized W3 reports validate
-- [ ] Matrix derives W3 complete and W1/W2/W4-W6 unchanged
-- [ ] Broader W3 regression passes
-- [ ] Notion synchronized
+- [x] Three sanitized W3 reports validate
+- [x] Matrix derives W3 complete and W1/W2/W4-W6 unchanged
+- [x] Broader W3 regression passes
+- [x] Notion synchronized

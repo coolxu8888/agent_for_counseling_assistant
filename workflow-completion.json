@@ -27,9 +27,9 @@
       "gates": {
         "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W3 coverage."}]},
         "real_model_eval": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/eval-rubric-summary.v0.1.json", "description": "Rubric decisions for the committed W3 evaluation cases."}, {"type": "path", "value": "eval-results/eval-clean-summary.v0.1.json", "description": "Sanitized consolidated clean-output summary supporting the rubric."}, {"type": "path", "value": "eval-results/W3-001-deepseek-raw.txt"}, {"type": "path", "value": "eval-results/W3-003-deepseek-raw.txt"}]},
-        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a browser-level workflow test of visible W3 structured results and export."},
-        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W3 model-output report."},
-        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a successful W3 fill report against a real SOAP, DAP, or BIRP DOCX."}
+        "web_integration": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w3/web-browser.json", "description": "Validated browser evidence for visible Chinese W3 counseling-record output and editable DOCX download."}]},
+        "hosted_verification": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w3/hosted.json", "description": "Validated hosted real-model evidence for W3 SOAP counseling-record output and editable DOCX download."}]},
+        "real_template_verification": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w3/real-template.json", "description": "Validated fill-and-reopen evidence for canonical W3 SOAP counseling-record fields in the real DOCX."}]}
       }
     },
     "W4": {
