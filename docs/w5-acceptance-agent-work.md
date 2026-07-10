@@ -29,7 +29,7 @@ Deliverables:
 
 ## Task B - W5 Real Model Evaluation
 
-Status: pending
+Status: complete - W5-001 and W5-008 real DeepSeek runs passed the W5 rubric after the cleaner accepted natural Chinese W5 headings; W5-006 and W5-007 remain non-evidence WARN samples and are not used for completion
 
 Owned files:
 
@@ -83,8 +83,8 @@ It may set only W5's four remaining gates to passed, using validated report path
 
 - [x] Task A implementation complete
 - [x] Task A verification passed
-- [ ] Task B real-model evidence complete
-- [ ] Task B verification passed
+- [x] Task B real-model evidence complete
+- [x] Task B verification passed
 - [ ] Task C implementation and real run complete
 - [ ] Task C verification passed
 - [ ] Task D browser evidence complete

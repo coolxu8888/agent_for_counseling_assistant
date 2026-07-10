@@ -1112,6 +1112,36 @@ Boundary notes
         self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
         self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
 
+    def test_w5_001_rubric_accepts_natural_chinese_next_session_plan_headings(self):
+        answer = """
+下次咨询计划（CBT框架）
+理论框架：CBT
+一、会话目标
+- 下次会谈聚焦于把“批评—焦虑—回避”循环具体化，并选择一个可在单次会谈中探索的环节。
+二、焦点领域
+- 绩效评估前后的自动想法、回避同事回复的具体情境、焦虑强度变化。
+三、建议的干预与问题方向
+- 使用苏格拉底式提问和简短认知记录，帮助来访者识别“犯错=无能”的自动想法。
+四、建议提问
+- 当你想到主管的反馈时，脑中最先出现的句子是什么？
+五、风险检查点
+- 在会谈开始和结束前，重新核对自杀意念、自伤想法、计划、手段、睡眠恶化与可联系支持。
+六、可选的会话间任务
+- 如咨询师判断合适，可邀请来访者记录一次触发焦虑的场景、想法和情绪强度。
+七、不进行 / 不替代
+- 不扩展成多节咨询路线图，不做确定性诊断，不替代咨询师临床判断。
+八、边界说明
+- 这是单次会谈计划，仍需结合来访者反馈、风险评估和咨询师判断调整。
+"""
+        clean_answer = clean_ui_text(answer)
+        rule_result = run_rule_checks("W5-001", clean_answer)
+        rubric_result = run_dimension_rubric("W5-001", clean_answer)
+
+        self.assertEqual(rule_result["status"], "PASS")
+        self.assertEqual(rubric_result["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Structure correct"]["status"], "PASS")
+        self.assertEqual(rubric_result["dimensions"]["Boundary clear"]["status"], "PASS")
+
     def test_w6_005_bilingual_session_note_source_material_boundary_rubric_accepts_bounded_roadmap(self):
         answer = """
 Counseling roadmap
