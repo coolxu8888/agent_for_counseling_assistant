@@ -243,4 +243,33 @@ assert.equal(docxBox.children.length, 1, "W5 successful Word output must render 
 assert.equal(docxBox.children[0].href, w5Payload.docx.download_url);
 assert.match(docxBox.children[0].textContent, /Word/);
 
+const w6Payload = {
+  status: "success",
+  workflow: "W6",
+  detected_workflow: "W6",
+  run_dir: "agent-runs/run-6",
+  clean_output: "\u5df2\u751f\u6210\u54a8\u8be2\u8def\u7ebf\u56fe\u3002",
+  structured_output: {
+    workflow: "W6",
+    document_type: "counseling_roadmap",
+    selected_framework: "INTEGRATIVE",
+  },
+  docx: {
+    status: "PASS",
+    path: "agent-runs/run-6/output.docx",
+    filename: "output.docx",
+    download_url: "/files/agent-runs%2Frun-6%2Foutput.docx",
+  },
+};
+
+context.__payload = w6Payload;
+vm.runInContext('applyLocale("zh-CN"); updateRunResult(__payload);', context);
+
+assert.match(getElement("intentDisplay").textContent, /\u54a8\u8be2\u8def\u7ebf\u56fe/);
+assert.doesNotMatch(getElement("intentDisplay").textContent, /Counseling roadmap/);
+assert.equal(docxBox.hidden, false, "W6 Word output must render in the visible action region");
+assert.equal(docxBox.children.length, 1, "W6 successful Word output must render one visible download anchor");
+assert.equal(docxBox.children[0].href, w6Payload.docx.download_url);
+assert.match(docxBox.children[0].textContent, /Word/);
+
 console.log("web-workbench frontend DOM contract: PASS");

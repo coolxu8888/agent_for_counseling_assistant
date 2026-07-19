@@ -44,7 +44,7 @@ Owned files:
 
 ## Task D - W6 Browser Acceptance
 
-Status: pending
+Status: complete
 
 Owned files:
 
@@ -79,8 +79,8 @@ Owned files:
 - [x] Task B verification passed
 - [x] Task C implementation and real run complete
 - [x] Task C verification passed
-- [ ] Task D browser evidence complete
-- [ ] Task D verification passed
+- [x] Task D browser evidence complete
+- [x] Task D verification passed
 - [ ] Task E implementation complete
 - [ ] Task E hosted real run complete
 - [ ] Task E verification passed
