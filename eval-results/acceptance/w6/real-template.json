@@ -1,0 +1,94 @@
+{
+  "fill": {
+    "filled_fields": [
+      "selected_framework",
+      "overview",
+      "phases",
+      "hypotheses_to_verify",
+      "session_focus_options",
+      "risk_monitoring_checkpoints",
+      "collaboration_or_referral_reminders",
+      "missing_information",
+      "do_not_do",
+      "boundary_notes"
+    ],
+    "helper_filled_fields": [
+      {
+        "confidence": "high",
+        "location": "paragraph[1]",
+        "template_label": "理论框架"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[2]",
+        "template_label": "路线图概览"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[3]",
+        "template_label": "阶段安排"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[4]",
+        "template_label": "待验证假设"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[5]",
+        "template_label": "会话焦点选项"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[6]",
+        "template_label": "风险监测检查点"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[7]",
+        "template_label": "协作或转介提醒"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[8]",
+        "template_label": "待补充信息"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[9]",
+        "template_label": "明确的不做边界"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[10]",
+        "template_label": "边界说明"
+      }
+    ],
+    "issues": [],
+    "status": "PASS",
+    "unfilled_fields": []
+  },
+  "output_verification": {
+    "reopened": true,
+    "required_content": {
+      "boundary_notes": "W6 template probe boundary: counselor-facing roadmap only, adjusted by counselor judgment.",
+      "collaboration_or_referral_reminders": "W6 template probe referral: consider collaboration only for new safety, psychiatric, or medical concerns.",
+      "do_not_do": "W6 template probe do-not-do: do not diagnose, promise outcomes, or prescribe a fixed protocol.",
+      "hypotheses_to_verify": "W6 template probe hypothesis: criticism may activate shame and avoidance, pending counselor verification.",
+      "missing_information": "W6 template probe missing: prior counseling response and support follow-through are not documented.",
+      "overview": "W6 template probe overview: bounded and revisable counseling roadmap.",
+      "phases": "W6 template probe phases: engagement and assessment; deepening and hypothesis testing; consolidation.",
+      "risk_monitoring_checkpoints": "W6 template probe risk: re-check ideation, self-harm, sleep deterioration, supports, and functioning.",
+      "selected_framework": "INTEGRATIVE",
+      "session_focus_options": "W6 template probe focus: clarify the latest criticism trigger and choose a phase-appropriate focus."
+    },
+    "status": "PASS"
+  },
+  "report_type": "template",
+  "source_template": {
+    "path": "docs/w6-counseling-roadmap-template.docx",
+    "sha256": "0e3e2abdd7067e9aeea6b5f5f7ed758d651ffab2ed20e614b9297ed3f59f84fe"
+  },
+  "timestamp_utc": "2026-07-19T14:29:24.229120Z",
+  "workflow": "W6"
+}

@@ -32,7 +32,7 @@ Owned files:
 
 ## Task C - W6 Real Template
 
-Status: pending
+Status: complete
 
 Owned files:
 
@@ -77,8 +77,8 @@ Owned files:
 - [x] Task A verification passed
 - [x] Task B real-model evidence complete
 - [x] Task B verification passed
-- [ ] Task C implementation and real run complete
-- [ ] Task C verification passed
+- [x] Task C implementation and real run complete
+- [x] Task C verification passed
 - [ ] Task D browser evidence complete
 - [ ] Task D verification passed
 - [ ] Task E implementation complete

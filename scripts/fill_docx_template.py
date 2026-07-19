@@ -449,6 +449,35 @@ def build_source_map(data):
     return _extend_next_session_plan_template_aliases(entries, data)
 
 
+_W6_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_counseling_roadmap_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "counseling_roadmap":
+        return entries
+
+    aliases = {
+        "selected_framework": ["Selected framework", "Framework", "\u7406\u8bba\u6846\u67b6", "\u6846\u67b6\u9009\u62e9", "\u54a8\u8be2\u6846\u67b6"],
+        "overview": ["Overview", "\u8def\u7ebf\u56fe\u6982\u89c8", "\u6574\u4f53\u6982\u89c8", "\u6982\u8ff0"],
+        "phases": ["Phases", "\u9636\u6bb5", "\u9636\u6bb5\u5b89\u6392", "\u8def\u7ebf\u56fe\u9636\u6bb5"],
+        "hypotheses_to_verify": ["Hypotheses to verify", "\u5f85\u9a8c\u8bc1\u5047\u8bbe", "\u9700\u8981\u9a8c\u8bc1\u7684\u5047\u8bbe"],
+        "session_focus_options": ["Session focus options", "\u4f1a\u8bdd\u7126\u70b9\u9009\u9879", "\u4f1a\u8c08\u805a\u7126\u9009\u9879", "\u5de5\u4f5c\u7126\u70b9"],
+        "risk_monitoring_checkpoints": ["Risk monitoring checkpoints", "\u98ce\u9669\u76d1\u6d4b\u68c0\u67e5\u70b9", "\u98ce\u9669\u76d1\u63a7\u68c0\u67e5\u70b9", "\u98ce\u9669\u76d1\u6d4b\u8282\u70b9"],
+        "collaboration_or_referral_reminders": ["Collaboration or referral reminders", "\u534f\u4f5c\u6216\u8f6c\u4ecb\u63d0\u9192", "\u534f\u4f5c\u4e0e\u8f6c\u4ecb\u63d0\u9192", "\u5408\u4f5c/\u8f6c\u4ecb\u63d0\u9192"],
+        "missing_information": ["Missing information", "\u5f85\u8865\u5145\u4fe1\u606f", "\u7f3a\u5931\u4fe1\u606f", "\u4fe1\u606f\u7f3a\u53e3"],
+        "do_not_do": ["Do not do", "\u4e0d\u505a\u4ec0\u4e48", "\u660e\u786e\u7684\u4e0d\u505a\u8fb9\u754c", "\u4e0d\u8fdb\u884c", "\u4e0d\u66ff\u4ee3"],
+        "boundary_notes": ["Boundary notes", "\u8fb9\u754c\u8bf4\u660e", "\u91cd\u8981\u8fb9\u754c\u8bf4\u660e", "\u4e13\u4e1a\u8fb9\u754c\u63d0\u9192"],
+    }
+    for key, labels in aliases.items():
+        _add_entry(entries, key, data.get(key), labels)
+    return entries
+
+
+def build_source_map(data):
+    entries = _W6_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_counseling_roadmap_template_aliases(entries, data)
+
+
 def find_source_match(template_label, source_map):
     normalized = normalize_label(template_label)
     if not normalized:
