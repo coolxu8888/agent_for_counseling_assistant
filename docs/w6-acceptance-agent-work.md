@@ -63,7 +63,7 @@ Owned files:
 
 ## Closure - Integration
 
-Status: pending
+Status: complete
 
 Owned files:
 
@@ -84,7 +84,7 @@ Owned files:
 - [x] Task E implementation complete
 - [x] Task E hosted real run complete
 - [x] Task E verification passed
-- [ ] Four sanitized W6 reports validate
-- [ ] Matrix derives W6 complete and W1-W5 unchanged
-- [ ] Broader W6 regression passes
-- [ ] Notion synchronized
+- [x] Four sanitized W6 reports validate
+- [x] Matrix derives W6 complete and W1-W5 unchanged
+- [x] Broader W6 regression passes
+- [x] Notion synchronized

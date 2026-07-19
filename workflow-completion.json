@@ -56,10 +56,10 @@
       "name": "Counseling roadmap",
       "gates": {
         "local_tests": {"status": "passed", "evidence": [{"type": "command", "value": "$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_render_docx scripts.test_web_workbench", "description": "Exact command recorded by the evidence audit as a 174-test passing run; the completion validator records but does not re-run this command."}, {"type": "path", "value": "docs/w1-w6-evidence-audit.md", "description": "Durable audit record for the 174-test local workflow run and its W6 coverage."}]},
-        "real_model_eval": {"status": "unverified", "evidence": [], "note": "Missing committed W6 raw/clean real-model results and rubric evidence."},
-        "web_integration": {"status": "unverified", "evidence": [], "note": "Missing a workflow-specific Web result and export test for W6."},
-        "hosted_verification": {"status": "unverified", "evidence": [], "note": "Missing a committed current hosted W6 workflow report."},
-        "real_template_verification": {"status": "unverified", "evidence": [], "note": "Missing a real W6 roadmap template and successful fill report."}
+        "real_model_eval": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w6/real-model.json", "description": "Validated W6 real-model evaluation evidence using passing W6 DeepSeek roadmap runs and rubric summaries."}]},
+        "web_integration": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w6/web-browser.json", "description": "Validated browser evidence for visible Chinese W6 counseling-roadmap output and editable DOCX download."}]},
+        "hosted_verification": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w6/hosted.json", "description": "Validated hosted real-model evidence for W6 counseling-roadmap output and editable DOCX download."}]},
+        "real_template_verification": {"status": "passed", "evidence": [{"type": "path", "value": "eval-results/acceptance/w6/real-template.json", "description": "Validated fill-and-reopen evidence for canonical W6 counseling-roadmap fields in the real DOCX."}]}
       }
     }
   }

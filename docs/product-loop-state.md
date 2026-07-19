@@ -60,7 +60,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | W3 | Session summary and counseling record | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
 | W4 | Case conceptualization | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
 | W5 | Bounded next-session plan | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W6 | Counseling roadmap | 通过 | 未验证 | 未验证 | 未验证 | 未验证 | 未完成 | real_model_eval |
+| W6 | Counseling roadmap | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
 <!-- workflow-completion:end -->
 
 ## Current Capability Backlog
