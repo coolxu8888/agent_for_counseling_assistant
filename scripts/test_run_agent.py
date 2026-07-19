@@ -1354,6 +1354,62 @@ AGENT_DONE_W3
 
         self.assertEqual(check["status"], "PASS")
 
+    def test_validate_structured_output_w6_accepts_chinese_negated_fixed_treatment_boundary(self):
+        data = {
+            "workflow": "W6",
+            "document_type": "counseling_roadmap",
+            "title": "Counseling roadmap",
+            "selected_framework": "integrative",
+            "overview": "\u672c\u8def\u7ebf\u56fe\u4e3a\u53ef\u4fee\u8ba2\u7684\u591a\u9636\u6bb5\u89c4\u5212\uff0c\u4e0d\u4f5c\u4e3a\u8bca\u65ad\u6216\u56fa\u5b9a\u6cbb\u7597\u65b9\u6848\u3002",
+            "phases": [
+                {
+                    "phase_name": "\u7b2c\u4e00\u9636\u6bb5",
+                    "goals": ["\u5efa\u7acb\u534f\u4f5c\u5173\u7cfb"],
+                    "markers_to_monitor": ["\u7761\u7720\u548c\u98ce\u9669\u53d8\u5316"],
+                }
+            ],
+            "hypotheses_to_verify": ["\u6279\u8bc4\u53ef\u80fd\u6fc0\u6d3b\u7f9e\u803b\u548c\u56de\u907f\u3002"],
+            "session_focus_options": ["\u6f84\u6e05\u6700\u8fd1\u4e00\u6b21\u6279\u8bc4\u89e6\u53d1\u70b9\u3002"],
+            "risk_monitoring_checkpoints": ["\u590d\u6838\u81ea\u6740\u610f\u5ff5\u3001\u81ea\u4f24\u3001\u7761\u7720\u548c\u652f\u6301\u3002"],
+            "collaboration_referral_reminders": ["\u82e5\u51fa\u73b0\u65b0\u7684\u5b89\u5168\u6216\u533b\u7597\u98ce\u9669\uff0c\u518d\u8003\u8651\u534f\u4f5c\u6216\u8f6c\u4ecb\u3002"],
+            "missing_information": ["\u65e2\u5f80\u54a8\u8be2\u53cd\u5e94\u5c1a\u672a\u8bb0\u5f55\u3002"],
+            "do_not_do": ["\u4e0d\u5f97\u627f\u8bfa\u75c7\u72b6\u6539\u5584\u65f6\u95f4\u7ebf\u6216\u56fa\u5b9a\u4f1a\u8c08\u6b21\u6570\u3002"],
+            "boundary_notes": ["\u8fd9\u662f\u53ef\u4fee\u8ba2\u8def\u7ebf\u56fe\uff0c\u4e0d\u662f\u8bca\u65ad\u3001\u56fa\u5b9a\u6cbb\u7597\u5904\u65b9\u6216\u7ed3\u679c\u627f\u8bfa\u3002"],
+        }
+
+        check = validate_structured_output(normalize_workflow("W6"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
+    def test_validate_structured_output_w6_accepts_comma_separated_negated_fixed_treatment_boundary(self):
+        data = {
+            "workflow": "W6",
+            "document_type": "counseling_roadmap",
+            "title": "Counseling roadmap",
+            "selected_framework": "integrative",
+            "overview": "This roadmap is revisable and not a diagnosis or fixed treatment plan.",
+            "phases": [
+                {
+                    "phase_name": "Initial assessment",
+                    "goals": ["Build alliance and clarify the criticism-anxiety-avoidance cycle."],
+                    "markers_to_monitor": ["Sleep, avoidance, and risk language."],
+                }
+            ],
+            "hypotheses_to_verify": ["Criticism may activate shame and avoidance."],
+            "session_focus_options": ["Clarify the latest criticism trigger."],
+            "risk_monitoring_checkpoints": ["Re-check ideation, self-harm, sleep, and supports."],
+            "collaboration_referral_reminders": ["Consider referral only for new safety or medical concerns."],
+            "missing_information": ["Prior counseling response is not documented."],
+            "do_not_do": ["Do not promise a fixed treatment protocol or guaranteed outcome."],
+            "boundary_notes": [
+                "This roadmap is a bounded, revisable planning aid for the counselor. It is not a diagnosis, fixed treatment prescription, final risk judgment, or guaranteed outcome."
+            ],
+        }
+
+        check = validate_structured_output(normalize_workflow("W6"), data)
+
+        self.assertEqual(check["status"], "PASS")
+
     def test_load_retrieval_map_reads_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "retrieval-map.json"
