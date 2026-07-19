@@ -186,7 +186,13 @@ class HostedSmokeTest(unittest.TestCase):
                 "document_type": "counseling_roadmap",
                 "selected_framework": "INTEGRATIVE",
                 "overview": ["Bounded and revisable counseling roadmap."],
-                "phases": ["Engagement and assessment; hypothesis testing; consolidation."],
+                "phases": [
+                    {
+                        "phase_name": "Engagement and assessment",
+                        "goals": ["Build alliance and clarify the criticism-anxiety-avoidance cycle."],
+                        "markers_to_monitor": ["Sleep, avoidance, and risk language."],
+                    }
+                ],
                 "hypotheses_to_verify": ["Criticism may activate shame and avoidance."],
                 "session_focus_options": ["Clarify the latest criticism trigger."],
                 "risk_monitoring_checkpoints": ["Re-check ideation, self-harm, sleep deterioration, and supports."],
@@ -576,6 +582,8 @@ class HostedSmokeTest(unittest.TestCase):
         fields = report["scenario"]["structured_result"]["fields"]
         self.assertEqual(fields["selected_framework"], "INTEGRATIVE")
         self.assertIn("phases", fields)
+        self.assertIsInstance(fields["phases"][0], str)
+        self.assertIn("Engagement and assessment", fields["phases"][0])
         self.assertIn("risk_monitoring_checkpoints", fields)
         self.assertIn("counseling roadmap", report["scenario"]["sanitized_input"])
         self.assertTrue(report["scenario"]["model_run"]["real_model"])

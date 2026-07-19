@@ -520,6 +520,42 @@ def _listify(value):
     return []
 
 
+def _roadmap_phase_summaries(value):
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    if not isinstance(value, list):
+        return []
+    summaries = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            summaries.append(item.strip())
+            continue
+        if not isinstance(item, dict):
+            continue
+        parts = []
+        phase_name = str(item.get("phase_name") or item.get("name") or "").strip()
+        if phase_name:
+            parts.append(phase_name)
+        goals = _listify(item.get("goals"))
+        if goals:
+            parts.append("Goals: " + "; ".join(goals[:3]))
+        markers = _listify(item.get("markers_to_monitor"))
+        if markers:
+            parts.append("Markers: " + "; ".join(markers[:3]))
+        summary = " | ".join(parts).strip()
+        if summary:
+            summaries.append(summary)
+    return summaries
+
+
+def _w6_project_fields(structured_output):
+    fields = {key: structured_output.get(key) for key in W6_REQUIRED_FIELDS}
+    fields["phases"] = _roadmap_phase_summaries(structured_output.get("phases"))
+    if not fields.get("collaboration_or_referral_reminders"):
+        fields["collaboration_or_referral_reminders"] = structured_output.get("collaboration_referral_reminders")
+    return fields
+
+
 def _w3_acceptance_scenario(input_text, smoke_report):
     workflow = smoke_report.get("workflow") or {}
     _require(workflow.get("http_status") == 200, "W3 did not return HTTP 200.")
@@ -792,7 +828,7 @@ def _w6_acceptance_scenario(input_text, smoke_report):
         },
         "structured_result": {
             "status": "PASS",
-            "fields": {key: structured_output.get(key) for key in W6_REQUIRED_FIELDS},
+            "fields": _w6_project_fields(structured_output),
         },
         "artifact": {
             "format": "docx",
