@@ -13,6 +13,7 @@ from w2_acceptance import W2_VISIBLE_LABEL
 from w3_acceptance import W3_VISIBLE_LABEL
 from w4_acceptance import W4_VISIBLE_LABEL
 from w5_acceptance import W5_VISIBLE_LABEL
+from w6_acceptance import W6_VISIBLE_LABEL
 
 
 class HostedSmokeTest(unittest.TestCase):
@@ -166,6 +167,33 @@ class HostedSmokeTest(unittest.TestCase):
                 "between_session_tasks": ["Optionally record one trigger, thought, and emotion rating."],
                 "do_not_do": ["Do not diagnose, write a roadmap, or replace counselor judgment."],
                 "boundary_notes": ["Single next-session plan only; adjust by counselor judgment."],
+            },
+            "structured_check": {"status": "PASS"},
+            "metadata": {"status": "success", "provider": "deepseek", "model": "configured-hosted-model"},
+            "docx": {"status": "PASS", "path": "output.docx", "check": {"status": "PASS"}},
+        }
+
+    def _w6_payload(self):
+        return {
+            "status": "success",
+            "workflow": "W6",
+            "detected_workflow": "W6",
+            "route_status": "manual",
+            "routing_reasons_summary": "W6 counseling roadmap",
+            "clean_output": "Generated a de-identified counseling roadmap.",
+            "structured_output": {
+                "workflow": "W6",
+                "document_type": "counseling_roadmap",
+                "selected_framework": "INTEGRATIVE",
+                "overview": ["Bounded and revisable counseling roadmap."],
+                "phases": ["Engagement and assessment; hypothesis testing; consolidation."],
+                "hypotheses_to_verify": ["Criticism may activate shame and avoidance."],
+                "session_focus_options": ["Clarify the latest criticism trigger."],
+                "risk_monitoring_checkpoints": ["Re-check ideation, self-harm, sleep deterioration, and supports."],
+                "collaboration_or_referral_reminders": ["Consider referral only for new safety or medical concerns."],
+                "missing_information": ["Prior counseling response is not documented."],
+                "do_not_do": ["Do not diagnose, promise outcomes, or prescribe a fixed protocol."],
+                "boundary_notes": ["Roadmap only; adjust by counselor judgment."],
             },
             "structured_check": {"status": "PASS"},
             "metadata": {"status": "success", "provider": "deepseek", "model": "configured-hosted-model"},
@@ -518,6 +546,76 @@ class HostedSmokeTest(unittest.TestCase):
             "--deployed-version", "abc123", "--report-output", "hosted.json",
         ])
         self.assertTrue(args.w5_acceptance)
+        self.assertEqual(args.report_output, "hosted.json")
+
+    def test_run_w6_acceptance_aggregates_full_sanitized_evidence(self):
+        request_json = Mock(
+            side_effect=[
+                (200, {"status": "ok"}, {}),
+                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
+                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
+                (200, self._w6_payload(), {}),
+            ]
+        )
+
+        report = hosted_smoke.run_w6_acceptance(
+            "https://host.example.com",
+            username="operator",
+            password="private-password",
+            deployed_version="abc123",
+            request_json=request_json,
+        )
+
+        self.assertEqual(report["report_type"], "hosted")
+        self.assertEqual(report["deployed_version"], "abc123")
+        self.assertEqual(report["scenario"]["workflow"], "W6")
+        self.assertEqual(report["scenario"]["visible_label"], W6_VISIBLE_LABEL)
+        self.assertEqual(report["scenario"]["structured_result"]["status"], "PASS")
+        fields = report["scenario"]["structured_result"]["fields"]
+        self.assertEqual(fields["selected_framework"], "INTEGRATIVE")
+        self.assertIn("phases", fields)
+        self.assertIn("risk_monitoring_checkpoints", fields)
+        self.assertIn("counseling roadmap", report["scenario"]["sanitized_input"])
+        self.assertTrue(report["scenario"]["model_run"]["real_model"])
+        self.assertEqual(report["scenario"]["artifact"]["download_assertion"], "passed")
+        run_calls = [call for call in request_json.call_args_list if call.args[1] == "/api/run"]
+        self.assertEqual(run_calls[0].kwargs["payload"]["workflow"], "W6")
+        self.assertTrue(all(call.kwargs.get("payload", {}).get("render_docx") is True for call in run_calls))
+        serialized = json.dumps(report, ensure_ascii=False)
+        self.assertNotIn("private-password", serialized)
+        self.assertNotIn("session=private", serialized)
+        self.assertNotIn("run_dir", serialized)
+
+    def test_run_w6_acceptance_rejects_route_only_success(self):
+        payload = self._w6_payload()
+        payload["structured_check"] = None
+        payload["docx"] = {"status": "skipped", "path": None, "check": None}
+        responses = [
+            (200, {"status": "ok"}, {}),
+            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
+            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
+            (200, payload, {}),
+        ]
+
+        with self.assertRaisesRegex(ValueError, "structured validation.*PASS"):
+            hosted_smoke.run_w6_acceptance(
+                "https://host.example.com",
+                username="operator",
+                password="private-password",
+                deployed_version="abc123",
+                request_json=Mock(side_effect=responses),
+            )
+
+    def test_w6_acceptance_cli_writes_report_only_after_validation(self):
+        args = hosted_smoke.parse_args([
+            "--base-url", "https://host.example.com", "--w6-acceptance",
+            "--deployed-version", "abc123", "--report-output", "hosted.json",
+        ])
+        self.assertTrue(args.w6_acceptance)
         self.assertEqual(args.report_output, "hosted.json")
 
     def test_parse_args_accepts_w5_workflow_choice(self):
