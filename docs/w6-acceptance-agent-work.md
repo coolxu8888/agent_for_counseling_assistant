@@ -23,7 +23,7 @@ Owned files:
 
 ## Task B - W6 Real Model Evaluation
 
-Status: pending
+Status: complete
 
 Owned files:
 
@@ -75,8 +75,8 @@ Owned files:
 
 - [x] Task A implementation complete
 - [x] Task A verification passed
-- [ ] Task B real-model evidence complete
-- [ ] Task B verification passed
+- [x] Task B real-model evidence complete
+- [x] Task B verification passed
 - [ ] Task C implementation and real run complete
 - [ ] Task C verification passed
 - [ ] Task D browser evidence complete

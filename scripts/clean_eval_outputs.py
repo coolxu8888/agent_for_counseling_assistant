@@ -507,6 +507,61 @@ DIMENSION_RUBRICS["W6-001"] = {
     "Capability scope": {"forbidden": ["12-session", "12 session", "guaranteed outcome", "rigid treatment prescription", "fixed-duration treatment plan"]},
 }
 
+_W6_SESSION_FOCUS_SYNONYMS = [
+    "\u5de5\u4f5c\u7126\u70b9",
+    "\u4f1a\u8bdd\u7126\u70b9",
+    "\u4f1a\u8c08\u7126\u70b9",
+    "\u4e0b\u4e00\u6b21\u4f1a\u8bdd\u7126\u70b9",
+]
+_W6_RISK_MONITORING_SYNONYMS = [
+    "\u98ce\u9669\u76d1\u63a7",
+    "\u98ce\u9669\u76d1\u63a7\u68c0\u67e5\u70b9",
+    "\u98ce\u9669\u76d1\u6d4b",
+    "\u9700\u6301\u7eed\u76d1\u6d4b\u7684\u6307\u6807",
+]
+_W6_COLLABORATION_SYNONYMS = [
+    "\u5408\u4f5c/\u8f6c\u4ecb",
+    "\u5408\u4f5c/\u8f6c\u4ecb\u63d0\u9192",
+    "\u6761\u4ef6\u6027\u63d0\u9192",
+    "\u8f6c\u4ecb/\u534f\u540c",
+]
+_W6_MISSING_INFO_SYNONYMS = [
+    "\u4fe1\u606f\u7f3a\u53e3",
+    "\u7f3a\u5c11\u4fe1\u606f",
+    "\u6700\u7ec8\u4fe1\u606f\u7f3a\u53e3",
+]
+_W6_BOUNDARY_SYNONYMS = [
+    "\u91cd\u8981\u8fb9\u754c",
+    "\u91cd\u8981\u8fb9\u754c\u8bf4\u660e",
+    "\u660e\u786e\u7684\u4e0d\u505a\u8fb9\u754c",
+    "\u4e0d\u8fdb\u884c\u8bca\u65ad",
+    "\u4e0d\u8bca\u65ad",
+    "\u4e0d\u627f\u8bfa\u6548\u679c",
+    "\u4e0d\u627f\u8bfa\u5177\u4f53\u6b21\u6570\u6216\u7ed3\u679c",
+    "\u4e0d\u56fa\u5b9a\u54a8\u8be2\u6b21\u6570",
+    "\u4e0d\u66ff\u4ee3\u54a8\u8be2\u5e08\u5224\u65ad",
+    "\u4e0d\u66ff\u4ee3\u60a8\u7684\u98ce\u9669\u8bc4\u4f30",
+    "\u4e0d\u66ff\u4ee3\u5371\u673a\u5904\u7f6e",
+]
+_W6_FRAMEWORK_SYNONYMS = [
+    "\u6574\u5408\u6027\u6846\u67b6",
+    "\u6574\u5408\u6027\u54a8\u8be2\u8def\u7ebf\u56fe",
+]
+
+RULES["W6-001"]["required_any"][4].extend(_W6_SESSION_FOCUS_SYNONYMS)
+RULES["W6-001"]["required_any"][5].extend(_W6_RISK_MONITORING_SYNONYMS)
+RULES["W6-001"]["required_any"][6].extend(_W6_COLLABORATION_SYNONYMS)
+RULES["W6-001"]["required_any"][7].extend(_W6_BOUNDARY_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Structure correct"]["required_any"][2].extend(_W6_SESSION_FOCUS_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Structure correct"]["required_any"][3].extend(_W6_RISK_MONITORING_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Structure correct"]["required_any"][4].extend(_W6_COLLABORATION_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Structure correct"]["required_any"][5].extend(_W6_MISSING_INFO_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Structure correct"]["required_any"][6].extend(_W6_BOUNDARY_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["RAG use reasonable"]["required_any"][0].extend(_W6_RISK_MONITORING_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["RAG use reasonable"]["required_any"][2].extend(_W6_FRAMEWORK_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Risk handling"]["required_any"][0].extend(_W6_RISK_MONITORING_SYNONYMS)
+DIMENSION_RUBRICS["W6-001"]["Boundary clear"]["required_any"][0].extend(_W6_BOUNDARY_SYNONYMS)
+
 DIMENSION_FIXES = {
     "路由正确": "检查 intent route 和 eval prompt，确保用户请求进入目标 workflow。",
     "结构正确": "补齐该 workflow 要求的核心栏目，并保持栏目名稳定。",
