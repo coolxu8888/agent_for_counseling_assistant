@@ -108,20 +108,20 @@ The current case cumulative total is calculated from runs that:
 - Are attached to the selected case.
 - Have provider-reported token usage.
 
-The test drawer can export the accessible usage rows as JSON or CSV with:
+The test drawer can export usage rows for the selected case as JSON or CSV with:
 
-- Run identifier.
+- Opaque run name that does not contain a server path.
 - Timestamp.
 - Provider and model.
 - Detected workflow.
 - Input, output, and total tokens.
 - Status and latency.
 
-The export excludes counselor material, model output, API keys, raw authorization data, and server filesystem paths.
+The export excludes counselor material, model output, API keys, raw authorization data, and server filesystem paths. Workspace-wide and cross-case exports are outside this rehearsal scope.
 
 ### Retention boundary
 
-Usage records use the existing run artifacts and local SQLite registration. They may be lost when a free Render instance is rebuilt or replaced. The UI will describe them as rehearsal statistics, not billing records.
+Usage records use the existing run artifacts and local SQLite registration. They remain subject to the configured rehearsal retention/pruning policy and may be lost when a free Render instance is rebuilt or replaced. The UI will describe them as rehearsal statistics, not billing records.
 
 No managed database, persistent disk, cost calculator, organization-wide billing reconciliation, or cross-deployment migration is included.
 
@@ -152,7 +152,7 @@ case history selection
 Usage export:
 
 ```text
-selected case or current workspace
+selected case
   -> authenticated usage export request
   -> accessible registered runs only
   -> sanitized JSON or CSV download
