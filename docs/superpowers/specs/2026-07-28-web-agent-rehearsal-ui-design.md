@@ -1,232 +1,232 @@
-# Web Agent Rehearsal UI Design
+# Web Agent 演练界面设计
 
-Date: 2026-07-28
+日期：2026-07-28
 
-## Goal
+## 目标
 
-Turn the existing Web Workbench into a pre-release rehearsal surface that looks like the counselor-facing product by default and exposes an expandable test drawer when diagnostic detail is needed.
+把现有 Web Workbench 改造成上线前演练界面：默认呈现咨询师使用的产品界面，需要诊断时可以展开右侧测试抽屉。
 
-The first acceptance journey is:
+第一条验收主线是：
 
 ```text
-sign in
-  -> create or select a de-identified case
-  -> enter counselor material
-  -> let the server route the intent automatically
-  -> call the real DeepSeek API
-  -> review generated output and safety checks
-  -> download the Word artifact
-  -> reopen the run from case history
+登录
+  -> 创建或选择脱敏个案
+  -> 输入咨询材料
+  -> 由服务器自动识别任务
+  -> 调用真实 DeepSeek API
+  -> 审核生成结果和安全校验
+  -> 下载 Word 文件
+  -> 从个案历史中重新打开本次运行
 ```
 
-This is a rehearsal-grade validation surface. It is not the final iOS UI and it does not introduce production-grade durable analytics storage.
+这是演练级验证界面，不是最终 iOS 界面，也不引入生产级持久化分析存储。
 
-## Existing System
+## 现有系统
 
-The implementation must reuse the current stack:
+实现必须复用当前技术栈：
 
-- `web-workbench/index.html`, `styles.css`, and `app.js` for the browser UI.
-- `scripts/web_workbench.py` for authenticated Web APIs, cases, run history, and artifact delivery.
-- `scripts/run_agent.py` for routing, RAG retrieval, DeepSeek calls, validation, and document generation.
-- Existing `workbench-data/` SQLite and `agent-runs/` artifacts for rehearsal data.
-- Existing Render Web service configuration.
+- `web-workbench/index.html`、`styles.css` 和 `app.js`：浏览器界面。
+- `scripts/web_workbench.py`：登录鉴权、Web API、个案、运行历史和文件下载。
+- `scripts/run_agent.py`：自动路由、RAG 检索、DeepSeek 调用、校验和文档生成。
+- 现有 `workbench-data/` SQLite 数据和 `agent-runs/` 运行文件：保存演练数据。
+- 现有 Render Web 服务配置。
 
-The current runner already writes the exact DeepSeek `usage` object returned by the provider into each run's `metadata.json`. The UI work will surface and aggregate that provider-reported value; it will not estimate tokens locally.
+当前运行器已经把 DeepSeek 返回的原始 `usage` 对象写入每次运行的 `metadata.json`。本次改造只负责展示和汇总供应商返回的数据，不在本地估算 Token。
 
-## Chosen Interface
+## 已选界面
 
-### Product mode
+### 产品模式
 
-The normal interface prioritizes the counselor task:
+普通界面优先服务咨询师的工作：
 
-- De-identified case navigation on the left.
-- Current case and generated result in the center.
-- Material input, run action, Word export, and history access in the main workflow.
-- No raw workflow codes, filesystem paths, provider credentials, or diagnostic JSON in the default view.
+- 左侧显示脱敏个案导航。
+- 中间显示当前个案和生成结果。
+- 主要流程包含材料输入、运行 Agent、Word 导出和历史记录。
+- 默认界面不显示内部工作流代码、服务器文件路径、供应商凭据或诊断 JSON。
 
-### Expandable test mode
+### 可展开测试模式
 
-A `测试模式` control opens a right-side drawer without navigating away from the current case or run.
+点击“测试模式”后，在当前个案和当前运行右侧展开抽屉，不跳转页面。
 
-The drawer contains:
+抽屉包含：
 
-1. **Run overview**
-   - Provider: DeepSeek.
-   - Model name.
-   - Automatically detected workflow.
-   - Request status.
-   - Latency.
+1. **运行概览**
+   - 供应商：DeepSeek。
+   - 模型名称。
+   - 自动识别的工作流。
+   - 请求状态。
+   - 响应耗时。
 
-2. **Token usage**
-   - Input/prompt tokens.
-   - Output/completion tokens.
-   - Total tokens.
-   - Current case cumulative tokens.
-   - A clear `API 未返回用量` state instead of displaying zero when usage is absent.
+2. **Token 用量**
+   - 输入／提示词 Token。
+   - 输出／生成 Token。
+   - 总 Token。
+   - 当前个案累计 Token。
+   - 当接口没有返回用量时，明确显示“API 未返回用量”，不能显示为零。
 
-3. **Validation**
-   - Structured-output validation.
-   - Safety/rubric validation.
-   - Word generation status.
+3. **校验状态**
+   - 结构化输出校验。
+   - 安全／评分规则校验。
+   - Word 生成状态。
 
-4. **Diagnostics**
-   - Expandable sanitized JSON.
-   - Rehearsal usage export.
-   - No API key, authorization header, direct client identifier, or unredacted provider error.
+4. **诊断信息**
+   - 可展开的脱敏 JSON。
+   - 演练用量导出。
+   - 不显示 API Key、Authorization 请求头、直接身份标识或未脱敏的供应商错误。
 
-The drawer is closed by default. On narrower screens it becomes an overlay panel so it does not compress the counselor content into an unusable column.
+测试抽屉默认关闭。在较窄屏幕上，抽屉改为覆盖式面板，避免把咨询师的主内容压缩到不可用。
 
-## Token Recording
+## Token 记录
 
-### Source of truth
+### 唯一数据来源
 
-Only the DeepSeek response `usage` object is authoritative. The normalization layer accepts the provider's prompt/input, completion/output, and total token fields while preserving the raw sanitized usage object for diagnostics.
+只有 DeepSeek 响应中的 `usage` 对象可以作为 Token 用量依据。标准化层兼容供应商返回的 prompt/input、completion/output 和 total Token 字段，同时保留脱敏后的原始 `usage`，供测试诊断使用。
 
-### Per-run behavior
+### 单次运行
 
-For every successful provider response:
+每次收到成功的供应商响应后：
 
-- Preserve the provider usage in `metadata.json`.
-- Normalize the three display values.
-- Return them in the authenticated run detail payload.
-- Display them in the test drawer.
-- Preserve them when the run is reopened from case history.
+- 把供应商用量保存在 `metadata.json`。
+- 标准化输入、输出和总计三个展示值。
+- 在经过鉴权的运行详情接口中返回这些数据。
+- 在右侧测试抽屉中显示。
+- 从个案历史重新打开运行时继续显示。
 
-If generation succeeds but structured validation or Word rendering fails, token usage is still recorded because the provider call already consumed tokens.
+如果模型生成成功，但后续结构化校验或 Word 生成失败，仍然记录 Token，因为模型调用已经产生消耗。
 
-For timeouts, connection failures, or responses without usage:
+对于超时、连接失败或没有返回 `usage` 的响应：
 
-- Record the run status and sanitized error as today.
-- Store token usage as unavailable, not zero.
-- Do not include unavailable usage in cumulative totals.
+- 沿用现有逻辑记录运行状态和脱敏错误。
+- Token 状态记为“不可用”，而不是零。
+- 累计统计不纳入不可用记录。
 
-### Rehearsal aggregation
+### 演练级汇总
 
-The current case cumulative total is calculated from runs that:
+当前个案累计用量只统计符合以下条件的运行：
 
-- Belong to the authenticated workspace.
-- Are attached to the selected case.
-- Have provider-reported token usage.
+- 属于当前已登录工作空间。
+- 已绑定当前选中的个案。
+- 存在供应商返回的 Token 用量。
 
-The test drawer can export usage rows for the selected case as JSON or CSV with:
+测试抽屉可以把当前个案的用量记录导出为 JSON 或 CSV，字段包括：
 
-- Opaque run name that does not contain a server path.
-- Timestamp.
-- Provider and model.
-- Detected workflow.
-- Input, output, and total tokens.
-- Status and latency.
+- 不包含服务器路径的不透明运行名称。
+- 时间戳。
+- 供应商和模型。
+- 自动识别的工作流。
+- 输入、输出和总 Token。
+- 状态和响应耗时。
 
-The export excludes counselor material, model output, API keys, raw authorization data, and server filesystem paths. Workspace-wide and cross-case exports are outside this rehearsal scope.
+导出文件不包含咨询材料、模型输出、API Key、Authorization 数据或服务器文件路径。演练范围不包含整个工作空间或跨个案导出。
 
-### Retention boundary
+### 保存边界
 
-Usage records use the existing run artifacts and local SQLite registration. They remain subject to the configured rehearsal retention/pruning policy and may be lost when a free Render instance is rebuilt or replaced. The UI will describe them as rehearsal statistics, not billing records.
+用量记录沿用现有运行文件和本地 SQLite 注册信息，并受当前演练数据保留／清理策略约束。Render 免费实例重建或替换后，这些数据可能丢失。界面必须将其描述为“演练统计”，不能称为正式账单记录。
 
-No managed database, persistent disk, cost calculator, organization-wide billing reconciliation, or cross-deployment migration is included.
+本次不加入托管数据库、持久磁盘、成本计算器、组织级账单核对或跨部署迁移。
 
-## Data Flow
+## 数据流
 
 ```text
-Counselor product UI
-  -> authenticated POST /api/run
-  -> automatic workflow routing
-  -> RAG retrieval and prompt assembly
+咨询师产品界面
+  -> 经过鉴权的 POST /api/run
+  -> 自动识别工作流
+  -> RAG 检索和 Prompt 组装
   -> DeepSeek /chat/completions
-  -> generated content + provider usage
-  -> validation and optional Word generation
-  -> metadata/artifacts + authenticated run registration
-  -> product result view + expandable test drawer
+  -> 生成内容 + 供应商 usage
+  -> 校验和可选 Word 生成
+  -> 保存元数据／文件并注册到当前账号
+  -> 返回产品结果界面 + 可展开测试抽屉
 ```
 
-History reopen:
+重新打开历史运行：
 
 ```text
-case history selection
-  -> authenticated run detail
-  -> ownership/path guard
-  -> saved output, checks, metadata, and normalized usage
-  -> restore product result and test drawer state
+选择个案历史
+  -> 获取经过鉴权的运行详情
+  -> 校验所有权和文件路径
+  -> 读取已保存输出、校验、元数据和标准化 Token 用量
+  -> 恢复产品结果和测试抽屉状态
 ```
 
-Usage export:
+用量导出：
 
 ```text
-selected case
-  -> authenticated usage export request
-  -> accessible registered runs only
-  -> sanitized JSON or CSV download
+当前选中个案
+  -> 发起经过鉴权的用量导出请求
+  -> 只读取当前账号可访问的已注册运行
+  -> 下载脱敏 JSON 或 CSV
 ```
 
-## Error Handling
+## 错误处理
 
-- Missing counselor input stays attached to the input area.
-- Missing `DEEPSEEK_API_KEY` is reported as unavailable model access; the key value is never displayed.
-- DeepSeek timeout and API failures show a short retryable status and a sanitized diagnostic category.
-- Missing or malformed provider usage shows `API 未返回用量`.
-- Structured validation warnings remain distinct from API failures.
-- Word generation failures do not discard the generated text or recorded token usage.
-- Unauthorized case, run, or export access returns the existing authentication/ownership error and reveals no artifact path.
-- The test drawer never exposes a Python traceback or provider credential.
+- 咨询材料为空：错误显示在输入区域附近。
+- 缺少 `DEEPSEEK_API_KEY`：显示模型服务不可用，但绝不显示密钥内容。
+- DeepSeek 超时或 API 失败：显示简短、可重试的状态和脱敏错误类别。
+- 供应商用量缺失或格式异常：显示“API 未返回用量”。
+- 结构化校验警告必须和 API 调用失败分开显示。
+- Word 生成失败不能丢弃已生成文本或已记录 Token。
+- 无权访问个案、运行或导出文件：返回现有鉴权／所有权错误，不泄露文件路径。
+- 测试抽屉不能显示 Python traceback 或供应商凭据。
 
-## Testing
+## 测试
 
-### Backend tests
+### 后端测试
 
-- Exact provider usage is preserved in run metadata.
-- Prompt/input, completion/output, and total token fields normalize correctly.
-- Missing and malformed usage stays unavailable rather than becoming zero.
-- Usage remains present when downstream validation or Word generation fails.
-- Case aggregation includes only owned runs attached to that case.
-- JSON and CSV exports contain allowed diagnostic fields and exclude sensitive content.
-- Cross-workspace run and export access is rejected.
+- 供应商返回的原始 `usage` 被准确保存到运行元数据。
+- prompt/input、completion/output 和 total Token 字段能够正确标准化。
+- 缺失或格式异常的用量保持“不可用”，不能变成零。
+- 后续校验或 Word 生成失败时，已产生的 Token 用量仍然存在。
+- 个案累计只包含当前账号拥有且绑定该个案的运行。
+- JSON 和 CSV 导出只包含允许的诊断字段，不包含敏感内容。
+- 拒绝跨工作空间读取运行或导出用量。
 
-### Frontend tests
+### 前端测试
 
-- Test mode opens and closes without losing the current run.
-- Product mode does not show workflow codes or diagnostic JSON.
-- Current-run and case-total Token values render correctly.
-- Missing usage renders the unavailable state.
-- Reopening history restores output, checks, and usage.
-- The drawer becomes an overlay at the narrow breakpoint.
-- The main run and Word download controls remain usable with the drawer open.
+- 打开和关闭测试模式不会丢失当前运行。
+- 产品模式不显示内部工作流代码或诊断 JSON。
+- 正确显示本次运行和当前个案累计 Token。
+- 用量缺失时显示“API 未返回用量”。
+- 从历史记录重新打开运行后，恢复输出、校验和 Token 用量。
+- 在窄屏断点下，测试抽屉变为覆盖式面板。
+- 抽屉打开时，运行 Agent 和下载 Word 仍然可用。
 
-### Integration acceptance
+### 集成验收
 
-- Mocked runs cover success, missing usage, timeout, validation warning, and Word failure.
-- One real DeepSeek smoke run uses the configured local `.env` without printing or copying the key.
-- The complete acceptance journey passes locally.
-- Render deployment is smoke-tested separately after the local implementation is accepted.
+- 使用模拟响应覆盖：成功、缺少用量、超时、校验警告和 Word 失败。
+- 使用本地 `.env` 中已经配置的密钥完成一次真实 DeepSeek 冒烟测试，不打印或复制密钥。
+- 完整的咨询师演练主线在本地通过。
+- 本地实现被确认后，再单独进行 Render 部署冒烟测试。
 
-## Scope Boundaries
+## 范围边界
 
-Included:
+包含：
 
-- Product-first layout refinement.
-- Expandable right test drawer.
-- Exact DeepSeek Token usage display and rehearsal aggregation.
-- Sanitized JSON/CSV usage export.
-- Local browser and automated validation.
+- 以产品任务为主的界面调整。
+- 可展开的右侧测试抽屉。
+- DeepSeek 返回的准确 Token 用量展示和演练级汇总。
+- 脱敏 JSON／CSV 用量导出。
+- 本地浏览器验证和自动化测试。
 
-Excluded:
+不包含：
 
-- React, Next.js, or another frontend framework migration.
-- A new model provider.
-- Long-term analytics storage or production billing reconciliation.
-- Changes to DeepSeek credentials.
-- Copying the Web UI into the iOS application package.
-- Render production deployment before local review and verification.
+- 迁移到 React、Next.js 或其他前端框架。
+- 接入新的模型供应商。
+- 长期分析存储或生产账单核对。
+- 修改 DeepSeek 凭据。
+- 把 Web 界面复制进 iOS 应用包。
+- 在本地审查和验证完成前部署到 Render 正式环境。
 
-## Acceptance Criteria
+## 验收标准
 
-The design is implemented when:
+满足以下条件即完成：
 
-- The default Web interface reads as a counselor product rather than an engineering console.
-- The right test drawer opens on demand and stays tied to the current run.
-- A real DeepSeek run displays provider, model, route, latency, validation state, and exact returned Token usage.
-- Per-run usage survives history reopen.
-- Current case totals exclude unavailable usage and other workspaces.
-- Sanitized usage export works in JSON and CSV.
-- The full counselor rehearsal journey passes locally.
-- Existing backend and Web tests remain passing.
-- No API key or sensitive counselor content is introduced into source control, browser diagnostics, or usage exports.
+- 默认 Web 界面呈现为咨询师产品，而不是工程控制台。
+- 右侧测试抽屉可以按需展开，并始终对应当前运行。
+- 一次真实 DeepSeek 运行能够显示供应商、模型、路由、耗时、校验状态和 API 返回的准确 Token 用量。
+- 从历史记录重新打开运行后，单次 Token 用量仍然存在。
+- 当前个案累计不包含用量不可用的运行，也不包含其他工作空间的数据。
+- 脱敏用量可以导出为 JSON 和 CSV。
+- 完整咨询师演练主线在本地通过。
+- 现有后端和 Web 测试保持通过。
+- 源码、浏览器诊断和用量导出中均不出现 API Key 或敏感咨询材料。
