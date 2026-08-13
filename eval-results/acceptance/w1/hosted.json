@@ -1,5 +1,12 @@
 {
   "base_url": "https://counselor-agent-web.onrender.com",
+  "evidence_provenance": {
+    "run_environment": "retired_hosted_deployment",
+    "base_url_semantics": "canonical_contract_target_not_observed_run_target",
+    "canonical_host_revalidated": false,
+    "current_gate_status": "stale",
+    "note": "Historical scenario, model, safety, and DOCX results are retained from a retired deployment. A new run is required before this artifact can verify the canonical host."
+  },
   "deployed_version": "4260519",
   "report_type": "hosted",
   "scenarios": [

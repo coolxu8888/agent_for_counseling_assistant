@@ -56,7 +56,7 @@ class WorkflowCompletionTest(unittest.TestCase):
         self.assertTrue(derive_workflow_status(workflow)["completed"])
 
     def test_any_non_passed_gate_is_incomplete(self):
-        for status in ("failed", "unverified"):
+        for status in ("failed", "unverified", "stale"):
             for missing_index, missing_gate in enumerate(GATE_IDS):
                 with self.subTest(status=status, missing_gate=missing_gate):
                     statuses = ["passed"] * len(GATE_IDS)
@@ -66,6 +66,43 @@ class WorkflowCompletionTest(unittest.TestCase):
                     )
                     self.assertFalse(derived["completed"])
                     self.assertEqual([missing_gate], derived["missing_gates"])
+
+    def test_stale_hosted_gate_requires_explicit_non_revalidation_provenance(self):
+        artifact = self.repo_root / "eval-results" / "acceptance" / "w1" / "hosted.json"
+        artifact.parent.mkdir(parents=True)
+        artifact.write_text(
+            json.dumps(
+                {
+                    "base_url": "https://counselor-agent-web.onrender.com",
+                    "evidence_provenance": {
+                        "run_environment": "retired_hosted_deployment",
+                        "base_url_semantics": "canonical_contract_target_not_observed_run_target",
+                        "canonical_host_revalidated": False,
+                        "current_gate_status": "stale",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        data = self.matrix()
+        data["workflows"]["W1"]["gates"]["hosted_verification"] = self.gate(
+            "stale", [{"type": "path", "value": "eval-results/acceptance/w1/hosted.json"}]
+        )
+
+        validate_matrix(data, self.repo_root)
+        self.assertIn("已过期", render_markdown(data))
+
+        data["workflows"]["W1"]["gates"]["hosted_verification"]["status"] = "passed"
+        self.assert_invalid(data, "not revalidated on the canonical host")
+
+    def test_rejects_stale_hosted_gate_without_provenance_marker(self):
+        artifact = self.repo_root / "hosted.json"
+        artifact.write_text("{}", encoding="utf-8")
+        data = self.matrix()
+        data["workflows"]["W2"]["gates"]["hosted_verification"] = self.gate(
+            "stale", [{"type": "path", "value": "hosted.json"}]
+        )
+        self.assert_invalid(data, "stale hosted evidence must declare")
 
     def test_multiple_missing_gates_preserve_canonical_order(self):
         workflow = self.workflow_with_statuses(

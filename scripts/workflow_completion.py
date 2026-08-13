@@ -18,7 +18,7 @@ GATE_IDS = (
     "hosted_verification",
     "real_template_verification",
 )
-VALID_STATUSES = {"passed", "failed", "unverified"}
+VALID_STATUSES = {"passed", "failed", "unverified", "stale"}
 START_MARKER = "<!-- workflow-completion:start -->"
 END_MARKER = "<!-- workflow-completion:end -->"
 
@@ -102,10 +102,11 @@ def validate_matrix(data: dict, repo_root: Path) -> None:
                 raise CompletionValidationError(
                     f"{workflow_id}.{gate_id}.evidence must be a list"
                 )
-            if status == "passed" and not evidence:
+            if status in {"passed", "stale"} and not evidence:
                 raise CompletionValidationError(
-                    f"{workflow_id}.{gate_id} needs non-empty evidence when passed"
+                    f"{workflow_id}.{gate_id} needs non-empty evidence when {status}"
                 )
+            stale_provenance_found = False
             for index, item in enumerate(evidence):
                 prefix = f"{workflow_id}.{gate_id}.evidence[{index}]"
                 if not isinstance(item, dict):
@@ -130,12 +131,32 @@ def validate_matrix(data: dict, repo_root: Path) -> None:
                         raise CompletionValidationError(
                             f"{prefix} path does not exist: {value}"
                         )
+                    if gate_id == "hosted_verification" and candidate.name == "hosted.json":
+                        artifact = load_matrix(candidate)
+                        provenance = artifact.get("evidence_provenance")
+                        not_revalidated = (
+                            isinstance(provenance, dict)
+                            and provenance.get("canonical_host_revalidated") is False
+                            and provenance.get("current_gate_status") == "stale"
+                            and provenance.get("run_environment") == "retired_hosted_deployment"
+                            and provenance.get("base_url_semantics")
+                            == "canonical_contract_target_not_observed_run_target"
+                        )
+                        stale_provenance_found = stale_provenance_found or not_revalidated
+                        if status == "passed" and not_revalidated:
+                            raise CompletionValidationError(
+                                f"{prefix} is not revalidated on the canonical host"
+                            )
                 elif evidence_type == "url":
                     parsed = urlsplit(value)
                     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
                         raise CompletionValidationError(
                             f"{prefix} must be an absolute HTTP(S) URL"
                         )
+            if gate_id == "hosted_verification" and status == "stale" and not stale_provenance_found:
+                raise CompletionValidationError(
+                    f"{workflow_id}.{gate_id} stale hosted evidence must declare canonical non-revalidation provenance"
+                )
 
 
 def derive_workflow_status(workflow: dict) -> dict:
@@ -155,7 +176,12 @@ def render_markdown(data: dict) -> str:
         "| " + " | ".join(headers) + " |",
         "| " + " | ".join(["---"] * len(headers)) + " |",
     ]
-    labels = {"passed": "通过", "failed": "失败", "unverified": "未验证"}
+    labels = {
+        "passed": "通过",
+        "failed": "失败",
+        "unverified": "未验证",
+        "stale": "已过期（规范主机待重验）",
+    }
     for workflow_id in WORKFLOW_IDS:
         workflow = data["workflows"][workflow_id]
         derived = derive_workflow_status(workflow)

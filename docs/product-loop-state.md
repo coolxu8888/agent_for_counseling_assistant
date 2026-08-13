@@ -110,6 +110,7 @@ Remaining gaps:
 - Repository: `C:\Users\win\Documents\Codex\2026-05-15\agent`
 - Main branch status at last check: local `main` was ahead of `origin/main` by 2 commits and behind by 1, with unrelated and user-owned worktree changes preserved.
 - Hosted product URL: `https://counselor-agent-web.onrender.com`
+- Canonical-host readiness: pending. W1-W6 historical hosted artifacts came from a prior retired deployment and are marked stale; none verifies the canonical host until a new hosted acceptance run replaces that provenance.
 - Current implementation shape:
   - Native iOS application root under `ios-app/` (new primary release target)
   - Python backend / API service under `scripts/`
@@ -219,12 +220,12 @@ A capability is not complete just because a prompt exists. It is considered prod
 <!-- workflow-completion:start -->
 | 工作流 | 名称 | local_tests | real_model_eval | web_integration | hosted_verification | real_template_verification | 总体状态 | 首个缺失门槛 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| W1 | Initial interview | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W2 | Case background organization | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W3 | Session summary and counseling record | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W4 | Case conceptualization | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W5 | Bounded next-session plan | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
-| W6 | Counseling roadmap | 通过 | 通过 | 通过 | 通过 | 通过 | 完成 | — |
+| W1 | Initial interview | 通过 | 通过 | 通过 | 已过期（规范主机待重验） | 通过 | 未完成 | hosted_verification |
+| W2 | Case background organization | 通过 | 通过 | 通过 | 已过期（规范主机待重验） | 通过 | 未完成 | hosted_verification |
+| W3 | Session summary and counseling record | 通过 | 通过 | 通过 | 已过期（规范主机待重验） | 通过 | 未完成 | hosted_verification |
+| W4 | Case conceptualization | 通过 | 通过 | 通过 | 已过期（规范主机待重验） | 通过 | 未完成 | hosted_verification |
+| W5 | Bounded next-session plan | 通过 | 通过 | 通过 | 已过期（规范主机待重验） | 通过 | 未完成 | hosted_verification |
+| W6 | Counseling roadmap | 通过 | 通过 | 通过 | 已过期（规范主机待重验） | 通过 | 未完成 | hosted_verification |
 <!-- workflow-completion:end -->
 
 ## Current Capability Backlog
@@ -238,7 +239,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P0 | iOS document/template workflow | partial | generated DOCX metadata, authenticated whitelist download, native Quick Look and ShareLink implemented | add Files importer, template upload/inspect/fill, progress and failure recovery |
 | P0 | App Store privacy/account lifecycle | not started | initial empty privacy manifest only | implement accurate privacy manifest, account deletion, retention controls, policy/support metadata and review notes |
 | P0 | TestFlight/App Store delivery | not started | version and package contract established | add signing/CI configuration, simulator/UI tests, archive/export validation and TestFlight acceptance |
-| P0 | Intent recognition across counselor tasks | shipped partial / frozen for acceptance | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals through `W2-015`, and hosted parity for the covered route families | do not add another boundary variant; fix routing only when a realistic counselor acceptance journey is blocked or misrouted |
+| P0 | Intent recognition across counselor tasks | shipped partial / canonical host pending | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals through `W2-015`, and historical route-family evidence from a prior retired deployment | rerun the covered route families on the canonical host before treating hosted parity as current |
 | P0 | W1 initial interview preparation guide | 历史交付：`shipped partial`；当前完成状态[以统一矩阵为准](#w1-w6-unified-completion-matrix) | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | 历史交付：`shipped partial`；当前完成状态[以统一矩阵为准](#w1-w6-unified-completion-matrix) | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | 历史交付：`shipped partial`；当前完成状态[以统一矩阵为准](#w1-w6-unified-completion-matrix) | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -253,11 +254,13 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P1 | Case workspace/history | shipped partial | web workbench case history exists | verify privacy-safe deletion/export flows |
 | P1 | File upload/download and docx export | partial | render_docx and template flow exist | improve UX for template upload, generated output, and error reporting |
 | P1 | Audit log and data governance controls | partial | workbench run log and governance controls exist | confirm user-facing privacy copy and retention behavior |
-| P1 | Hosted deployment diagnostics | partial | hosted smoke/health tests exist | run after pushing latest local commits |
+| P1 | Hosted deployment diagnostics | canonical host pending | hosted smoke/health tests exist; historical hosted artifacts are stale | run health, session/auth, W1-W6 acceptance, safety, and DOCX checks on the canonical host |
 | P2 | Native iOS visual UX and accessibility | not started | Web visual direction exists only as reference | establish native design system after the authenticated core journey works |
 | P3 | Generic account settings | partial | password rotation exists | defer unless required for deployment validation |
 
 ## Recently Completed
+
+> Historical hosted-evidence boundary: every public deployment observation below predates the single canonical Web host. It is retained only as capability history from a prior retired deployment and does not validate `https://counselor-agent-web.onrender.com`; current canonical-host verification remains pending as shown in the matrix and backlog.
 
 ### Intent Recognition Across Counselor Tasks
 
@@ -598,7 +601,7 @@ Outcome:
 
 - The shipped web router now keeps this bilingual session-note-source-material roadmap boundary in `W6` and shows the route explanation in the same order instead of implying that `W3` or `W5` was still the leading cue.
 - The new `W6-005` fixture upgrades this ambiguity from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W6-005` is now restored: the public Render product returns `workflow=W6`, `detected_workflow=W6`, and the expected `W6`-over-`W3` route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed `W6-005` returning `workflow=W6`, `detected_workflow=W6`, and the expected `W6`-over-`W3` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -629,7 +632,7 @@ Tests and evals run:
 
 Outcome:
 
-- Hosted parity is now restored for both remaining `W2` intent-routing boundaries. The public Render product returns `workflow=W2`, `detected_workflow=W2`, `route_status=mixed_signals`, a `Case background` `route_notice`, and the expected `W2 > W1` `routing_reasons_summary` for both `W2-012` and `W2-013`.
+- Historical capability evidence from a prior retired deployment showed both `W2` boundaries returning `workflow=W2`, `detected_workflow=W2`, `route_status=mixed_signals`, a `Case background` notice, and the expected `W2 > W1` route summary. This does not validate the current canonical host.
 - The deployment-smoke tooling now checks the same route metadata that counselors rely on in the product, instead of only verifying the top workflow id.
 
 Remaining gaps:
@@ -1081,13 +1084,13 @@ Outcome:
 
 - The loose `固定模板` / `第一次访谈材料` W1-vs-W3 boundary is now durable across runner mode detection, product-side AUTO routing, retrieval selection, eval prompt coverage, and scorer rules.
 - This run upgraded the capability from fixture-only evidence to real DeepSeek evidence: both `W1-014` and `W1-015` passed through the API eval runner.
-- The hosted smoke produced concrete deployment evidence instead of another generic "verification pending" note: the public Render URL is reachable, but it is not serving the latest intent-routing contract yet.
+- Historical smoke against a prior retired deployment showed that deployment was reachable but behind the then-current intent-routing contract. This does not validate reachability or behavior on the current canonical host.
 
 Remaining gaps:
 
-- The public Render deployment must be updated before this capability can be called deployment-ready; today it still misroutes the `W1-015` prompt to `W2` and omits the expected W1 route metadata.
-- Hosted proof for `W1-014` remains incomplete because the deployed service is demonstrably behind the local branch, so additional hosted route checks before redeploy would not be meaningful.
-- Broader Chinese-heavy W1-vs-W3 phrasing around other looser summary verbs still needs more fixtures only after deployment parity is restored.
+- The prior retired deployment misrouted `W1-015` to `W2` and omitted expected W1 route metadata; the canonical host needs a fresh run before this capability can be called deployment-ready.
+- Canonical-host proof for `W1-014` remains pending; the old observation only describes the prior retired deployment.
+- Broader Chinese-heavy W1-vs-W3 phrasing around other looser summary verbs still needs more fixtures only after canonical-host verification is complete.
 
 ## This Run: Intent Recognition Across Counselor Tasks
 
@@ -1117,7 +1120,7 @@ Tests and evals run:
 
 Outcome:
 
-- Hosted deployment parity for this W1-vs-W3 intent boundary is now restored. The public Render product no longer misroutes the `W1-015` prompt to `W2`; it now returns `workflow=W1`, `detected_workflow=W1`, `w1_mode=initial_interview_summary`, `routing_reasons_summary`, and a populated `w1_summary_brief`.
+- Historical capability evidence from a prior retired deployment showed the `W1-015` boundary returning `workflow=W1`, `detected_workflow=W1`, `w1_mode=initial_interview_summary`, route reasons, and a populated summary brief. This does not validate the current canonical host.
 - The deployment check for this P0 capability is now durable in-repo rather than living only in ad hoc manual notes.
 
 Remaining gaps:
@@ -1154,7 +1157,7 @@ Outcome:
 
 - Local router, retrieval, eval prompt generation, and scorer rules now keep the new `W5-006` boundary in `W5` instead of collapsing it into `W6`.
 - This run added real model evidence rather than fixture-only proof: live DeepSeek eval `W5-006` passed with the new boundary wording.
-- Deployment parity for `W5-006` is now restored: the public Render URL no longer collapses this exact negated-roadmap prompt into `W6`.
+- Historical capability evidence from a prior retired deployment showed `W5-006` no longer collapsing the negated-roadmap prompt into `W6`. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1190,7 +1193,7 @@ Outcome:
 
 - The shipped web router now matches retrieval behavior for the `session notes -> conceptualization, not a counseling record` boundary instead of showing a contradictory `W3` explanation while still running `W4`.
 - The new `W4-004` fixture upgrades this boundary from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for this W3-vs-W4 boundary is now restored: the public Render product returns `workflow=W4`, `detected_workflow=W4`, and the expected W4-over-W3 route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed the W3-vs-W4 boundary returning `workflow=W4`, `detected_workflow=W4`, and the expected W4-over-W3 route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1268,7 +1271,7 @@ Outcome:
 
 - The shipped web router now keeps the W3-vs-W5 source-material planning boundary in `W5` and surfaces the route explanation in the same order instead of telling users `W3` was the top cue while still running `W5`.
 - The new `W5-007` fixture upgrades this boundary from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W5-007` is now restored: the public Render product returns `workflow=W5`, `detected_workflow=W5`, and the expected `W5`-over-`W3` route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed `W5-007` returning `workflow=W5`, `detected_workflow=W5`, and the expected `W5`-over-`W3` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1303,7 +1306,7 @@ Outcome:
 
 - The shipped product now has a visible Chinese-heavy W5 demo entry for this source-material boundary instead of relying only on English-first examples.
 - The new `W5-008` fixture upgrades this Chinese-heavy W3-vs-W5 ambiguity from an unproven prompt family to a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W5-008` is now restored: the public Render product keeps this AUTO prompt in `W5` and surfaces the expected `W5`-over-`W3` route explanation order.
+- Historical capability evidence from a prior retired deployment showed `W5-008` staying in `W5` with the expected `W5`-over-`W3` route order. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1341,7 +1344,7 @@ Outcome:
 
 - The shipped web router now keeps this bilingual shorthand conceptualization boundary in `W4` instead of collapsing into `W3` because of `session note` wording alone.
 - The new `W4-005` fixture upgrades this bilingual W3-vs-W4 ambiguity from an implicit heuristic to a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W4-005` is now restored: the public Render product returns `workflow=W4`, `detected_workflow=W4`, and the expected `W4`-over-`W3` route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed `W4-005` returning `workflow=W4`, `detected_workflow=W4`, and the expected `W4`-over-`W3` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1379,7 +1382,7 @@ Outcome:
 
 - The shipped web router now keeps this bilingual supervision-background boundary in `W2` instead of drifting into `W4` or retrieval-side `W3` just because the counselor referenced `CBT`, `working hypotheses`, or `session note` source material.
 - The new `W2-008` fixture upgrades this ambiguity from an implicit heuristic to a committed eval and scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W2-008` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W4` route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed `W2-008` returning `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W4` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1428,7 +1431,7 @@ Outcome:
 
 - The shipped product now exposes and correctly explains this mixed completed-intake-material boundary as `W2`, instead of letting retrieval-backed runs fall back to `W1`.
 - The new `W2-009` fixture upgrades this W1-vs-W2 ambiguity from a local-only heuristic into a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W2-009` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed `W2-009` returning `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1468,7 +1471,7 @@ Outcome:
 - The shipped web router now keeps this Chinese-heavy supervision/background boundary in `W2` instead of drifting back into `W1` just because the prompt still references `首访材料` and `固定初访总结模板`.
 - The new `W2-010` fixture upgrades this Chinese-heavy W1-vs-W2 ambiguity from a local-only heuristic into a committed eval/scoring contract with live DeepSeek evidence.
 - Retrieval intent selection now stays on case-background organization for this boundary instead of flattening into the generic de-identification share/report branch.
-- Hosted deployment parity for `W2-010` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation for the same AUTO prompt.
+- Historical capability evidence from a prior retired deployment showed `W2-010` returning `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1507,7 +1510,7 @@ Outcome:
 
 - The shipped product now treats this looser completed-intake-material boundary as `W2` with visible mixed-signal explanation instead of quietly flattening it into a generic W2 result or letting retrieval collapse into `W1`.
 - The new `W2-011` fixture upgrades this loose-summary-negation ambiguity from an uncovered heuristic into a committed eval/scoring contract with live DeepSeek evidence.
-- Hosted deployment parity for `W2-011` is now restored: the public Render product returns `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation for the same AUTO prompt after redeploy finishes.
+- Historical capability evidence from a prior retired deployment showed `W2-011` returning `workflow=W2`, `detected_workflow=W2`, and the expected `W2`-over-`W1` route explanation. This does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1640,7 +1643,7 @@ Outcome:
 
 - The shipped product now keeps this standard-risk-block boundary in `W2` while preserving visible `W2 > W1` mixed-signal routing metadata for counselors.
 - The new `W2-014` fixture upgrades this mixed-risk wording from an uncovered heuristic into a committed eval/scoring contract with live DeepSeek evidence.
-- Retrieval intent selection now matches the product router for this prompt family, and the public Render deployment now returns `workflow=W2`, `detected_workflow=W2`, `route_status=mixed_signals`, and the expected `W2 Case background` routing summary for the same AUTO prompt.
+- Retrieval intent selection matches the product router for this prompt family. Historical capability evidence from a prior retired deployment also returned the expected W2 mixed-signal route summary, but this does not validate the current canonical host.
 
 Remaining gaps:
 
@@ -1677,7 +1680,7 @@ Outcome:
 
 - The shipped product now keeps this bilingual standard-risk-block boundary in `W2` while preserving visible `W2 > W1` mixed-signal routing metadata for counselors.
 - The new `W2-015` fixture upgrades this bilingual risk-language wording from an uncovered heuristic into a committed eval/scoring contract with live DeepSeek evidence.
-- Retrieval intent selection now matches the product router for this prompt family, and the public Render deployment returns `workflow=W2`, `detected_workflow=W2`, `route_status=mixed_signals`, and the expected `W2 Case background` routing summary for the same AUTO prompt.
+- Retrieval intent selection matches the product router for this prompt family. Historical capability evidence from a prior retired deployment also returned the expected W2 mixed-signal route summary, but this does not validate the current canonical host.
 
 Remaining gaps:
 
