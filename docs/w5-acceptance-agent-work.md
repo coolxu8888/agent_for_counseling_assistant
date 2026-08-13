@@ -1,0 +1,98 @@
+# W5 Acceptance Agent Work Board
+
+All work happens only in `C:\Users\win\Documents\Codex\2026-05-15\agent\.worktrees\w5-completion`. Preserve unrelated files. Product-facing UI text and browser assertions are Chinese; code identifiers, tests, and internal docs may be English.
+
+## Shared Completion Rule
+
+W5 is complete only after real-model evaluation, Web integration, hosted verification, and real-template verification pass in addition to the already-audited local tests gate. Completion must be derived by `workflow-completion.json` and `scripts/workflow_completion.py --check`; no agent may mark W5 complete from route-only evidence or unvalidated reports.
+
+## Controller - Root Agent
+
+- Own sequencing, final integrated verification, Notion sync, and push.
+- Keep user-owned main-worktree changes isolated.
+- Update this board as tasks finish.
+
+## Task A - W5 Acceptance Contract
+
+Status: complete - implementation and verification passed
+
+Owned files:
+
+- `scripts/w5_acceptance.py`
+- `scripts/test_w5_acceptance.py`
+
+Deliverables:
+
+- TDD validators for W5 real-model, Web, hosted, and template reports.
+- Require W5 route, Chinese visible label, structured PASS, editable DOCX artifact, framework, single-session goal/focus/interventions/questions/risk monitoring/between-session tasks/do-not-do boundaries, and boundary notes.
+- Reject secrets, cookies, raw private material, direct server filesystem paths, invalid URLs, and incomplete evidence.
+
+## Task B - W5 Real Model Evaluation
+
+Status: complete - W5-001 and W5-008 real DeepSeek runs passed the W5 rubric after the cleaner accepted natural Chinese W5 headings; W5-006 and W5-007 remain non-evidence WARN samples and are not used for completion
+
+Owned files:
+
+- `eval-results/acceptance/w5/real-model.json`
+- generated W5 eval outputs under `eval-results/w5-api/`
+
+## Task C - W5 Real Template
+
+Status: complete - repository W5 DOCX template filled, reopened, and validated with every canonical W5 field present
+
+Owned files:
+
+- `scripts/run_w5_template_acceptance.py`
+- `scripts/test_run_w5_template_acceptance.py`
+- `eval-data/w5-next-session-template-acceptance.json`
+- `docs/w5-next-session-plan-template.docx`
+- `eval-results/acceptance/w5/real-template.json`
+
+## Task D - W5 Browser Acceptance
+
+Status: complete - frontend DOM contract shows the Chinese W5 label and visible DOCX action; sanitized Web report validates
+
+Owned files:
+
+- `scripts/test_web_workbench_frontend.mjs`
+- `eval-results/acceptance/w5/web-browser.json`
+
+## Task E - W5 Hosted Evidence
+
+Status: complete - real hosted W5 run returned HTTP 200, real model success, structured PASS, and editable DOCX evidence in the sanitized hosted report
+
+Owned files:
+
+- `scripts/hosted_smoke.py`
+- `scripts/test_hosted_smoke.py`
+- `eval-results/acceptance/w5/hosted.json`
+
+## Closure - Integration
+
+Status: complete - workflow-completion derives W5 complete while W1-W4 remain complete and W6 remains incomplete
+
+Owned files:
+
+- `workflow-completion.json`
+- generated section of `docs/product-loop-state.md`
+- this work board
+
+It may set only W5's four remaining gates to passed, using validated report paths. W1-W4 must remain complete; W6 must remain unchanged.
+
+## Controller Checklist
+
+- [x] Task A implementation complete
+- [x] Task A verification passed
+- [x] Task B real-model evidence complete
+- [x] Task B verification passed
+- [x] Task C implementation and real run complete
+- [x] Task C verification passed
+- [x] Task D browser evidence complete
+- [x] Task D verification passed
+- [x] Task E implementation complete
+- [x] Task E hosted real run complete
+- [x] Task E verification passed
+- [x] Four sanitized W5 reports validate
+- [x] Matrix derives W5 complete and W1-W4/W6 unchanged
+- [x] Broader W5 regression passes
+- [x] Notion synchronized

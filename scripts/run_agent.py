@@ -1392,6 +1392,8 @@ def _w3_required_heading_groups(record_format):
         "DAP": [["data"], ["assessment"], ["plan"], ["risk change", "risk update", "椋庨櫓鍙樺寲"]],
         "BIRP": [["behavior"], ["intervention"], ["response"], ["plan"], ["risk change", "risk update", "椋庨櫓鍙樺寲"]],
     }
+    for key in ("SOAP", "DAP", "BIRP"):
+        groups[key][-1].extend(["risk_change", "风险变化"])
     return groups.get(record_format or "generic", groups["generic"])
 
 
@@ -1562,7 +1564,11 @@ def _validate_w3(workflow, data):
         issues.append(_structured_issue("sections", "sections must be a non-empty list."))
         headings = []
     else:
-        headings = [str(section.get("heading", "")) for section in sections]
+        headings = [
+            f"{section.get('heading', '')} {section.get('id', '')}"
+            for section in sections
+            if isinstance(section, dict)
+        ]
     for required_heading in ["本次主题", "来访者状态", "咨询师干预", "风险变化", "下次咨询重点"]:
         if not any(required_heading in heading for heading in headings):
             issues.append(_structured_issue("sections", f"Missing required section: {required_heading}"))
@@ -1592,7 +1598,11 @@ def _validate_w3_v2(workflow, data):
         issues.append(_structured_issue("sections", "sections must be a non-empty list."))
         headings = []
     else:
-        headings = [str(section.get("heading", "")) for section in sections]
+        headings = [
+            f"{section.get('heading', '')} {section.get('id', '')}"
+            for section in sections
+            if isinstance(section, dict)
+        ]
     for aliases in _w3_required_heading_groups(record_format):
         if not any(_heading_matches_group(heading, aliases) for heading in headings):
             issues.append(_structured_issue("sections", f"Missing required section for {record_format}: {aliases[0]}"))
@@ -1642,6 +1652,7 @@ def _validate_w4(workflow, data):
         allowed_negated_phrases=[
             "not a treatment plan",
             "not a full treatment plan",
+            "or full treatment plan",
             "not a roadmap",
             "not a multi-session roadmap",
             "not a diagnosis or full treatment plan",
@@ -1677,12 +1688,17 @@ def _validate_w5(workflow, data):
         allowed_negated_phrases=[
             "not a treatment plan",
             "not a full treatment plan",
+            "or full treatment plan",
             "not a roadmap",
             "not a multi-session roadmap",
             "not a diagnosis or full treatment plan",
             "do not turn this into a full treatment roadmap",
             "do not turn this into a full treatment plan",
             "do not turn this into a multi-session roadmap",
+            "do not turn this plan into a multi-session roadmap",
+            "do not turn this plan into a multi-session treatment roadmap",
+            "do not turn plan into multi-session roadmap",
+            "not a multi-session treatment roadmap",
         ],
     ):
         issues.append(_structured_issue("$", "W5 must stay bounded to one upcoming session."))
@@ -1726,6 +1742,10 @@ def _validate_w6(workflow, data):
             "not a fixed treatment prescription",
             "not a rigid treatment prescription",
             "not a guaranteed outcome",
+            "not a diagnosis, fixed treatment prescription, final risk judgment, or guaranteed outcome",
+            "not a diagnosis, fixed treatment prescription, final risk judgment, or guaranteed outcome.",
+            "do not promise a fixed treatment protocol or guaranteed outcome",
+            "do not promise a fixed treatment protocol or guaranteed outcome.",
             "do not treat this as a diagnosis, guaranteed timeline, or rigid treatment prescription",
             "do not treat this as a diagnosis, fixed-duration treatment plan, or guaranteed outcome",
             "do not treat this as a diagnosis, guaranteed timeline, or rigid treatment prescription.",

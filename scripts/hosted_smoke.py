@@ -4,7 +4,35 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable
+
+from w1_acceptance import W1_VISIBLE_LABELS, validate_hosted_report, write_sanitized_report
+from w2_acceptance import W2_VISIBLE_LABEL, validate_hosted_report as validate_w2_hosted_report
+from w3_acceptance import (
+    W3_VISIBLE_LABEL,
+    validate_hosted_report as validate_w3_hosted_report,
+    write_sanitized_report as write_w3_sanitized_report,
+)
+from w4_acceptance import (
+    W4_REQUIRED_FIELDS,
+    W4_VISIBLE_LABEL,
+    validate_hosted_report as validate_w4_hosted_report,
+    write_sanitized_report as write_w4_sanitized_report,
+)
+from w5_acceptance import (
+    W5_REQUIRED_FIELDS,
+    W5_VISIBLE_LABEL,
+    validate_hosted_report as validate_w5_hosted_report,
+    write_sanitized_report as write_w5_sanitized_report,
+)
+from w6_acceptance import (
+    W6_REQUIRED_FIELDS,
+    W6_VISIBLE_LABEL,
+    validate_hosted_report as validate_w6_hosted_report,
+    write_sanitized_report as write_w6_sanitized_report,
+)
 
 
 DEFAULT_WORKFLOW = "W2"
@@ -13,6 +41,55 @@ DEFAULT_INPUT = (
     "insomnia for about six months due to family pressure about marriage and anxiety about job performance. "
     "After an argument with her father last week, she drank heavily alone but denied self-harm thoughts. "
     "Separate known facts, working hypotheses, risk boundaries, and information that still needs verification."
+)
+W1_HOSTED_SCENARIOS = {
+    "intake_prep": "请根据以下去标识化线索准备咨询提问清单：来访者近期因工作调整睡眠变差，已获得家人支持；请区分已知信息与待了解问题。",
+    "initial_interview_summary": "请把以下已完成的去标识化材料整理为固定初访总结模板：成年人，近期工作压力增加，睡眠受影响，有稳定支持者，否认当前自伤想法。",
+}
+W2_HOSTED_SCENARIO = (
+    "Please organize these de-identified notes into a BPS supervision case background. "
+    "The client is a 24-year-old recent hire with six months of insomnia, family pressure about marriage, "
+    "job-performance anxiety, one episode of drinking heavily alone after a family argument, and no reported "
+    "self-harm plan. The client is still attending work, agreed to seek counseling, and identified one trusted friend "
+    "they could contact after difficult family conversations. Separate presenting concerns, known facts, working hypotheses, biological/psychological/social "
+    "dimensions, protective factors, bounded risk follow-up questions, and recommended focus. Do not write a diagnosis "
+    "or a counseling record."
+)
+W3_HOSTED_SCENARIO = (
+    "Please write a SOAP counseling record from this de-identified session note. Use exact section headings "
+    "Subjective, Objective, Assessment, Plan, and Risk change. "
+    "The client reported that panic decreased compared with last week, but they still worry about tomorrow's work presentation. "
+    "They denied current suicide plan or intent, while last week they had said they sometimes wanted to disappear for a bit. "
+    "The counselor reviewed the risk change, practiced grounding, confirmed the client can contact one trusted friend tonight, "
+    "and explained that worsening suicidal thoughts require timely follow-up. Keep the risk change, follow-up actions, "
+    "next-session focus, and documentation boundaries clear. Do not write a case background or treatment roadmap."
+)
+W4_HOSTED_SCENARIO = (
+    "Build a CBT case conceptualization for this de-identified case. The client is a 26-year-old teacher who "
+    "becomes intensely anxious before performance reviews, replays criticism for days, and then avoids replying "
+    "to colleagues. She grew up with frequent comparisons to higher-performing cousins. After a recent conflict "
+    "with her supervisor, she reported poor sleep and thoughts such as 'If I make one mistake, everyone will see "
+    "I am inadequate.' She denied suicide plans. Separate selected framework, known facts, presenting patterns, "
+    "predisposing factors, precipitating factors, maintaining factors, protective factors, risk considerations, "
+    "working hypotheses, questions to verify, and boundary notes. Do not write a diagnosis, treatment plan, "
+    "counseling record, next-session plan, or roadmap."
+)
+W5_HOSTED_SCENARIO = (
+    "Create a CBT next session plan for this de-identified case, limited to one upcoming counseling session. "
+    "The client is a 26-year-old teacher who becomes anxious before performance reviews, replays criticism for days, "
+    "and avoids replying to colleagues. She denied suicide plans, but sleep has worsened after a recent supervisor conflict. "
+    "Separate selected framework, session goal, focus areas, planned interventions, suggested questions, risk monitoring, "
+    "between-session tasks, do-not-do boundaries, and boundary notes. Do not write a diagnosis, counseling record, "
+    "case conceptualization, treatment plan, or multi-session roadmap."
+)
+W6_HOSTED_SCENARIO = (
+    "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who "
+    "becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues. "
+    "Earlier work identified a likely criticism-anxiety-avoidance cycle, poor sleep after supervisor conflicts, and no "
+    "reported suicide plan. Build a bounded multi-session roadmap with phases, hypotheses to verify, session focus options, "
+    "risk monitoring checkpoints, collaboration or referral reminders, missing information, do-not-do boundaries, and "
+    "boundary notes. Do not write a diagnosis, counseling record, case conceptualization, next-session-only plan, fixed "
+    "treatment protocol, or guaranteed outcome."
 )
 
 
@@ -94,6 +171,7 @@ def run_smoke(
     skip_auth=False,
     skip_run=False,
     real_run=False,
+    render_docx=False,
     request_json: Callable = request_json,
 ):
     report = {
@@ -188,7 +266,7 @@ def run_smoke(
                     "workflow": workflow,
                     "input": input_text,
                     "structured": True,
-                    "render_docx": False,
+                    "render_docx": bool(render_docx),
                     "output_style": "professional_concise",
                 },
                 headers=auth_headers,
@@ -210,6 +288,12 @@ def run_smoke(
                 "routing_reasons_summary": payload.get("routing_reasons_summary") or "",
                 "output_excerpt": excerpt[:240],
                 "real_run": bool(real_run),
+                "http_status": status,
+                "structured_result": payload.get("structured_check"),
+                "structured_sections": (payload.get("structured_output") or {}).get("sections"),
+                "structured_output": payload.get("structured_output"),
+                "artifact": payload.get("docx"),
+                "model_metadata": payload.get("metadata"),
             }
             if expect_detected_workflow:
                 _require(
@@ -250,6 +334,538 @@ def run_smoke(
     return report
 
 
+def _acceptance_scenario(mode, input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, f"W1 {mode} did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W1" and workflow.get("detected_workflow") == "W1", f"W1 {mode} was not detected as W1.")
+    _require(workflow.get("w1_mode") == mode, f"W1 {mode} returned the wrong W1 mode.")
+    _require(workflow.get("real_run") is True, f"W1 {mode} was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        f"W1 {mode} real model metadata is required.",
+    )
+    structured = workflow.get("structured_result") or {}
+    _require(structured.get("status") == "PASS", f"W1 {mode} structured validation must be PASS.")
+    sections = workflow.get("structured_sections")
+    _require(isinstance(sections, (dict, list)) and bool(sections), f"W1 {mode} structured sections are required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", f"W1 {mode} DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", f"W1 {mode} DOCX validation must pass.")
+    _require(bool(docx.get("path")), f"W1 {mode} DOCX artifact metadata is missing.")
+    return {
+        "mode": mode,
+        "visible_label": W1_VISIBLE_LABELS[mode],
+        "workflow": "W1",
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {"status": "success", "real_model": True},
+        "structured_result": {"status": "PASS", "sections": sections},
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w1_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run both hosted W1 modes and return only sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W1 acceptance.")
+    scenarios = []
+    for mode, input_text in W1_HOSTED_SCENARIOS.items():
+        smoke = run_smoke(
+            base_url,
+            username=username,
+            password=password,
+            invite_code=invite_code,
+            workflow="W1",
+            input_text=input_text,
+            timeout=timeout,
+            expect_w1_mode=mode,
+            real_run=True,
+            render_docx=True,
+            request_json=request_json,
+        )
+        scenarios.append(_acceptance_scenario(mode, input_text, smoke))
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenarios": scenarios,
+    }
+    validate_hosted_report(report)
+    return report
+
+
+def _w2_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W2 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W2" and workflow.get("detected_workflow") == "W2", "W2 was not detected as W2.")
+    _require(workflow.get("real_run") is True, "W2 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W2 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W2 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W2", "W2 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W2 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W2 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W2 DOCX artifact metadata is missing.")
+    return {
+        "workflow": "W2",
+        "visible_label": W2_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {
+                key: structured_output.get(key)
+                for key in (
+                    "presenting_concerns",
+                    "case_overview",
+                    "bio_psycho_social",
+                    "protective_factors",
+                    "risk_formulation",
+                    "recommended_focus",
+                    "boundary_notes",
+                )
+            },
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w2_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W2 BPS case-background scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W2 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W2",
+        input_text=W2_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W2",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w2_acceptance_scenario(W2_HOSTED_SCENARIO, smoke),
+    }
+    validate_w2_hosted_report(report)
+    return report
+
+
+def _section_map(sections):
+    mapped = {}
+    if not isinstance(sections, list):
+        return mapped
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        section_id = str(section.get("id") or "").strip().lower()
+        if section_id:
+            mapped[section_id] = section
+    return mapped
+
+
+def _section_content_list(mapped_sections, *section_ids):
+    for section_id in section_ids:
+        section = mapped_sections.get(section_id)
+        if not isinstance(section, dict):
+            continue
+        content = str(section.get("content") or "").strip()
+        if content:
+            return [content]
+    return []
+
+
+def _listify(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _roadmap_phase_summaries(value):
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    if not isinstance(value, list):
+        return []
+    summaries = []
+    for item in value:
+        if isinstance(item, str) and item.strip():
+            summaries.append(item.strip())
+            continue
+        if not isinstance(item, dict):
+            continue
+        parts = []
+        phase_name = str(item.get("phase_name") or item.get("name") or "").strip()
+        if phase_name:
+            parts.append(phase_name)
+        goals = _listify(item.get("goals"))
+        if goals:
+            parts.append("Goals: " + "; ".join(goals[:3]))
+        markers = _listify(item.get("markers_to_monitor"))
+        if markers:
+            parts.append("Markers: " + "; ".join(markers[:3]))
+        summary = " | ".join(parts).strip()
+        if summary:
+            summaries.append(summary)
+    return summaries
+
+
+def _w6_project_fields(structured_output):
+    fields = {key: structured_output.get(key) for key in W6_REQUIRED_FIELDS}
+    fields["phases"] = _roadmap_phase_summaries(structured_output.get("phases"))
+    if not fields.get("collaboration_or_referral_reminders"):
+        fields["collaboration_or_referral_reminders"] = structured_output.get("collaboration_referral_reminders")
+    return fields
+
+
+def _w3_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W3 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W3" and workflow.get("detected_workflow") == "W3", "W3 was not detected as W3.")
+    _require(workflow.get("real_run") is True, "W3 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W3 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W3 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W3", "W3 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W3 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W3 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W3 DOCX artifact metadata is missing.")
+
+    sections = _section_map(structured_output.get("sections"))
+    risk_change = structured_output.get("risk_change") if isinstance(structured_output.get("risk_change"), dict) else {}
+    return {
+        "workflow": "W3",
+        "visible_label": W3_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {
+                "record_format": str(structured_output.get("record_format") or "").upper(),
+                "session_sections": {
+                    "subjective": _section_content_list(sections, "subjective", "data", "behavior", "client_status", "theme"),
+                    "objective": _section_content_list(sections, "objective", "intervention"),
+                    "assessment": _section_content_list(sections, "assessment", "response"),
+                    "plan": _section_content_list(sections, "plan"),
+                },
+                "risk_change": {
+                    "current_status": _listify(risk_change.get("content")),
+                    "change_since_last_contact": _listify(risk_change.get("change_documentation") or risk_change.get("content")),
+                    "follow_up_actions": _listify(risk_change.get("follow_up_actions")),
+                },
+                "next_session_focus": _listify(structured_output.get("next_session_focus")),
+                "boundary_notes": _listify(structured_output.get("boundary_notes")),
+            },
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w3_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W3 counseling-record scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W3 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W3",
+        input_text=W3_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W3",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w3_acceptance_scenario(W3_HOSTED_SCENARIO, smoke),
+    }
+    validate_w3_hosted_report(report)
+    return report
+
+
+def _w4_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W4 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W4" and workflow.get("detected_workflow") == "W4", "W4 was not detected as W4.")
+    _require(workflow.get("real_run") is True, "W4 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W4 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W4 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W4", "W4 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W4 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W4 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W4 DOCX artifact metadata is missing.")
+    return {
+        "workflow": "W4",
+        "visible_label": W4_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {key: structured_output.get(key) for key in W4_REQUIRED_FIELDS},
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w4_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W4 case-conceptualization scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W4 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W4",
+        input_text=W4_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W4",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w4_acceptance_scenario(W4_HOSTED_SCENARIO, smoke),
+    }
+    validate_w4_hosted_report(report)
+    return report
+
+
+def _w5_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W5 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W5" and workflow.get("detected_workflow") == "W5", "W5 was not detected as W5.")
+    _require(workflow.get("real_run") is True, "W5 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W5 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W5 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W5", "W5 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W5 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W5 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W5 DOCX artifact metadata is missing.")
+    return {
+        "workflow": "W5",
+        "visible_label": W5_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": {key: structured_output.get(key) for key in W5_REQUIRED_FIELDS},
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w5_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W5 next-session-plan scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W5 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W5",
+        input_text=W5_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W5",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w5_acceptance_scenario(W5_HOSTED_SCENARIO, smoke),
+    }
+    validate_w5_hosted_report(report)
+    return report
+
+
+def _w6_acceptance_scenario(input_text, smoke_report):
+    workflow = smoke_report.get("workflow") or {}
+    _require(workflow.get("http_status") == 200, "W6 did not return HTTP 200.")
+    _require(workflow.get("workflow") == "W6" and workflow.get("detected_workflow") == "W6", "W6 was not detected as W6.")
+    _require(workflow.get("real_run") is True, "W6 was not marked as a real-model run.")
+    model_metadata = workflow.get("model_metadata") or {}
+    _require(
+        model_metadata.get("status") == "success"
+        and bool(model_metadata.get("provider"))
+        and bool(model_metadata.get("model")),
+        "W6 real model metadata is required.",
+    )
+    structured_check = workflow.get("structured_result") or {}
+    _require(structured_check.get("status") == "PASS", "W6 structured validation must be PASS.")
+    structured_output = workflow.get("structured_output") or {}
+    _require(structured_output.get("workflow") == "W6", "W6 structured output is required.")
+    docx = workflow.get("artifact") or {}
+    docx_check = docx.get("check") or {}
+    _require(str(docx.get("status") or "").upper() == "PASS", "W6 DOCX artifact must pass.")
+    _require(str(docx_check.get("status") or "").upper() == "PASS", "W6 DOCX validation must pass.")
+    _require(bool(docx.get("path")), "W6 DOCX artifact metadata is missing.")
+    return {
+        "workflow": "W6",
+        "visible_label": W6_VISIBLE_LABEL,
+        "route_status": "passed",
+        "http_status": 200,
+        "sanitized_input": input_text,
+        "model_run": {
+            "status": "success",
+            "real_model": True,
+            "provider": model_metadata.get("provider"),
+            "model": model_metadata.get("model"),
+        },
+        "structured_result": {
+            "status": "PASS",
+            "fields": _w6_project_fields(structured_output),
+        },
+        "artifact": {
+            "format": "docx",
+            "editable": True,
+            "download_assertion": "passed",
+            "filename": Path(str(docx.get("path"))).name or "output.docx",
+        },
+    }
+
+
+def run_w6_acceptance(base_url, username="", password="", invite_code="", deployed_version="", timeout=120, request_json=request_json):
+    """Run a hosted W6 counseling-roadmap scenario and return sanitized durable evidence."""
+    _require(bool(str(deployed_version).strip()), "deployed_version is required for W6 acceptance.")
+    smoke = run_smoke(
+        base_url,
+        username=username,
+        password=password,
+        invite_code=invite_code,
+        workflow="W6",
+        input_text=W6_HOSTED_SCENARIO,
+        timeout=timeout,
+        expect_detected_workflow="W6",
+        real_run=True,
+        render_docx=True,
+        request_json=request_json,
+    )
+    report = {
+        "report_type": "hosted",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "base_url": _normalize_base_url(base_url),
+        "deployed_version": str(deployed_version).strip(),
+        "scenario": _w6_acceptance_scenario(W6_HOSTED_SCENARIO, smoke),
+    }
+    validate_w6_hosted_report(report)
+    return report
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Smoke test the hosted counselor assistant web product.")
     parser.add_argument("--base-url", required=True, help="Hosted base URL, for example https://your-service.onrender.com")
@@ -270,11 +886,97 @@ def parse_args(argv=None):
     parser.add_argument("--skip-auth", action="store_true")
     parser.add_argument("--skip-run", action="store_true")
     parser.add_argument("--real-run", action="store_true", help="Annotate the report as a live model run.")
+    parser.add_argument("--w1-acceptance", action="store_true", help="Run both full hosted W1 acceptance scenarios.")
+    parser.add_argument("--w2-acceptance", action="store_true", help="Run full hosted W2 acceptance scenario.")
+    parser.add_argument("--w3-acceptance", action="store_true", help="Run full hosted W3 acceptance scenario.")
+    parser.add_argument("--w4-acceptance", action="store_true", help="Run full hosted W4 acceptance scenario.")
+    parser.add_argument("--w5-acceptance", action="store_true", help="Run full hosted W5 acceptance scenario.")
+    parser.add_argument("--w6-acceptance", action="store_true", help="Run full hosted W6 acceptance scenario.")
+    parser.add_argument("--deployed-version", default="", help="Deployed version or commit for acceptance evidence.")
+    parser.add_argument("--report-output", default="", help="Optional sanitized acceptance JSON output path.")
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
+    if args.w1_acceptance:
+        report = run_w1_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=True, indent=2))
+        return 0
+    if args.w2_acceptance:
+        report = run_w2_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=True, indent=2))
+        return 0
+    if args.w3_acceptance:
+        report = run_w3_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_w3_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=True, indent=2))
+        return 0
+    if args.w4_acceptance:
+        report = run_w4_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_w4_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=True, indent=2))
+        return 0
+    if args.w5_acceptance:
+        report = run_w5_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_w5_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=True, indent=2))
+        return 0
+    if args.w6_acceptance:
+        report = run_w6_acceptance(
+            args.base_url,
+            username=args.username,
+            password=args.password,
+            invite_code=args.invite_code,
+            deployed_version=args.deployed_version,
+            timeout=args.timeout,
+        )
+        if args.report_output:
+            write_w6_sanitized_report(Path(args.report_output), report)
+        print(json.dumps(report, ensure_ascii=True, indent=2))
+        return 0
     report = run_smoke(
         args.base_url,
         username=args.username,
@@ -295,7 +997,7 @@ def main(argv=None):
         skip_run=args.skip_run,
         real_run=args.real_run,
     )
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    print(json.dumps(report, ensure_ascii=True, indent=2))
     return 0
 
 

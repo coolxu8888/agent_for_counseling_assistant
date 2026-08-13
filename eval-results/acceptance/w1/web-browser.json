@@ -1,0 +1,54 @@
+{
+  "base_url": "http://127.0.0.1:8766",
+  "report_type": "web",
+  "scenarios": [
+    {
+      "artifact": {
+        "download_assertion": "passed",
+        "editable": true,
+        "filename": "output.docx",
+        "format": "docx"
+      },
+      "mode": "intake_prep",
+      "route_status": "passed",
+      "structured_result": {
+        "sections": [
+          "known_clues",
+          "information_gaps",
+          "protective_factors",
+          "risk_follow_up"
+        ],
+        "status": "PASS"
+      },
+      "visible_label": "首访准备",
+      "workflow": "W1"
+    },
+    {
+      "artifact": {
+        "download_assertion": "passed",
+        "editable": true,
+        "filename": "output.docx",
+        "format": "docx"
+      },
+      "mode": "initial_interview_summary",
+      "route_status": "passed",
+      "structured_result": {
+        "sections": [
+          "main_distress",
+          "basic_situation",
+          "functioning",
+          "support_coping",
+          "history",
+          "psychological_tests",
+          "risk_crisis",
+          "handling_suggestion",
+          "other_notes"
+        ],
+        "status": "PASS"
+      },
+      "visible_label": "首访总结",
+      "workflow": "W1"
+    }
+  ],
+  "timestamp_utc": "2026-07-07T13:05:08.260860Z"
+}

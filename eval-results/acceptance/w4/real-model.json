@@ -1,0 +1,75 @@
+{
+  "eval_cases": [
+    "W4-001",
+    "W4-004",
+    "W4-005"
+  ],
+  "evidence": [
+    {
+      "type": "path",
+      "value": "eval-results/w4-api/eval-rubric-summary.v0.1.json"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w4-api/eval-clean-summary.v0.1.json"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w4-api/W4-001-deepseek-api-raw.txt"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w4-api/W4-004-deepseek-api-raw.txt"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w4-api/W4-005-deepseek-api-raw.txt"
+    }
+  ],
+  "model_run": {
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "real_model": true,
+    "status": "success"
+  },
+  "report_type": "real_model_eval",
+  "rubric_status": "PASS",
+  "structured_result": {
+    "fields": {
+      "boundary_notes": [
+        "The W4 eval output is bounded conceptualization, not diagnosis or treatment roadmap."
+      ],
+      "known_facts": [
+        "De-identified W4 eval cases produced committed clean/rubric PASS outputs."
+      ],
+      "maintaining_factors": [
+        "Avoidance and rumination are represented as maintaining hypotheses."
+      ],
+      "precipitating_factors": [
+        "Recent supervisor conflict is represented as a precipitating stressor."
+      ],
+      "predisposing_factors": [
+        "Family comparison history is represented as a hypothesis, not a diagnosis."
+      ],
+      "presenting_patterns": [
+        "Performance evaluation anxiety and avoidance pattern is represented in W4-001."
+      ],
+      "protective_factors": [
+        "Help-seeking and denial of suicide plans are kept visible."
+      ],
+      "questions_to_verify": [
+        "Questions to verify remain visible in the clean/rubric PASS outputs."
+      ],
+      "risk_considerations": [
+        "Risk considerations remain bounded and require continued verification."
+      ],
+      "selected_framework": "CBT",
+      "working_hypotheses": [
+        "CBT working hypotheses are separated from known facts."
+      ]
+    },
+    "status": "PASS"
+  },
+  "timestamp_utc": "2026-07-10T17:02:13.598184Z",
+  "workflow": "W4"
+}

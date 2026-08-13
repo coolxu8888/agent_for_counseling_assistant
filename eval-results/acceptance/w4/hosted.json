@@ -1,0 +1,89 @@
+{
+  "base_url": "https://counselor-agent-coze-api.onrender.com",
+  "deployed_version": "ab9f166",
+  "report_type": "hosted",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "http_status": 200,
+    "model_run": {
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "real_model": true,
+      "status": "success"
+    },
+    "route_status": "passed",
+    "sanitized_input": "Build a CBT case conceptualization for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and then avoids replying to colleagues. She grew up with frequent comparisons to higher-performing cousins. After a recent conflict with her supervisor, she reported poor sleep and thoughts such as 'If I make one mistake, everyone will see I am inadequate.' She denied suicide plans. Separate selected framework, known facts, presenting patterns, predisposing factors, precipitating factors, maintaining factors, protective factors, risk considerations, working hypotheses, questions to verify, and boundary notes. Do not write a diagnosis, treatment plan, counseling record, next-session plan, or roadmap.",
+    "structured_result": {
+      "fields": {
+        "boundary_notes": [
+          "This conceptualization is a working hypothesis, not a diagnosis, final risk judgment, or treatment decision.",
+          "All risk information is based on client self-report; further clinical assessment is required.",
+          "CBT framework used as requested; do not replace clinical judgment."
+        ],
+        "known_facts": [
+          "Client is a 26-year-old female teacher.",
+          "Experiences intense anxiety before performance reviews.",
+          "Replays criticism for days after receiving it.",
+          "Avoids replying to colleagues after such interactions.",
+          "Grew up with frequent comparisons to higher-performing cousins.",
+          "Recent conflict with supervisor as precipitating event.",
+          "Reports poor sleep.",
+          "Reports automatic thought: 'If I make one mistake, everyone will see I am inadequate.'",
+          "Denied suicide plans."
+        ],
+        "maintaining_factors": [
+          "Cognitive: automatic thought linking mistakes to total inadequacy; rumination strengthens belief.",
+          "Behavioral: avoidance prevents disconfirmation of catastrophic prediction.",
+          "Physiological: poor sleep impairs cognitive flexibility and emotion regulation.",
+          "Social: withdrawal from colleagues may reduce corrective feedback and support."
+        ],
+        "precipitating_factors": [
+          "Recent conflict with supervisor.",
+          "Upcoming performance reviews (generalized trigger)."
+        ],
+        "predisposing_factors": [
+          "Childhood history of being compared to higher-performing cousins may have contributed to conditional self-worth beliefs."
+        ],
+        "presenting_patterns": [
+          "Situational anxiety triggered by performance review or supervisor conflict.",
+          "Cognitive pattern: catastrophic misinterpretation of minor errors; rumination on criticism.",
+          "Behavioral pattern: avoidance of colleague communication post-criticism.",
+          "Emotional pattern: persistent anxiety and worry about being seen as incompetent.",
+          "Physiological pattern: poor sleep (likely due to hyperarousal)."
+        ],
+        "protective_factors": [
+          "Denied suicide plans (low acute risk).",
+          "Employment as a teacher suggests functional baseline.",
+          "No mention of prior severe mental health crisis or harm history."
+        ],
+        "questions_to_verify": [
+          "What specific standards or expectations does the client hold for herself in her teaching role?",
+          "Are there other situations (e.g., social events, grading) that trigger similar anxiety and avoidance?",
+          "What is the nature and quality of her current support system?",
+          "Has she ever experienced a significant failure or feedback that confirmed her feared outcome?",
+          "Are there comorbid symptoms of depression?",
+          "What is her typical sleep pattern?",
+          "Any history of mental health treatment or counseling?"
+        ],
+        "risk_considerations": [
+          "Suicide: No current plans or intent reported; risk appears low based on self-report.",
+          "Functional impairment: Possible work-related dysfunction if avoidance and anxiety persist.",
+          "Further assessment needed: explore history of self-harm, suicidal ideation, or substance use (not provided)."
+        ],
+        "selected_framework": "CBT",
+        "working_hypotheses": [
+          "The client may hold a core belief 'I am inadequate' or 'I must be perfect to be valued.' This belief, activated by performance evaluation or supervisor feedback, triggers automatic thoughts of catastrophic exposure of incompetence. Anxiety leads to avoidance and rumination, which prevent the belief from being tested or updated, thus maintaining the cycle."
+        ]
+      },
+      "status": "PASS"
+    },
+    "visible_label": "个案概念化",
+    "workflow": "W4"
+  },
+  "timestamp_utc": "2026-07-10T17:18:56.950393Z"
+}

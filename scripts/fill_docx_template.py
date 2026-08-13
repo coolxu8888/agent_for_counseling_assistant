@@ -68,7 +68,12 @@ def is_table_block_label(text):
     normalized = normalize_label(text)
     if not normalized:
         return False
-    return normalized in BLOCK_SLOT_LABELS
+    normalized_without_number = re.sub(r"^\d+", "", normalized)
+    return (
+        normalized in BLOCK_SLOT_LABELS
+        or normalized_without_number in BLOCK_SLOT_LABELS
+        or normalized in globals().get("W1_FIXED_SUMMARY_BLOCK_LABELS", set())
+    )
 
 
 def render_value(value):
@@ -174,6 +179,21 @@ W1_SUMMARY_SECTION_ALIASES = {
     ],
 }
 
+# Stable mappings for the shipped W1 fixed-summary form. These labels are keyed
+# by canonical section id so English model headings still fill the Chinese form.
+W1_FIXED_SUMMARY_LABELS = {
+    "main_distress": "\u6765\u8bbf\u8005\u4e3b\u8981\u56f0\u6270",
+    "basic_situation": "\u6765\u8bbf\u8005\u57fa\u672c\u60c5\u51b5\uff08\u91cd\u5927\u751f\u6d3b\u4e8b\u4ef6\uff0c\u5bb6\u5ead\u72b6\u51b5\uff0c\u4eba\u9645\u5173\u7cfb\u72b6\u51b5\uff0c\u5b66\u4e60\u72b6\u51b5\uff0c\u604b\u7231\u72b6\u51b5\u7b49\uff09",
+    "functioning": "\u6765\u8bbf\u8005\u8ba4\u77e5\u3001\u60c5\u611f\u3001\u884c\u4e3a\u53ca\u793e\u4f1a\u529f\u80fd\u7684\u57fa\u672c\u72b6\u51b5",
+    "support_coping": "\u6765\u8bbf\u8005\u4e3b\u8981\u793e\u4f1a\u652f\u6301\u548c\u5e94\u5bf9\u65b9\u5f0f",
+    "history": "\u6765\u8bbf\u8005\u65e2\u5f80\u54a8\u8be2\uff08\u6c42\u52a9\uff09\u53f2\u3001\u7cbe\u795e\u75be\u75c5\u53f2\u548c\u5c31\u8bca\u3001\u670d\u836f\u60c5\u51b5",
+    "psychological_tests": "6.\u6765\u8bbf\u8005\u5fc3\u7406\u6d4b\u8bd5\u7ed3\u679c",
+    "risk_crisis": "\u5371\u673a\u8bc4\u4f30\u60c5\u51b5\uff08\u81ea\u4f24\u3001\u81ea\u6740\u6216\u4f24\u5bb3\u4ed6\u4eba\u60c5\u51b5\uff09",
+}
+W1_FIXED_SUMMARY_BLOCK_LABELS = {
+    normalize_label(label) for label in W1_FIXED_SUMMARY_LABELS.values()
+}
+
 W1_SUMMARY_BUCKET_ALIASES = {
     "known_facts": ["known facts", "documented facts", "facts"],
     "unclear_or_missing": [
@@ -196,6 +216,8 @@ def _w1_summary_aliases(section):
     heading = section.get("heading") or section.get("title") or ""
     aliases = [heading]
     aliases.extend(W1_SUMMARY_SECTION_ALIASES.get(section_id, []))
+    if section_id in W1_FIXED_SUMMARY_LABELS:
+        aliases.append(W1_FIXED_SUMMARY_LABELS[section_id])
     return [alias for alias in aliases if alias]
 
 
@@ -345,6 +367,115 @@ def _extend_case_summary_split_aliases(entries, data):
 def build_source_map(data):
     entries = _CASE_SUMMARY_BUILD_SOURCE_MAP(data)
     return _extend_case_summary_split_aliases(entries, data)
+
+
+_W3_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_session_note_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "session_note":
+        return entries
+
+    risk_change = data.get("risk_change") or {}
+    _add_entry(entries, "record_format", data.get("record_format"), ["Record format", "记录格式", "SOAP", "DAP", "BIRP"])
+    _add_entry(entries, "risk_change.content", risk_change.get("content"), ["Risk current status", "Current risk status", "风险现状"])
+    _add_entry(entries, "risk_change.change_documentation", risk_change.get("change_documentation"), ["Risk change", "Risk change documentation", "风险变化"])
+    _add_entry(entries, "risk_change.follow_up_actions", risk_change.get("follow_up_actions"), ["Risk follow-up actions", "Risk follow up", "风险后续跟进"])
+    _add_entry(entries, "next_session_focus", data.get("next_session_focus"), ["Next session focus", "Next-session focus", "Follow-up plan", "下次咨询重点"])
+    _add_entry(entries, "boundary_notes", data.get("boundary_notes"), ["Boundary notes", "边界说明", "注意事项"])
+    return entries
+
+
+def build_source_map(data):
+    entries = _W3_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_session_note_template_aliases(entries, data)
+
+
+_W4_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_case_conceptualization_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "case_conceptualization":
+        return entries
+
+    aliases = {
+        "selected_framework": ["Selected framework", "Framework", "理论取向", "概念化框架"],
+        "known_facts": ["Known facts", "已知事实"],
+        "presenting_patterns": ["Presenting patterns", "问题模式", "呈现模式"],
+        "predisposing_factors": ["Predisposing factors", "易感因素"],
+        "precipitating_factors": ["Precipitating factors", "诱发因素"],
+        "maintaining_factors": ["Maintaining factors", "维持因素"],
+        "protective_factors": ["Protective factors", "保护因素"],
+        "risk_considerations": ["Risk considerations", "风险考虑", "风险线索"],
+        "working_hypotheses": ["Working hypotheses", "工作假设", "概念化假设"],
+        "questions_to_verify": ["Questions to verify", "待核实问题", "需要核实的问题"],
+        "boundary_notes": ["Boundary notes", "边界说明", "注意事项"],
+    }
+    for key, labels in aliases.items():
+        _add_entry(entries, key, data.get(key), labels)
+    return entries
+
+
+def build_source_map(data):
+    entries = _W4_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_case_conceptualization_template_aliases(entries, data)
+
+
+_W5_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_next_session_plan_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "next_session_plan":
+        return entries
+
+    aliases = {
+        "selected_framework": ["Selected framework", "Framework", "理论框架", "框架选择", "咨询框架"],
+        "session_goal": ["Session goal", "会话目标", "会谈目标", "下次咨询目标"],
+        "focus_areas": ["Focus areas", "焦点领域", "重点关注领域", "关注领域"],
+        "planned_interventions": ["Planned interventions", "建议的干预", "干预方向", "干预方式"],
+        "suggested_questions": ["Suggested questions", "建议提问", "探索性问题", "建议探索的问题"],
+        "risk_monitoring": ["Risk monitoring", "风险检查点", "风险监测", "风险监控"],
+        "between_session_tasks": ["Between-session tasks", "Between session tasks", "会话间任务", "会谈间任务", "可选任务"],
+        "do_not_do": ["Do not do", "不做什么", "不进行", "不替代", "不扩展"],
+        "boundary_notes": ["Boundary notes", "边界说明", "专业边界提醒", "注意事项"],
+    }
+    for key, labels in aliases.items():
+        _add_entry(entries, key, data.get(key), labels)
+    return entries
+
+
+def build_source_map(data):
+    entries = _W5_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_next_session_plan_template_aliases(entries, data)
+
+
+_W6_TEMPLATE_BUILD_SOURCE_MAP = build_source_map
+
+
+def _extend_counseling_roadmap_template_aliases(entries, data):
+    if not isinstance(data, dict) or data.get("document_type") != "counseling_roadmap":
+        return entries
+
+    aliases = {
+        "selected_framework": ["Selected framework", "Framework", "\u7406\u8bba\u6846\u67b6", "\u6846\u67b6\u9009\u62e9", "\u54a8\u8be2\u6846\u67b6"],
+        "overview": ["Overview", "\u8def\u7ebf\u56fe\u6982\u89c8", "\u6574\u4f53\u6982\u89c8", "\u6982\u8ff0"],
+        "phases": ["Phases", "\u9636\u6bb5", "\u9636\u6bb5\u5b89\u6392", "\u8def\u7ebf\u56fe\u9636\u6bb5"],
+        "hypotheses_to_verify": ["Hypotheses to verify", "\u5f85\u9a8c\u8bc1\u5047\u8bbe", "\u9700\u8981\u9a8c\u8bc1\u7684\u5047\u8bbe"],
+        "session_focus_options": ["Session focus options", "\u4f1a\u8bdd\u7126\u70b9\u9009\u9879", "\u4f1a\u8c08\u805a\u7126\u9009\u9879", "\u5de5\u4f5c\u7126\u70b9"],
+        "risk_monitoring_checkpoints": ["Risk monitoring checkpoints", "\u98ce\u9669\u76d1\u6d4b\u68c0\u67e5\u70b9", "\u98ce\u9669\u76d1\u63a7\u68c0\u67e5\u70b9", "\u98ce\u9669\u76d1\u6d4b\u8282\u70b9"],
+        "collaboration_or_referral_reminders": ["Collaboration or referral reminders", "\u534f\u4f5c\u6216\u8f6c\u4ecb\u63d0\u9192", "\u534f\u4f5c\u4e0e\u8f6c\u4ecb\u63d0\u9192", "\u5408\u4f5c/\u8f6c\u4ecb\u63d0\u9192"],
+        "missing_information": ["Missing information", "\u5f85\u8865\u5145\u4fe1\u606f", "\u7f3a\u5931\u4fe1\u606f", "\u4fe1\u606f\u7f3a\u53e3"],
+        "do_not_do": ["Do not do", "\u4e0d\u505a\u4ec0\u4e48", "\u660e\u786e\u7684\u4e0d\u505a\u8fb9\u754c", "\u4e0d\u8fdb\u884c", "\u4e0d\u66ff\u4ee3"],
+        "boundary_notes": ["Boundary notes", "\u8fb9\u754c\u8bf4\u660e", "\u91cd\u8981\u8fb9\u754c\u8bf4\u660e", "\u4e13\u4e1a\u8fb9\u754c\u63d0\u9192"],
+    }
+    for key, labels in aliases.items():
+        _add_entry(entries, key, data.get(key), labels)
+    return entries
+
+
+def build_source_map(data):
+    entries = _W6_TEMPLATE_BUILD_SOURCE_MAP(data)
+    return _extend_counseling_roadmap_template_aliases(entries, data)
 
 
 def find_source_match(template_label, source_map):
@@ -954,6 +1085,14 @@ def fill_tables(root, source_map, report):
     for table_index, table in enumerate(root.iter(TBL_TAG)):
         for row_index, row in enumerate(table.iter(TR_TAG)):
             cells = list(row.iter(TC_TAG))
+            if len(cells) == 1:
+                label = element_text(cells[0]).strip()
+                if is_table_block_label(label):
+                    match = find_source_match(label, source_map)
+                    if match:
+                        location = f"table[{table_index}].row[{row_index}].cell[0]"
+                        set_element_text(cells[0], f"{label}\n{match['value']}")
+                        _record_filled(report, label, match, location)
             for cell_index, cell in enumerate(cells[:-1]):
                 label = element_text(cell).strip()
                 match = find_source_match(label, source_map)

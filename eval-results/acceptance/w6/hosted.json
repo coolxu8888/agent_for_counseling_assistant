@@ -1,0 +1,83 @@
+{
+  "base_url": "https://counselor-agent-coze-api.onrender.com",
+  "deployed_version": "3788484",
+  "report_type": "hosted",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "http_status": 200,
+    "model_run": {
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "real_model": true,
+      "status": "success"
+    },
+    "route_status": "passed",
+    "sanitized_input": "Create an integrative counseling roadmap for this de-identified case. The client is a 26-year-old teacher who becomes intensely anxious before performance reviews, replays criticism for days, and avoids replying to colleagues. Earlier work identified a likely criticism-anxiety-avoidance cycle, poor sleep after supervisor conflicts, and no reported suicide plan. Build a bounded multi-session roadmap with phases, hypotheses to verify, session focus options, risk monitoring checkpoints, collaboration or referral reminders, missing information, do-not-do boundaries, and boundary notes. Do not write a diagnosis, counseling record, case conceptualization, next-session-only plan, fixed treatment protocol, or guaranteed outcome.",
+    "structured_result": {
+      "fields": {
+        "boundary_notes": [
+          "This roadmap is a bounded, revisable planning aid for the counselor. It is not a diagnosis, fixed treatment prescription, final risk judgment, or guaranteed outcome."
+        ],
+        "collaboration_or_referral_reminders": [
+          "若焦虑严重干扰日常功能（如连续缺勤、无法完成教学任务），考虑转介精神科评估",
+          "若发现显著抑郁症状（快感缺失、持续低能量、绝望感），优先处理情绪障碍并考虑联合干预",
+          "若工作场所存在系统性压力（如领导欺凌、不合理考评），建议联系学校人力资源或EAP",
+          "若睡眠问题在咨询干预后仍无改善，可转诊睡眠专科"
+        ],
+        "do_not_do": [
+          "不给出确定性诊断标签（如‘社交焦虑障碍’‘广泛性焦虑障碍’）",
+          "不承诺症状改善的具体时间或固定疗程数量",
+          "不代替咨询师进行最终风险分级或危机处置决策",
+          "不进行未经评估的暴露干预，需先确认来访者具备应对能力和安全环境",
+          "不将反刍或回避归因于‘性格弱点’，避免病理性语言",
+          "不将转介建议等同于‘咨询失败’"
+        ],
+        "hypotheses_to_verify": [
+          "批评后焦虑主要由‘被否定意味着自己无能’的灾难化解释维持",
+          "回避行为短期内降低焦虑，但长期维持并强化恐惧与无能感",
+          "睡眠问题与睡前反刍（批评思维卷入）密切相关，而非独立的睡眠障碍",
+          "来访者可能存在高标准的自我要求（完美主义倾向），对负面反馈容忍度偏低",
+          "同事关系回避可能部分源于社交焦虑或对拒绝的预期"
+        ],
+        "missing_information": [
+          "来访者是否有焦虑障碍、抑郁或创伤史的个人或家族病史？",
+          "既往是否接受过心理咨询或治疗？若接受过，过程和效果如何？",
+          "详细的社会支持网络（家人、密友支持情况）",
+          "睡眠问题的具体表现：入睡困难、中途觉醒、早醒还是非恢复性睡眠？",
+          "绩效评估的具体频率和内容？主管的批评是否有直接依据？",
+          "来访者是否存在其他躯体症状（如心悸、胃痛、头痛）？",
+          "来访者当前或既往是否使用精神科药物或其他药物？"
+        ],
+        "overview": "本路线图采用整合框架，结合认知-行为循环与人际关系模式，为一位26岁教师提供可修订的多阶段咨询方向。已知信息提示来访者在绩效评估前显著焦虑、对批评反复反刍、回避同事互动，与主管冲突后睡眠差，无自杀计划。本路线图不构成诊断、固定疗程或保证性结果。",
+        "phases": [
+          "评估与稳定化 | Goals: 建立安全信任的咨询关系，明确咨询框架（保密、知情同意）; 系统收集焦虑触发情境、回避行为表现、睡眠模式、社会支持及应对资源; 评估自动思维（对批评的解释）、情绪反应强度及回避对功能的影响 | Markers: 来访者对咨询过程的投入度与焦虑水平; 睡眠质量变化（是否持续恶化或改善）; 是否存在新的危机信号（如被动自杀念头、显著社会退缩）",
+          "模式探索与干预 | Goals: 验证批评-焦虑-回避循环的认知与行为维持因素; 引入认知重构和行为实验（逐步恢复同事邮件回复、低风险互动）; 探讨反刍的功能：是否与完美主义、自我价值关联 | Markers: 回避行为的频率与强度变化; 焦虑在绩效评估相关情境中的主观评分（0–10）; 反刍时间是否缩短",
+          "巩固与预防复发 | Goals: 回顾已取得的改变，巩固适应性认知与行为模式; 识别未来可能的复发信号（如重大批评事件、人际冲突）; 制定个性化复发预防计划（应对策略、支持网络、求助时机） | Markers: 对潜在应激情境的自信心与准备度; 是否存在新出现的回避或情绪恶化迹象; 来访者对自我成长的归因与胜任感"
+        ],
+        "risk_monitoring_checkpoints": [
+          "每次会议开始时简要确认自杀风险（主动提问‘最近有没有想过结束生命或伤害自己？’）",
+          "若出现睡眠崩溃（连续<4小时）、工作功能严重下降（请假增多、被警告）、任何自伤或自杀念头（即使被动）、物质使用增加，应提高风险评估频率并向督导或危机资源求助",
+          "持续评估：当前无自杀计划基于初始信息，不代表后续不变"
+        ],
+        "selected_framework": "integrative",
+        "session_focus_options": [
+          "自动思维记录与挑战（针对近期批评事件）",
+          "想象暴露结合放松训练（针对绩效评估前的焦虑）",
+          "行为实验：在低风险情境中主动与一位同事进行简短互动（如点头问候）",
+          "睡眠日记分析与刺激控制指导",
+          "探索成长经历中‘批评’的意义（家庭/学校背景）",
+          "正念练习以管理反刍（观察念头而非卷入）"
+        ]
+      },
+      "status": "PASS"
+    },
+    "visible_label": "咨询路线图",
+    "workflow": "W6"
+  },
+  "timestamp_utc": "2026-07-19T14:42:56.505914Z"
+}

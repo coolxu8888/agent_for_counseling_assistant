@@ -1,0 +1,46 @@
+{
+  "base_url": "http://127.0.0.1:8766",
+  "report_type": "web",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "route_status": "passed",
+    "structured_result": {
+      "fields": {
+        "between_session_tasks": [
+          "W5 browser probe task: optionally record one trigger, thought, and emotion rating."
+        ],
+        "boundary_notes": [
+          "W5 browser probe boundary: next-session plan only and adjusted by counselor judgment."
+        ],
+        "do_not_do": [
+          "W5 browser probe do-not-do: no diagnosis, roadmap, or replacement of counselor judgment."
+        ],
+        "focus_areas": [
+          "W5 browser probe focus: automatic thoughts, avoidance, anxiety intensity, and risk check."
+        ],
+        "planned_interventions": [
+          "W5 browser probe intervention: Socratic questions and brief thought record."
+        ],
+        "risk_monitoring": [
+          "W5 browser probe risk: re-check ideation, self-harm, sleep deterioration, and supports."
+        ],
+        "selected_framework": "CBT",
+        "session_goal": [
+          "W5 browser probe session goal: explore one criticism-anxiety-avoidance loop in the next session."
+        ],
+        "suggested_questions": [
+          "W5 browser probe question: what sentence appears first when imagining feedback?"
+        ]
+      },
+      "status": "PASS"
+    },
+    "visible_label": "下次会谈计划",
+    "workflow": "W5"
+  },
+  "timestamp_utc": "2026-07-10T20:56:36Z"
+}

@@ -1,0 +1,89 @@
+{
+  "eval_cases": [
+    "W6-001",
+    "W6-003",
+    "W6-004",
+    "W6-005"
+  ],
+  "evidence": [
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/w6-pass-rubric-summary.v0.1.json"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/W6-001-deepseek-api-raw.txt"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/clean/W6-001-clean.md"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/W6-003-deepseek-api-raw.txt"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/clean/W6-003-clean.md"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/W6-004-deepseek-api-raw.txt"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/clean/W6-004-clean.md"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/W6-005-deepseek-api-raw.txt"
+    },
+    {
+      "type": "path",
+      "value": "eval-results/w6-api/clean/W6-005-clean.md"
+    }
+  ],
+  "model_run": {
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "real_model": true,
+    "status": "success"
+  },
+  "report_type": "real_model_eval",
+  "rubric_status": "PASS",
+  "structured_result": {
+    "fields": {
+      "boundary_notes": [
+        "This is a revisable counselor-facing roadmap, not a diagnosis, rigid treatment plan, or guaranteed outcome."
+      ],
+      "collaboration_or_referral_reminders": [
+        "Consider collaboration or referral only when new medical, psychiatric, or safety concerns emerge."
+      ],
+      "do_not_do": [
+        "Do not diagnose, promise outcomes, prescribe a fixed protocol, or replace counselor judgment."
+      ],
+      "hypotheses_to_verify": [
+        "Criticism, anxiety, and avoidance may be mutually maintaining, but each hypothesis remains counselor-verified."
+      ],
+      "missing_information": [
+        "Prior counseling response and support follow-through may still need counselor confirmation."
+      ],
+      "overview": "Bounded, revisable W6 counseling roadmap generated and rubric-validated from real DeepSeek model outputs.",
+      "phases": [
+        "Engagement and assessment",
+        "Deepening and hypothesis testing",
+        "Consolidation and relapse prevention"
+      ],
+      "risk_monitoring_checkpoints": [
+        "Re-check suicide ideation, self-harm, sleep deterioration, supports, and functional decline at phase transitions."
+      ],
+      "selected_framework": "INTEGRATIVE",
+      "session_focus_options": [
+        "Clarify the latest criticism trigger and select phase-appropriate next-session focus."
+      ]
+    },
+    "status": "PASS"
+  },
+  "timestamp_utc": "2026-07-19T14:25:55Z",
+  "workflow": "W6"
+}

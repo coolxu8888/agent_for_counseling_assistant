@@ -1,0 +1,170 @@
+{
+  "base_url": "https://counselor-agent-coze-api.onrender.com",
+  "deployed_version": "868553b",
+  "report_type": "hosted",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "http_status": 200,
+    "model_run": {
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "real_model": true,
+      "status": "success"
+    },
+    "route_status": "passed",
+    "sanitized_input": "Please organize these de-identified notes into a BPS supervision case background. The client is a 24-year-old recent hire with six months of insomnia, family pressure about marriage, job-performance anxiety, one episode of drinking heavily alone after a family argument, and no reported self-harm plan. The client is still attending work, agreed to seek counseling, and identified one trusted friend they could contact after difficult family conversations. Separate presenting concerns, known facts, working hypotheses, biological/psychological/social dimensions, protective factors, bounded risk follow-up questions, and recommended focus. Do not write a diagnosis or a counseling record.",
+    "structured_result": {
+      "fields": {
+        "bio_psycho_social": {
+          "biological": {
+            "follow_up_questions": [
+              "询问失眠的具体类型和持续时间模式",
+              "评估酒精使用的频率、量、诱因及后果",
+              "了解是否有其他物质使用行为"
+            ],
+            "information_gaps": [
+              "其他躯体症状（如食欲、精力、体重变化）",
+              "既往身体疾病或精神科就诊/用药史",
+              "家族精神健康或重大疾病相关信息",
+              "酒精使用的具体剂量、频率及后续影响"
+            ],
+            "known_facts": [
+              "失眠六个月",
+              "一次大量饮酒"
+            ],
+            "working_hypotheses": [
+              "失眠可能与焦虑情绪和压力相关",
+              "酒精使用可能影响睡眠质量"
+            ]
+          },
+          "psychological": {
+            "follow_up_questions": [
+              "工作中最焦虑的具体情境是什么",
+              "如何理解家庭对婚姻的期待？来访者自己的看法是什么",
+              "饮酒后感受如何？是否有内疚或控制困难",
+              "过去是否曾有自伤或自杀想法/行为"
+            ],
+            "information_gaps": [
+              "自动化想法或核心信念",
+              "情绪痛苦的强度、持续时间和具体触发情境",
+              "既往应对方式及有效性",
+              "是否有创伤、长期压力或重大丧失线索"
+            ],
+            "known_facts": [
+              "工作绩效焦虑",
+              "家庭压力导致情绪困扰",
+              "一次在家庭争吵后独自大量饮酒",
+              "无自伤计划"
+            ],
+            "working_hypotheses": [
+              "来访者可能采用回避性应对（如饮酒）面对家庭冲突",
+              "焦虑可能集中于对自我表现和家庭期待的担忧",
+              "目前未见直接自伤/自杀意图"
+            ]
+          },
+          "social": {
+            "follow_up_questions": [
+              "家庭中对婚姻压力的主要表达者是谁？来访者与ta的关系如何",
+              "工作中是否有可以求助的同事或导师",
+              "目前的经济和居住状况是否稳定",
+              "除朋友外是否有其他支持系统"
+            ],
+            "information_gaps": [
+              "家庭结构、与家庭成员的具体关系质量",
+              "同事、上级或工作环境中的支持情况",
+              "经济状况、居住安排",
+              "近期是否有其他重大生活事件",
+              "文化或身份认同相关压力"
+            ],
+            "known_facts": [
+              "24岁，近期入职",
+              "家庭存在婚姻压力",
+              "有一位可信赖的朋友可在家庭对话困难后联系",
+              "已同意寻求咨询"
+            ],
+            "working_hypotheses": [
+              "家庭压力可能来自父母或长辈，与文化期待有关",
+              "新工作环境中可能尚未建立稳固的社会支持",
+              "选择寻求咨询表明一定程度的求助意愿和资源"
+            ]
+          }
+        },
+        "boundary_notes": [
+          "This is a counselor-facing case background organizer, not a diagnosis, final risk rating, or treatment decision."
+        ],
+        "case_overview": {
+          "information_gaps": [
+            "失眠的具体表现（入睡困难/早醒/睡眠维持困难）及持续时间细节",
+            "饮酒的频率、用量及既往酒精使用史",
+            "家庭关于婚姻压力的具体内容与互动模式",
+            "工作绩效焦虑的具体情境",
+            "既往精神健康史或咨询史",
+            "整体社会支持网络广度"
+          ],
+          "known_facts": [
+            "来访者24岁，近期入职",
+            "失眠持续六个月",
+            "存在来自家庭关于婚姻的压力",
+            "因工作绩效感到焦虑",
+            "有一次在家庭争吵后独自大量饮酒（无自伤计划）",
+            "目前仍坚持工作",
+            "已同意寻求咨询",
+            "确定一位可信赖的朋友，可在家庭对话困难后联系"
+          ],
+          "working_hypotheses": [
+            "失眠、工作焦虑与家庭压力可能相互加剧",
+            "大量饮酒可能是一种暂时性情绪应对方式，需进一步评估使用模式",
+            "适应近期角色转变（新入职、家庭期待）可能是核心压力源"
+          ]
+        },
+        "presenting_concerns": [
+          "失眠六个月",
+          "家庭婚姻压力",
+          "工作绩效焦虑",
+          "一次在家庭争吵后独自大量饮酒",
+          "无自伤计划"
+        ],
+        "protective_factors": [
+          "仍然能够坚持工作",
+          "主动同意寻求咨询",
+          "确定一位可信赖的朋友可作为危机后联系对象",
+          "未见自伤/自杀计划或意图"
+        ],
+        "recommended_focus": [
+          "失眠的管理：评估睡眠习惯、心理教育、考虑转介睡眠专科或放松训练",
+          "工作焦虑：探索具体压力源、技能匹配度、时间管理或绩效预期管理",
+          "家庭婚姻压力：协助来访者厘清个人意愿与家庭期待，建立边界和沟通策略",
+          "情绪应对：评估饮酒作为应对方式的有效性和潜在风险，发展替代策略",
+          "支持系统：巩固现有朋友支持，同时探索扩大社会网络（如同事、兴趣群体）",
+          "风险监控：定期评估饮酒频率与量，以及任何潜在自伤/自杀信号"
+        ],
+        "risk_formulation": {
+          "follow_up_questions": [
+            "评估饮酒行为的具体模式：频率、数量、是否难以控制、是否影响工作或社交",
+            "询问家庭争吵中是否涉及语言或身体暴力",
+            "进一步探索自伤/自杀想法：直接询问“有没有感到活着没意思”“想过伤害自己吗”",
+            "评估是否有其他冲动或危险行为（如危险驾驶、自我忽视）"
+          ],
+          "missing_or_unclear": [
+            "饮酒的频率、量及是否存在酒精滥用或依赖",
+            "是否有其他风险行为（如冲动控制、攻击、严重回避）",
+            "家庭冲突的激烈程度及对心理状态的影响",
+            "既往是否有自伤、自杀念头或行为"
+          ],
+          "observed_clues": [
+            "一次在家庭争吵后独自大量饮酒（可能作为情绪调节手段，潜在风险）"
+          ]
+        }
+      },
+      "status": "PASS"
+    },
+    "visible_label": "个案背景（BPS）",
+    "workflow": "W2"
+  },
+  "timestamp_utc": "2026-07-09T06:57:58.890889Z"
+}

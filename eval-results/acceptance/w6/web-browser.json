@@ -1,0 +1,47 @@
+{
+  "base_url": "http://127.0.0.1:8766",
+  "report_type": "web",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "route_status": "passed",
+    "structured_result": {
+      "fields": {
+        "boundary_notes": [
+          "W6 browser probe boundary: roadmap only and adjusted by counselor judgment."
+        ],
+        "collaboration_or_referral_reminders": [
+          "W6 browser probe referral: consider collaboration only for new safety or medical concerns."
+        ],
+        "do_not_do": [
+          "W6 browser probe do-not-do: do not diagnose, promise outcomes, or prescribe a fixed protocol."
+        ],
+        "hypotheses_to_verify": [
+          "W6 browser probe hypothesis: criticism may activate shame and avoidance."
+        ],
+        "missing_information": [
+          "W6 browser probe missing: prior counseling response is not documented."
+        ],
+        "overview": "W6 browser probe overview: bounded and revisable counseling roadmap.",
+        "phases": [
+          "W6 browser probe phases: engagement, hypothesis testing, consolidation."
+        ],
+        "risk_monitoring_checkpoints": [
+          "W6 browser probe risk: re-check ideation, self-harm, sleep, and supports."
+        ],
+        "selected_framework": "INTEGRATIVE",
+        "session_focus_options": [
+          "W6 browser probe focus: clarify the latest criticism trigger."
+        ]
+      },
+      "status": "PASS"
+    },
+    "visible_label": "咨询路线图",
+    "workflow": "W6"
+  },
+  "timestamp_utc": "2026-07-19T14:30:38Z"
+}

@@ -1,0 +1,87 @@
+{
+  "fill": {
+    "filled_fields": [
+      "selected_framework",
+      "session_goal",
+      "focus_areas",
+      "planned_interventions",
+      "suggested_questions",
+      "risk_monitoring",
+      "between_session_tasks",
+      "do_not_do",
+      "boundary_notes"
+    ],
+    "helper_filled_fields": [
+      {
+        "confidence": "high",
+        "location": "paragraph[1]",
+        "template_label": "理论框架"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[2]",
+        "template_label": "会谈目标"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[3]",
+        "template_label": "焦点领域"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[4]",
+        "template_label": "建议的干预"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[5]",
+        "template_label": "建议提问"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[6]",
+        "template_label": "风险检查点"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[7]",
+        "template_label": "会话间任务"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[8]",
+        "template_label": "不做什么"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[9]",
+        "template_label": "边界说明"
+      }
+    ],
+    "issues": [],
+    "status": "PASS",
+    "unfilled_fields": []
+  },
+  "output_verification": {
+    "reopened": true,
+    "required_content": {
+      "between_session_tasks": "W5 probe task: optionally record one trigger, automatic thought, and emotion rating before the next session.",
+      "boundary_notes": "W5 probe boundary: single next-session plan only, adjusted by counselor judgment and risk assessment.",
+      "do_not_do": "W5 probe do-not-do: do not diagnose, write a multi-session roadmap, or replace counselor judgment.",
+      "focus_areas": "W5 probe focus: automatic thoughts, avoidance behavior, anxiety intensity, and risk check.",
+      "planned_interventions": "W5 probe intervention: use Socratic questions and a brief thought record if clinically appropriate.",
+      "risk_monitoring": "W5 probe risk: re-check suicide ideation, self-harm, sleep deterioration, and available support.",
+      "selected_framework": "CBT",
+      "session_goal": "W5 probe session goal: explore the criticism-anxiety-avoidance loop within one next session.",
+      "suggested_questions": "W5 probe question: what sentence appears first when you imagine feedback?"
+    },
+    "status": "PASS"
+  },
+  "report_type": "template",
+  "source_template": {
+    "path": "docs/w5-next-session-plan-template.docx",
+    "sha256": "f1e83e5206b4b33d988cf08695e09911b4a4792e9218b42f03894da5ca6abe9e"
+  },
+  "timestamp_utc": "2026-07-10T20:53:55.808096Z",
+  "workflow": "W5"
+}

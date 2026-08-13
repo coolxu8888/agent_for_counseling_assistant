@@ -1,0 +1,34 @@
+{
+  "workflow": "W6",
+  "document_type": "counseling_roadmap",
+  "deidentified": true,
+  "title": "W6 counseling roadmap acceptance fixture",
+  "selected_framework": "INTEGRATIVE",
+  "overview": [
+    "W6 template probe overview: bounded and revisable counseling roadmap."
+  ],
+  "phases": [
+    "W6 template probe phases: engagement and assessment; deepening and hypothesis testing; consolidation."
+  ],
+  "hypotheses_to_verify": [
+    "W6 template probe hypothesis: criticism may activate shame and avoidance, pending counselor verification."
+  ],
+  "session_focus_options": [
+    "W6 template probe focus: clarify the latest criticism trigger and choose a phase-appropriate focus."
+  ],
+  "risk_monitoring_checkpoints": [
+    "W6 template probe risk: re-check ideation, self-harm, sleep deterioration, supports, and functioning."
+  ],
+  "collaboration_or_referral_reminders": [
+    "W6 template probe referral: consider collaboration only for new safety, psychiatric, or medical concerns."
+  ],
+  "missing_information": [
+    "W6 template probe missing: prior counseling response and support follow-through are not documented."
+  ],
+  "do_not_do": [
+    "W6 template probe do-not-do: do not diagnose, promise outcomes, or prescribe a fixed protocol."
+  ],
+  "boundary_notes": [
+    "W6 template probe boundary: counselor-facing roadmap only, adjusted by counselor judgment."
+  ]
+}

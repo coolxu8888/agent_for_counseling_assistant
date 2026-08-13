@@ -1,0 +1,73 @@
+{
+  "fill": {
+    "filled_fields": [
+      "presenting_concerns",
+      "case_overview",
+      "bio_psycho_social",
+      "protective_factors",
+      "risk_formulation",
+      "recommended_focus",
+      "boundary_notes"
+    ],
+    "helper_filled_fields": [
+      {
+        "confidence": "high",
+        "location": "paragraph[0]",
+        "template_label": "Presenting concerns"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[1]",
+        "template_label": "Case overview known facts"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[2]",
+        "template_label": "Biological dimension known facts"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[3]",
+        "template_label": "Protective factors"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[4]",
+        "template_label": "Risk follow-up questions"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[5]",
+        "template_label": "Recommended focus"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[6]",
+        "template_label": "边界说明"
+      }
+    ],
+    "issues": [],
+    "status": "PASS",
+    "unfilled_fields": []
+  },
+  "output_verification": {
+    "reopened": true,
+    "required_content": {
+      "bio_psycho_social": "W2 probe biological: sleep worsened for two weeks.",
+      "boundary_notes": "W2 probe boundary: this is not a diagnosis or final risk rating.",
+      "case_overview": "W2 probe case overview: adult client with job stress.",
+      "presenting_concerns": "W2 probe presenting concerns: insomnia and family pressure.",
+      "protective_factors": "W2 probe protective: help-seeking and continued work attendance.",
+      "recommended_focus": "W2 probe recommended focus: clarify timeline, support, and risk follow-up.",
+      "risk_formulation": "W2 probe risk: ask about ideation, intent, plan, means, and support."
+    },
+    "status": "PASS"
+  },
+  "report_type": "template",
+  "source_template": {
+    "path": "docs/w2-bps-case-background-template.docx",
+    "sha256": "9bb5346e5641cc3b8ffc9d178f2755771bb0dc27eb6af61715a8056d51b061a1"
+  },
+  "timestamp_utc": "2026-07-09T06:44:39.092233Z",
+  "workflow": "W2"
+}

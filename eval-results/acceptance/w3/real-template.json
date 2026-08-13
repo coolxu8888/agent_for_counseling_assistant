@@ -1,0 +1,79 @@
+{
+  "fill": {
+    "filled_fields": [
+      "record_format",
+      "session_sections",
+      "risk_change",
+      "next_session_focus",
+      "boundary_notes"
+    ],
+    "helper_filled_fields": [
+      {
+        "confidence": "high",
+        "location": "paragraph[0]",
+        "template_label": "Record format"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[1]",
+        "template_label": "Subjective"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[2]",
+        "template_label": "Objective"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[3]",
+        "template_label": "Assessment"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[4]",
+        "template_label": "Plan"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[5]",
+        "template_label": "Risk change documentation"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[6]",
+        "template_label": "Risk follow-up actions"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[7]",
+        "template_label": "Next session focus"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[8]",
+        "template_label": "边界说明"
+      }
+    ],
+    "issues": [],
+    "status": "PASS",
+    "unfilled_fields": []
+  },
+  "output_verification": {
+    "reopened": true,
+    "required_content": {
+      "boundary_notes": "W3 probe boundary: this record documents provided material only and is not a diagnosis.",
+      "next_session_focus": "W3 probe next focus: review grounding and family-boundary stressors.",
+      "record_format": "SOAP",
+      "risk_change": "W3 probe risk change: panic intensity decreased from last week.",
+      "session_sections": "W3 probe subjective: client reported panic decreased compared with last week."
+    },
+    "status": "PASS"
+  },
+  "report_type": "template",
+  "source_template": {
+    "path": "docs/w3-soap-session-note-template.docx",
+    "sha256": "57e0e1ea45e3a7e1b998838985b2ddad1f98e3ccac3849bbbf072de110f75d63"
+  },
+  "timestamp_utc": "2026-07-09T18:17:16.308146Z",
+  "workflow": "W3"
+}

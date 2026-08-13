@@ -1,0 +1,84 @@
+{
+  "bio_psycho_social": {
+    "biological": {
+      "follow_up_questions": [
+        "How many hours is the client sleeping most nights?"
+      ],
+      "information_gaps": [
+        "Appetite and substance pattern need clarification."
+      ],
+      "known_facts": [
+        "W2 probe biological: sleep worsened for two weeks."
+      ],
+      "working_hypotheses": [
+        "Fatigue may intensify emotional reactivity."
+      ]
+    },
+    "psychological": {
+      "follow_up_questions": [
+        "What thoughts appear after family conflict?"
+      ],
+      "information_gaps": [
+        "Automatic thoughts remain unclear."
+      ],
+      "known_facts": [
+        "Anxiety about job performance is reported."
+      ],
+      "working_hypotheses": [
+        "Self-criticism may amplify distress."
+      ]
+    },
+    "social": {
+      "follow_up_questions": [
+        "Who can offer practical support this week?"
+      ],
+      "information_gaps": [
+        "Peer support availability is unclear."
+      ],
+      "known_facts": [
+        "Family pressure is active."
+      ],
+      "working_hypotheses": [
+        "Reduced support may maintain distress."
+      ]
+    }
+  },
+  "boundary_notes": [
+    "W2 probe boundary: this is not a diagnosis or final risk rating."
+  ],
+  "case_overview": {
+    "information_gaps": [
+      "Support network details remain unclear."
+    ],
+    "known_facts": [
+      "W2 probe case overview: adult client with job stress."
+    ],
+    "working_hypotheses": [
+      "Stress overload may be maintaining sleep disruption."
+    ]
+  },
+  "deidentified": true,
+  "document_type": "case_summary",
+  "presenting_concerns": [
+    "W2 probe presenting concerns: insomnia and family pressure."
+  ],
+  "protective_factors": [
+    "W2 probe protective: help-seeking and continued work attendance."
+  ],
+  "recommended_focus": [
+    "W2 probe recommended focus: clarify timeline, support, and risk follow-up."
+  ],
+  "risk_formulation": {
+    "follow_up_questions": [
+      "W2 probe risk: ask about ideation, intent, plan, means, and support."
+    ],
+    "missing_or_unclear": [
+      "Means access and escalation are not documented."
+    ],
+    "observed_clues": [
+      "Heavy drinking after conflict was reported."
+    ]
+  },
+  "title": "W2 BPS case background acceptance fixture",
+  "workflow": "W2"
+}

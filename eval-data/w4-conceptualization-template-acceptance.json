@@ -1,0 +1,37 @@
+{
+  "workflow": "W4",
+  "document_type": "case_conceptualization",
+  "deidentified": true,
+  "title": "W4 CBT case conceptualization acceptance fixture",
+  "selected_framework": "CBT",
+  "known_facts": [
+    "W4 probe known facts: client becomes anxious before performance reviews."
+  ],
+  "presenting_patterns": [
+    "W4 probe presenting pattern: criticism-anxiety-avoidance cycle."
+  ],
+  "predisposing_factors": [
+    "W4 probe predisposing: family comparison history."
+  ],
+  "precipitating_factors": [
+    "W4 probe precipitating: recent supervisor conflict."
+  ],
+  "maintaining_factors": [
+    "W4 probe maintaining: avoidance reduces corrective feedback."
+  ],
+  "protective_factors": [
+    "W4 probe protective: help-seeking and no reported suicide plan."
+  ],
+  "risk_considerations": [
+    "W4 probe risk: continue checking ideation, intent, plan, means, and support."
+  ],
+  "working_hypotheses": [
+    "W4 probe hypothesis: performance evaluation activates inadequacy beliefs."
+  ],
+  "questions_to_verify": [
+    "W4 probe question: what evidence supports predicted criticism?"
+  ],
+  "boundary_notes": [
+    "W4 probe boundary: working hypothesis, not diagnosis or treatment plan."
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "fill": {
+    "filled_fields": [
+      "selected_framework",
+      "known_facts",
+      "presenting_patterns",
+      "predisposing_factors",
+      "precipitating_factors",
+      "maintaining_factors",
+      "protective_factors",
+      "risk_considerations",
+      "working_hypotheses",
+      "questions_to_verify",
+      "boundary_notes"
+    ],
+    "helper_filled_fields": [
+      {
+        "confidence": "high",
+        "location": "paragraph[0]",
+        "template_label": "Selected framework"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[1]",
+        "template_label": "Known facts"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[2]",
+        "template_label": "Presenting patterns"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[3]",
+        "template_label": "Predisposing factors"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[4]",
+        "template_label": "Precipitating factors"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[5]",
+        "template_label": "Maintaining factors"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[6]",
+        "template_label": "Protective factors"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[7]",
+        "template_label": "Risk considerations"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[8]",
+        "template_label": "Working hypotheses"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[9]",
+        "template_label": "Questions to verify"
+      },
+      {
+        "confidence": "high",
+        "location": "paragraph[10]",
+        "template_label": "Boundary notes"
+      }
+    ],
+    "issues": [],
+    "status": "PASS",
+    "unfilled_fields": []
+  },
+  "output_verification": {
+    "reopened": true,
+    "required_content": {
+      "boundary_notes": "W4 probe boundary: working hypothesis, not diagnosis or treatment plan.",
+      "known_facts": "W4 probe known facts: client becomes anxious before performance reviews.",
+      "maintaining_factors": "W4 probe maintaining: avoidance reduces corrective feedback.",
+      "precipitating_factors": "W4 probe precipitating: recent supervisor conflict.",
+      "predisposing_factors": "W4 probe predisposing: family comparison history.",
+      "presenting_patterns": "W4 probe presenting pattern: criticism-anxiety-avoidance cycle.",
+      "protective_factors": "W4 probe protective: help-seeking and no reported suicide plan.",
+      "questions_to_verify": "W4 probe question: what evidence supports predicted criticism?",
+      "risk_considerations": "W4 probe risk: continue checking ideation, intent, plan, means, and support.",
+      "selected_framework": "CBT",
+      "working_hypotheses": "W4 probe hypothesis: performance evaluation activates inadequacy beliefs."
+    },
+    "status": "PASS"
+  },
+  "report_type": "template",
+  "source_template": {
+    "path": "docs/w4-case-conceptualization-template.docx",
+    "sha256": "b87e0f3a7afb1f17f73ca20deeade32dcd58de71385d103cb3a8edbb8de4769a"
+  },
+  "timestamp_utc": "2026-07-10T17:07:39.124528Z",
+  "workflow": "W4"
+}

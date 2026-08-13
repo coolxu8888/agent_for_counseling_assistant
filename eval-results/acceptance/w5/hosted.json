@@ -1,0 +1,68 @@
+{
+  "base_url": "https://counselor-agent-coze-api.onrender.com",
+  "deployed_version": "fb1bff9",
+  "report_type": "hosted",
+  "scenario": {
+    "artifact": {
+      "download_assertion": "passed",
+      "editable": true,
+      "filename": "output.docx",
+      "format": "docx"
+    },
+    "http_status": 200,
+    "model_run": {
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek",
+      "real_model": true,
+      "status": "success"
+    },
+    "route_status": "passed",
+    "sanitized_input": "Create a CBT next session plan for this de-identified case, limited to one upcoming counseling session. The client is a 26-year-old teacher who becomes anxious before performance reviews, replays criticism for days, and avoids replying to colleagues. She denied suicide plans, but sleep has worsened after a recent supervisor conflict. Separate selected framework, session goal, focus areas, planned interventions, suggested questions, risk monitoring, between-session tasks, do-not-do boundaries, and boundary notes. Do not write a diagnosis, counseling record, case conceptualization, treatment plan, or multi-session roadmap.",
+    "structured_result": {
+      "fields": {
+        "between_session_tasks": [
+          "If appropriate, invite client to notice and briefly jot down one automatic thought that arises in a work-performance situation before the next session (no pressure to complete)",
+          "Alternatively, ask client to observe how her mood changes after replying (or not replying) to a colleague, without requiring any action"
+        ],
+        "boundary_notes": [
+          "This plan is a bounded guide for one upcoming counseling session, not a diagnosis, final risk judgment, or full treatment plan. All interventions are suggestions subject to the counselor’s professional judgment and the client’s current readiness.",
+          "Between‑session tasks remain optional; the counselor should decide feasibility based on rapport, burden, and safety."
+        ],
+        "do_not_do": [
+          "Do not assign exposure tasks (e.g., requiring client to reply to colleagues or attend performance reviews) without explicit readiness assessment and collaborative agreement",
+          "Do not prescribe multi‑week behavioral assignments or homework outside the scope of one session",
+          "Do not interpret sleep worsening as a sign of major depressive episode or crisis; keep observations tentative",
+          "Do not deliver psychodynamic or diagnostic formulations about relationship patterns or personality"
+        ],
+        "focus_areas": [
+          "Automatic thoughts triggered by performance review anticipation",
+          "Rumination process after receiving criticism",
+          "Avoidance pattern (not replying to colleagues) and its maintenance function",
+          "Impact of recent supervisor conflict on sleep and anxiety level"
+        ],
+        "planned_interventions": [
+          "Guided inquiry into a recent specific episode using the cognitive model",
+          "Introduce a simple thought record (Situation–Automatic Thought–Emotion–Alternative Perspective) as an in-session exercise",
+          "Discuss behavioral avoidance and explore a small, collaborative step (e.g., drafting a brief reply to one colleague without sending)"
+        ],
+        "risk_monitoring": [
+          "Client denied suicide plans; no acute suicidal ideation reported",
+          "Sleep worsening noted after supervisor conflict; inquire about sleep quality changes (e.g., hours, early awakening, nocturnal rumination) and any new stressors",
+          "Monitor for signs of escalating distress or avoidance generalization; do not conduct full risk assessment unless indicators emerge"
+        ],
+        "selected_framework": "CBT",
+        "session_goal": "Explore and tentatively test the cognitive-behavioral cycle maintaining performance review anxiety and post-criticism rumination. Identify one modifiable link (automatic thought → affect → avoidance) and practice a preliminary cognitive or behavioral strategy.",
+        "suggested_questions": [
+          "当您为绩效评估感到焦虑时，脑海中出现的第一个念头是什么？那个念头让您的感受和接下来做了什么？",
+          "您能否回忆最近一次被批评后的几个小时或几天？您注意到自己在反复想什么？这些想法对您的情绪和行为有什么影响？",
+          "不回复同事的消息，短期帮助您缓解了什么？长期来看，这个模式可能对您的工作关系或自我感觉有怎样的代价？",
+          "睡眠变差和主管的冲突之间，您观察到哪些联系？是否有特定的想法在临睡前反复出现？"
+        ]
+      },
+      "status": "PASS"
+    },
+    "visible_label": "下次会谈计划",
+    "workflow": "W5"
+  },
+  "timestamp_utc": "2026-07-10T21:17:31.916299Z"
+}

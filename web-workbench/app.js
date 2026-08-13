@@ -268,6 +268,11 @@ const MESSAGES = {
     "workflowMode.title": "工作流模式",
     "workflowMode.empty": "当运行首访工作流时，这里会显示“首访准备”或“首访总结”的细分模式。",
     "workflowMode.defaultNotice": "已启用当前模式对应的首访引导。",
+    "workflowMode.intake_prep.label": "首访准备",
+    "workflowMode.intake_prep.notice": "正在使用访谈前信息收集提纲模式。",
+    "workflowMode.initial_interview_summary.label": "首访总结",
+    "workflowMode.initial_interview_summary.notice": "正在使用已完成首访材料的固定总结结构。",
+    "artifact.downloadWord": "下载可编辑 Word 文档",
     "workspace.export": "备份工作台",
     "workspace.restore": "恢复备份",
     "workspace.refresh": "刷新数据状态",
@@ -360,6 +365,11 @@ const MESSAGES = {
     "workflowMode.title": "Workflow mode",
     "workflowMode.empty": "W1 prep vs summary details will appear here when the intake workflow runs.",
     "workflowMode.defaultNotice": "Mode-specific intake guidance is active.",
+    "workflowMode.intake_prep.label": "Initial interview prep",
+    "workflowMode.intake_prep.notice": "Using the pre-interview intake guide mode.",
+    "workflowMode.initial_interview_summary.label": "Initial interview summary",
+    "workflowMode.initial_interview_summary.notice": "Using the fixed initial interview summary structure for completed intake notes.",
+    "artifact.downloadWord": "Download editable Word document",
     "workspace.export": "Backup workspace",
     "workspace.restore": "Restore backup",
     "workspace.refresh": "Refresh data status",
@@ -402,6 +412,7 @@ function applyLocale(locale = DEFAULT_LOCALE) {
   renderWorkspaceGovernance(null);
   renderDeploymentReadiness(state.deploymentReadiness);
   renderWorkflowModeSummary(state.lastRunData);
+  renderWordDownloadAction(state.lastRunData);
   renderIntentSummary(state.lastRunData);
   if (state.demoCatalog) {
     renderDemoCatalog(state.demoCatalog);
@@ -434,7 +445,7 @@ function clearNode(node) {
   }
 }
 
-function setPathDisplay(id, path, downloadable = false) {
+function setPathDisplay(id, path, downloadable = false, downloadLabel = "", downloadHref = "") {
   const target = $(id);
   if (!target) {
     return;
@@ -450,8 +461,8 @@ function setPathDisplay(id, path, downloadable = false) {
   }
   const link = document.createElement("a");
   link.className = "download-link";
-  link.href = downloadUrl(path);
-  link.textContent = path;
+  link.href = downloadHref || downloadUrl(path);
+  link.textContent = downloadLabel || path;
   link.download = "";
   target.appendChild(link);
 }
@@ -1079,10 +1090,34 @@ function renderWorkflowModeSummary(data) {
   if (!data || !data.workflow_mode_label) {
     body.textContent = t("workflowMode.empty");
   } else {
-    body.textContent = `${data.workflow_mode_label} | ${data.workflow_mode_notice || t("workflowMode.defaultNotice")}`;
+    const modeLabel = t(`workflowMode.${data.workflow_mode}.label`);
+    const modeNotice = t(`workflowMode.${data.workflow_mode}.notice`);
+    body.textContent = `${modeLabel} | ${modeNotice || data.workflow_mode_notice || t("workflowMode.defaultNotice")}`;
   }
   box.innerHTML = "";
   box.append(title, body);
+}
+
+function renderWordDownloadAction(data) {
+  const box = $("docxDownloadAction");
+  if (!box) {
+    return;
+  }
+  clearNode(box);
+  const artifact = data && data.docx;
+  if (!artifact || !artifact.path || !artifact.download_url) {
+    box.hidden = true;
+    return;
+  }
+  const link = document.createElement("a");
+  link.className = "download-link";
+  link.href = artifact.download_url;
+  link.download = "";
+  link.textContent = artifact.filename
+    ? `${t("artifact.downloadWord")} (${artifact.filename})`
+    : t("artifact.downloadWord");
+  box.appendChild(link);
+  box.hidden = false;
 }
 
 function renderW1SummaryBrief(data) {
@@ -1122,29 +1157,36 @@ function renderW3RecordBrief(data) {
     return;
   }
   const title = document.createElement("strong");
-  title.textContent = "W3 record brief";
+  const zh = state.locale === "zh-CN";
+  title.textContent = zh ? "W3 咨询记录摘要" : "W3 record brief";
   const body = document.createElement("span");
   const brief = data && data.w3_record_brief;
   if (!brief) {
-    body.textContent = "Session-record highlights will appear here after a W3 counseling-record run.";
+    body.textContent = zh
+      ? "运行 W3 咨询记录后，这里会显示本次记录的关键摘要。"
+      : "Session-record highlights will appear here after a W3 counseling-record run.";
   } else {
     const parts = [];
     if (brief.record_format) {
-      parts.push(`Format: ${brief.record_format}`);
+      parts.push(`${zh ? "格式" : "Format"}: ${brief.record_format}`);
     }
     if (brief.behavior_highlight) {
-      parts.push(`Behavior/data: ${brief.behavior_highlight}`);
+      parts.push(`${zh ? "行为/资料" : "Behavior/data"}: ${brief.behavior_highlight}`);
     }
     if (brief.intervention_highlight) {
-      parts.push(`Intervention: ${brief.intervention_highlight}`);
+      parts.push(`${zh ? "干预" : "Intervention"}: ${brief.intervention_highlight}`);
     }
     if (brief.risk_highlight) {
-      parts.push(`Risk highlight: ${brief.risk_highlight}`);
+      parts.push(`${zh ? "风险重点" : "Risk highlight"}: ${brief.risk_highlight}`);
     }
     if (brief.next_focus) {
-      parts.push(`Next focus: ${brief.next_focus}`);
+      parts.push(`${zh ? "下次重点" : "Next focus"}: ${brief.next_focus}`);
     }
-    body.textContent = parts.join(" | ") || "Session-record highlights will appear here after a W3 counseling-record run.";
+    body.textContent = parts.join(" | ") || (
+      zh
+        ? "运行 W3 咨询记录后，这里会显示本次记录的关键摘要。"
+        : "Session-record highlights will appear here after a W3 counseling-record run."
+    );
   }
   box.innerHTML = "";
   box.append(title, body);
@@ -1166,9 +1208,18 @@ function updateRunResult(data) {
   });
   $("intentDisplay").textContent = workflowLabel(data.detected_workflow || data.workflow || "AUTO");
   setPathDisplay("runDir", data.run_dir, false);
-  setPathDisplay("docxPath", data.docx && data.docx.path ? data.docx.path : null, true);
+  setPathDisplay(
+    "docxPath",
+    data.docx && data.docx.path ? data.docx.path : null,
+    true,
+    data.docx && data.docx.filename
+      ? `${t("artifact.downloadWord")} (${data.docx.filename})`
+      : t("artifact.downloadWord"),
+    data.docx && data.docx.download_url ? data.docx.download_url : "",
+  );
   renderIntentSummary(data);
   renderWorkflowModeSummary(data);
+  renderWordDownloadAction(data);
   renderW1SummaryBrief(data);
   renderW3RecordBrief(data);
   updateTemplateAvailability();
