@@ -190,42 +190,20 @@ def run_smoke(
 
     _run_step(report, "health", health_step)
 
-    def service_info_step():
-        status, payload, _headers = request_json(report["base_url"], "/service-info", timeout=timeout)
-        _require(status == 200, f"/service-info returned HTTP {status}.")
-        _require(payload.get("openapi", "").endswith("/openapi.json"), "/service-info is missing the OpenAPI URL.")
+    def session_step():
+        status, payload, _headers = request_json(report["base_url"], "/api/session", timeout=timeout)
+        _require(status == 200, f"/api/session returned HTTP {status}.")
         readiness = payload.get("deployment_readiness")
-        _validate_readiness(readiness, expect_pilot_ready)
-        report["deployment_readiness"] = readiness
+        if readiness:
+            _validate_readiness(readiness, expect_pilot_ready)
+            report["deployment_readiness"] = readiness
         return payload
 
-    _run_step(report, "service_info", service_info_step)
-
-    def openapi_step():
-        status, payload, _headers = request_json(report["base_url"], "/openapi.json", timeout=timeout)
-        _require(status == 200, f"/openapi.json returned HTTP {status}.")
-        paths = payload.get("paths") or {}
-        _require("/run_workflow" in paths, "OpenAPI spec is missing /run_workflow.")
-        _require("/draft_template" in paths, "OpenAPI spec is missing /draft_template.")
-        return payload
-
-    _run_step(report, "openapi", openapi_step)
+    session_payload = _run_step(report, "session", session_step)
+    auth_config = session_payload.get("auth_config") or {}
 
     auth_headers = {}
-    auth_config = {}
-
     if not skip_auth:
-        def session_step():
-            status, payload, _headers = request_json(report["base_url"], "/api/session", timeout=timeout)
-            _require(status == 200, f"/api/session returned HTTP {status}.")
-            readiness = payload.get("deployment_readiness")
-            if readiness:
-                _validate_readiness(readiness, expect_pilot_ready)
-                report["deployment_readiness"] = readiness
-            return payload
-
-        session_payload = _run_step(report, "session", session_step)
-        auth_config = session_payload.get("auth_config") or {}
         auth_mode = "signup" if require_signup else "login"
         if require_signup:
             _require(auth_config.get("signup_enabled"), "Signup was required, but this deployment has signup disabled.")

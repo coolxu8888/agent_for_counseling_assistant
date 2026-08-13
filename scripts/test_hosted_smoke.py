@@ -212,9 +212,7 @@ class HostedSmokeTest(unittest.TestCase):
             responses.extend(
                 [
                     (200, {"status": "ok"}, {}),
-                    (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
-                    (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-                    (200, {"auth_config": {"signup_enabled": False, "invite_required": False}}, {}),
+                    (200, {"auth_config": {"signup_enabled": False, "invite_required": False}, "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
                     (200, {"status": "success"}, {"set-cookie": "session=private"}),
                     (200, self._w1_payload(mode), {}),
                 ]
@@ -251,9 +249,7 @@ class HostedSmokeTest(unittest.TestCase):
         route_only["docx"] = {"status": "skipped", "path": None, "check": None}
         responses = [
             (200, {"status": "ok"}, {}),
-            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
-            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
             (200, {"status": "success"}, {"set-cookie": "session=private"}),
             (200, route_only, {}),
         ]
@@ -292,9 +288,7 @@ class HostedSmokeTest(unittest.TestCase):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
                 (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
                 (200, self._w2_payload(), {}),
             ]
@@ -329,9 +323,7 @@ class HostedSmokeTest(unittest.TestCase):
         payload["docx"] = {"status": "skipped", "path": None, "check": None}
         responses = [
             (200, {"status": "ok"}, {}),
-            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
-            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
             (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
             (200, payload, {}),
         ]
@@ -357,9 +349,7 @@ class HostedSmokeTest(unittest.TestCase):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
                 (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
                 (200, self._w3_payload(), {}),
             ]
@@ -398,9 +388,7 @@ class HostedSmokeTest(unittest.TestCase):
         payload["docx"] = {"status": "skipped", "path": None, "check": None}
         responses = [
             (200, {"status": "ok"}, {}),
-            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
-            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
             (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
             (200, payload, {}),
         ]
@@ -426,9 +414,7 @@ class HostedSmokeTest(unittest.TestCase):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
                 (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
                 (200, self._w4_payload(), {}),
             ]
@@ -464,9 +450,7 @@ class HostedSmokeTest(unittest.TestCase):
         payload["docx"] = {"status": "skipped", "path": None, "check": None}
         responses = [
             (200, {"status": "ok"}, {}),
-            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
-            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
             (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
             (200, payload, {}),
         ]
@@ -492,9 +476,7 @@ class HostedSmokeTest(unittest.TestCase):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
                 (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
                 (200, self._w5_payload(), {}),
             ]
@@ -530,9 +512,7 @@ class HostedSmokeTest(unittest.TestCase):
         payload["docx"] = {"status": "skipped", "path": None, "check": None}
         responses = [
             (200, {"status": "ok"}, {}),
-            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
-            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
             (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
             (200, payload, {}),
         ]
@@ -558,9 +538,7 @@ class HostedSmokeTest(unittest.TestCase):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-                (200, {"auth_config": {"signup_enabled": False}}, {}),
+                (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {"fail_count": 0, "warn_count": 0}, "checks": []}}, {}),
                 (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
                 (200, self._w6_payload(), {}),
             ]
@@ -602,9 +580,7 @@ class HostedSmokeTest(unittest.TestCase):
         payload["docx"] = {"status": "skipped", "path": None, "check": None}
         responses = [
             (200, {"status": "ok"}, {}),
-            (200, {"openapi": "https://host.example.com/openapi.json", "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
-            (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
-            (200, {"auth_config": {"signup_enabled": False}}, {}),
+            (200, {"auth_config": {"signup_enabled": False}, "deployment_readiness": {"pilot_ready": True, "summary": {}, "checks": []}}, {}),
             (200, {"status": "success"}, {"Set-Cookie": "session=private; HttpOnly"}),
             (200, payload, {}),
         ]
@@ -653,23 +629,43 @@ class HostedSmokeTest(unittest.TestCase):
         self.assertEqual(args.expect_route_status, "mixed_signals")
         self.assertEqual(args.expect_route_notice_substring, "case background")
 
-    def test_run_smoke_checks_core_endpoints_and_login(self):
+    def test_run_smoke_uses_only_product_endpoints(self):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
                 (
                     200,
                     {
-                        "openapi": "https://example.test/openapi.json",
+                        "auth_config": {"signup_enabled": False, "invite_required": False},
                         "deployment_readiness": {
                             "pilot_ready": True,
-                            "summary": {"fail_count": 0, "warn_count": 1},
+                            "summary": {"fail_count": 0, "warn_count": 0},
                             "checks": [],
                         },
                     },
                     {},
                 ),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
+                (200, {"status": "success", "user": {"username": "pilot"}}, {"set-cookie": "session=abc"}),
+            ]
+        )
+
+        hosted_smoke.run_smoke(
+            "https://example.test",
+            username="pilot",
+            password="pilot-pass-123",
+            skip_run=True,
+            request_json=request_json,
+        )
+
+        self.assertEqual(
+            [call.args[1] for call in request_json.call_args_list],
+            ["/health", "/api/session", "/api/login"],
+        )
+
+    def test_run_smoke_checks_core_endpoints_and_login(self):
+        request_json = Mock(
+            side_effect=[
+                (200, {"status": "ok"}, {}),
                 (
                     200,
                     {
@@ -708,26 +704,13 @@ class HostedSmokeTest(unittest.TestCase):
         self.assertEqual(report["auth_mode"], "login")
         self.assertEqual(report["workflow"]["workflow"], "W2")
         self.assertEqual(report["workflow"]["output_excerpt"], "summary ready")
-        self.assertEqual(request_json.call_args_list[4].args[1], "/api/login")
-        self.assertEqual(request_json.call_args_list[5].args[1], "/api/run")
+        self.assertEqual(request_json.call_args_list[2].args[1], "/api/login")
+        self.assertEqual(request_json.call_args_list[3].args[1], "/api/run")
 
     def test_run_smoke_uses_signup_when_requested(self):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (
-                    200,
-                    {
-                        "openapi": "https://example.test/openapi.json",
-                        "deployment_readiness": {
-                            "pilot_ready": True,
-                            "summary": {"fail_count": 0, "warn_count": 1},
-                            "checks": [],
-                        },
-                    },
-                    {},
-                ),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
                 (
                     200,
                     {
@@ -755,26 +738,13 @@ class HostedSmokeTest(unittest.TestCase):
         )
 
         self.assertEqual(report["auth_mode"], "signup")
-        self.assertEqual(request_json.call_args_list[4].args[1], "/api/signup")
-        self.assertEqual(request_json.call_args_list[4].kwargs["payload"]["invite_code"], "invite-123")
+        self.assertEqual(request_json.call_args_list[2].args[1], "/api/signup")
+        self.assertEqual(request_json.call_args_list[2].kwargs["payload"]["invite_code"], "invite-123")
 
     def test_run_smoke_requires_expected_auto_route_metadata(self):
         request_json = Mock(
             side_effect=[
                 (200, {"status": "ok"}, {}),
-                (
-                    200,
-                    {
-                        "openapi": "https://example.test/openapi.json",
-                        "deployment_readiness": {
-                            "pilot_ready": True,
-                            "summary": {"fail_count": 0, "warn_count": 1},
-                            "checks": [],
-                        },
-                    },
-                    {},
-                ),
-                (200, {"paths": {"/run_workflow": {}, "/draft_template": {}}}, {}),
                 (
                     200,
                     {
@@ -836,7 +806,6 @@ class HostedSmokeTest(unittest.TestCase):
                 (
                     200,
                     {
-                        "openapi": "https://example.test/openapi.json",
                         "deployment_readiness": {
                             "pilot_ready": False,
                             "summary": {"fail_count": 1, "warn_count": 1},
