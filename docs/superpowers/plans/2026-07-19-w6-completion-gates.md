@@ -261,7 +261,7 @@ $env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke scripts.
 $env:PYTHONPATH='scripts'
 $env:WORKBENCH_USER='demo'
 $env:WORKBENCH_PASSWORD='demo123'
-python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username $env:WORKBENCH_USER --password $env:WORKBENCH_PASSWORD --timeout 300 --w6-acceptance --deployed-version <commit> --report-output eval-results/acceptance/w6/hosted.json
+python scripts/hosted_smoke.py --base-url https://counselor-agent-web.onrender.com --username $env:WORKBENCH_USER --password $env:WORKBENCH_PASSWORD --timeout 300 --w6-acceptance --deployed-version <commit> --report-output eval-results/acceptance/w6/hosted.json
 ```
 
 - [ ] **Step 5: Verify and commit**

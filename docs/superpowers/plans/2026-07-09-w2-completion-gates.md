@@ -76,7 +76,7 @@
 - [ ] Write failing tests for `--w2-acceptance` and `run_w2_acceptance`.
 - [ ] Implement W2 hosted scenario using a de-identified BPS/supervision case-background prompt.
 - [ ] Require detected W2, real model metadata, structured PASS, HTTP 200, and DOCX PASS.
-- [ ] Run hosted W2 against `https://counselor-agent-coze-api.onrender.com` after the branch is deployed.
+- [ ] Run hosted W2 against `https://counselor-agent-web.onrender.com` after the branch is deployed.
 - [ ] Write `eval-results/acceptance/w2/hosted.json`.
 - [ ] Run: `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke scripts.test_w2_acceptance -q`
 - [ ] Commit: `Record hosted W2 acceptance evidence`

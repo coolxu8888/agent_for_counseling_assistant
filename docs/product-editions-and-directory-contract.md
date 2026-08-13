@@ -1,12 +1,12 @@
 # Product Editions And Directory Contract
 
-Last updated: 2026-07-03
+Last updated: 2026-08-14
 
 This document is the authoritative contract for product versions and packaging boundaries.
 
 ## Product Direction
 
-The primary product is a native iOS app for counselors, distributed through TestFlight and the Apple App Store. The Web workbench and Coze plugin remain useful compatibility and market-validation surfaces, but neither is the App Store deliverable.
+The supported product surfaces are the native iOS app for counselors, distributed through TestFlight and the Apple App Store, and the independent hosted Web/API service. The iOS app is the App Store deliverable; the Web workbench remains the browser product and service backend without entering the iOS archive.
 
 ## Version Semantics
 
@@ -40,20 +40,20 @@ Forbidden:
 - Python runtime and server scripts
 - full RAG/source-card content
 - Web workbench assets copied as the product UI
-- Coze plugin schemas or Render deployment files
+- Render deployment files or other server configuration
 - real counseling records, uploaded templates, or generated runtime artifacts
 
-### `web-workbench/` - retained Web client
+### `web-workbench/` - hosted Web product
 
-This remains a browser-based validation and fallback surface. It can exercise shared API capabilities but is not embedded in the iOS archive and does not define App Store readiness.
+This is the browser client for the independent hosted Web/API service. It exercises the same server-side capabilities used by iOS but is not embedded in the iOS archive and does not define App Store readiness.
 
 ### `scripts/` - shared service and engineering tools
 
-This owns the hosted API, agent runtime, retrieval, document generation, eval runners, Web host, and Coze adapter. iOS consumes a stable HTTPS product API exposed by this layer.
+This owns the single hosted API, agent runtime, retrieval, document generation, eval runners, and Web host. iOS consumes a stable HTTPS product API exposed by this layer.
 
-### Coze and Render files - retained adapters/deployment
+### `render.yaml` - single-service deployment
 
-`docs/coze-*`, Coze routes, OpenAPI compatibility files, and `render.yaml` remain available for the existing integration. They are operational infrastructure, not iOS resources.
+`render.yaml` deploys only the independent `counselor-agent-web` service. Deployment configuration is operational infrastructure, not an iOS resource.
 
 ### Runtime data directories
 

@@ -39,11 +39,10 @@ Expected: no pre-existing dirty path is deleted or rewritten. A dirty Markdown o
 
 **Files:**
 - Modify: `README.md`
-- Inspect then delete: `docs/coze-render-deployment.md`
 
 - [ ] **Step 1: Write the README contract**
 
-Write only: the title `咨询师助理 Agent｜市场验证版`; compatibility explanation for `v0.1` and `0.1.0`; de-identification warning; local command `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1`; default URL; exact Render command `python scripts/web_workbench.py --host 0.0.0.0 --port $PORT`; required/optional environment variables; system-prompt and RAG-prompt inventory.
+Write only: the title `咨询师助理 Agent｜市场验证版`; compatibility explanation for `v0.1` and `0.1.0`; de-identification warning; local command `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\run-web-workbench.ps1`; default URL; exact Render command `python scripts/web_workbench.py --host 0.0.0.0 --port $PORT`; required/optional environment variables; system-prompt and RAG-prompt inventory. Keep the independent Web service deployment commands in README.
 
 - [ ] **Step 2: Verify command parity**
 

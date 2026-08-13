@@ -63,7 +63,7 @@ def valid_hosted_report():
     report = valid_web_report()
     report.update(
         report_type="hosted",
-        base_url="https://counselor-agent-coze-api.onrender.com",
+        base_url="https://counselor-agent-web.onrender.com",
         deployed_version="abc1234",
     )
     report["scenario"].update(

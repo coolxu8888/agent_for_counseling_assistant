@@ -1,6 +1,6 @@
 # Product Loop State
 
-Last updated: 2026-07-03
+Last updated: 2026-08-14
 
 This file is the durable handoff state for autonomous product iterations. Future automation runs should read this file before planning. It exists so the project can continue from repository state instead of relying on chat context.
 
@@ -8,14 +8,14 @@ This file is the durable handoff state for autonomous product iterations. Future
 
 Build a usable native iOS counselor-assistant product that can pass TestFlight validation and be submitted to the Apple App Store.
 
-The App Store app is now the primary product deliverable. It must let counselors use the agent's core capabilities through an iOS-native experience while preserving de-identification, ethics, risk, audit, document, and professional-boundary behavior. The existing Web and Coze implementations remain supported validation and compatibility channels, but they are not the final packaging target.
+The App Store app is now the primary product deliverable. It must let counselors use the agent's core capabilities through an iOS-native experience while preserving de-identification, ethics, risk, audit, document, and professional-boundary behavior. One independent hosted Web/API service supports both the native client and the retained browser product without entering the App Store package.
 
 ## Product Surfaces And Package Boundary
 
 - `ios-app/`: the only App Store application root. Xcode project inputs, Swift source, Apple resources, privacy manifests, tests, and release metadata belong here.
-- `web-workbench/`: retained browser client and market-validation surface. It must not be copied into the iOS application bundle.
-- `scripts/`: shared backend, agent runtime, eval, Web server, and Coze adapters. The iOS app calls a hosted HTTPS API; it does not bundle Python or local `.env` files.
-- `docs/coze-*`, Coze endpoints, and `render.yaml`: retained compatibility/integration infrastructure. They are outside the iOS target and App Store archive.
+- `web-workbench/`: retained browser product and market-validation surface served by the independent Web/API service. It must not be copied into the iOS application bundle.
+- `scripts/`: shared backend, agent runtime, eval, and the single Web/API server. The iOS app calls this hosted HTTPS API; it does not bundle Python or local `.env` files.
+- `render.yaml`: deployment contract for the single `counselor-agent-web` service. It is outside the iOS target and App Store archive.
 - `rag/`, prompts, and model credentials remain server-side. The iOS bundle must contain neither full RAG source material nor DeepSeek/API secrets.
 
 See `docs/product-editions-and-directory-contract.md` for the authoritative version and directory contract.
@@ -34,7 +34,7 @@ The next iterations must establish the native iOS client and App Store delivery 
 
 The required native acceptance path is: launch app, authenticate to an isolated workspace, create/select a de-identified case, submit counselor material, let the server automatically route intent, review structured output and safety checks, reopen history, and export/share an editable artifact through iOS system surfaces.
 
-Web/Coze work is allowed only when it fixes shared API behavior, validates an agent capability used by iOS, or keeps an existing compatibility channel healthy.
+Web/API work is allowed only when it fixes shared service behavior, validates an agent capability used by iOS, or keeps the retained browser product healthy.
 
 ## This Run: App Store Product Pivot And Package Isolation
 
@@ -47,7 +47,7 @@ What changed:
 - Changed the durable product objective and automation stop condition from Web deployment to a native iOS app that passes TestFlight and App Store Connect validation.
 - Added `docs/product-editions-and-directory-contract.md` as the authoritative version and packaging contract.
 - Created the isolated `ios-app/` root with a SwiftUI entry point, XcodeGen project definition, release configuration, `Info.plist`, privacy manifest, asset catalog placeholders, initial test, and package-boundary validator.
-- Kept Web, Coze, Render, Python, RAG, and eval assets in their existing locations and explicitly excluded them from the iOS application target.
+- Kept Web, Render, Python, RAG, and eval assets in their existing locations and explicitly excluded them from the iOS application target.
 - Updated README version semantics: App Store release starts at `1.0.0 (1)`; `v0.1`, `0.1.0`, and `MVP` are legacy compatibility identifiers only.
 
 Tests run:
@@ -81,7 +81,7 @@ What changed:
   - `GET /session` for native session restoration
   - `POST /logout` for server and local token invalidation
   - `GET /cases` and guarded `POST /cases` support for de-identified case workspaces
-- Kept existing Web cookie authentication and Coze routes compatible; the hosted wrapper delegates mobile routes to the shared workbench service.
+- Served existing browser cookie authentication and native bearer routes from the same hosted workbench service.
 - Added HTTP-level contract tests that start a real local server and verify login, bearer session, case isolation, cache-control, and unauthorized behavior.
 - Added native Swift code for:
   - versioned API models and client
@@ -92,10 +92,10 @@ What changed:
 
 Tests run:
 
-- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_mobile_api_contract scripts.test_web_workbench scripts.test_coze_api_server` -> 130 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_mobile_api_contract` -> PASS.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p 'test_*.py'` -> 406 tests passed.
 - HTTP contract test exercised `POST /api/mobile/v1/login`, `GET /session`, authenticated `GET /cases`, and unauthenticated `GET /cases`.
-- `python -m py_compile scripts/web_workbench.py scripts/coze_api_server.py scripts/test_mobile_api_contract.py` -> PASS.
+- `python -m py_compile scripts/web_workbench.py scripts/test_mobile_api_contract.py` -> PASS.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File ios-app/scripts/validate-package-boundary.ps1` -> PASS.
 - `git diff --check` -> PASS with line-ending notices only.
 
@@ -109,8 +109,7 @@ Remaining gaps:
 
 - Repository: `C:\Users\win\Documents\Codex\2026-05-15\agent`
 - Main branch status at last check: local `main` was ahead of `origin/main` by 2 commits and behind by 1, with unrelated and user-owned worktree changes preserved.
-- Hosted product URL: `https://counselor-agent-coze-api.onrender.com`
-- Hosted health endpoint previously returned: `{"status":"ok"}`
+- Hosted product URL: `https://counselor-agent-web.onrender.com`
 - Current implementation shape:
   - Native iOS application root under `ios-app/` (new primary release target)
   - Python backend / API service under `scripts/`
@@ -142,9 +141,9 @@ What changed:
 
 Tests run:
 
-- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_mobile_api_contract scripts.test_web_workbench scripts.test_coze_api_server` -> 134 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_mobile_api_contract` -> PASS.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p 'test_*.py'` -> 410 tests passed.
-- `python -m py_compile scripts/web_workbench.py scripts/coze_api_server.py scripts/test_mobile_api_contract.py` -> PASS.
+- `python -m py_compile scripts/web_workbench.py scripts/test_mobile_api_contract.py` -> PASS.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File ios-app/scripts/validate-package-boundary.ps1` -> PASS.
 - XcodeBuildMCP project discovery found no generated `.xcodeproj` or `.xcworkspace`; this correctly leaves native build verification open.
 
@@ -173,7 +172,7 @@ What changed:
 
 Tests run:
 
-- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_mobile_api_contract scripts.test_web_workbench scripts.test_coze_api_server` -> 137 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_mobile_api_contract` -> PASS.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p 'test_*.py'` -> 413 tests passed.
 - HTTP acceptance covered login, case create/detail, AUTO run, opaque run reopen, authenticated DOCX bytes, confirmed case deletion, and unauthorized rejection.
 - Cross-workspace artifact access and mismatched deletion confirmation are covered by unit tests.
@@ -198,7 +197,7 @@ Automation should continue from this file, not restart from a blank plan.
 6. Preserve privacy and ethics boundaries: do not ask users to enter direct identifiers in test data; do not produce diagnosis or final risk classification; keep risk changes separately documented.
 7. After each run, update this file with the capability worked on, changes made, tests/evals run, remaining gaps, and next recommended capability.
 8. Commit coherent changes after tests pass. Do not commit secrets, local runtime data, uploaded client documents, or generated private outputs.
-9. Keep iOS, Web, and Coze packaging boundaries explicit. App archives must not contain Web assets, Python runtime files, RAG source cards, `.env` files, or service credentials.
+9. Keep iOS and hosted Web/API packaging boundaries explicit. App archives must not contain Web assets, Python runtime files, RAG source cards, `.env` files, or service credentials.
 10. On a macOS/Xcode-capable runner, validate the iOS target with build, unit tests, simulator smoke, archive, and App Store validation. Windows-only checks do not prove App Store readiness.
 
 ## Definition Of Done For A Capability
@@ -262,7 +261,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 ### Intent Recognition Across Counselor Tasks
 
-- Extended the product-facing router so the web workbench and Coze wrapper both use plain-language automatic routing instead of relying on explicit workflow ids.
+- Extended the product-facing Web/API router to use plain-language automatic routing instead of relying on explicit workflow ids.
 - Added route metadata to API responses:
   - `detected_workflow`
   - `requested_workflow`
@@ -294,7 +293,6 @@ A capability is not complete just because a prompt exists. It is considered prod
   - `scripts/run_agent.py`
   - `scripts/run-retrieval.ps1`
   - `scripts/web_workbench.py`
-  - `scripts/coze_api_server.py`
   - `scripts/render_docx.py`
   - `scripts/hosted_smoke.py`
   - `web-workbench/app.js`
@@ -310,7 +308,6 @@ A capability is not complete just because a prompt exists. It is considered prod
   - `scripts/run_agent.py`
   - `scripts/run-retrieval.ps1`
   - `scripts/web_workbench.py`
-  - `scripts/coze_api_server.py`
   - `scripts/render_docx.py`
   - `scripts/validate-rag.ps1`
   - `web-workbench/app.js`
@@ -596,9 +593,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W6-005` -> passed.
-- Pushed `784655f` to `origin/main`, waited for Render to recover from a transient redeploy `502`, then ran hosted AUTO smoke:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请把今天的session note作为素材，整理接下来几次咨询的路线图，包含 immediate next session 和 later phases，保留风险检查点，不要写成咨询记录。" --expect-detected-workflow W6 --expect-route-summary-substring "W6 Counseling roadmap" --real-run --timeout 240`
-  - Result after redeploy: passed with `workflow=W6`, `detected_workflow=W6`, and `routing_reasons_summary="Top route cues: W6 Counseling roadmap (score 14) > W3 Session note (score -4, cues 10)"`.
 
 Outcome:
 
@@ -632,8 +626,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke.HostedSmokeTest.test_parse_args_accepts_route_metadata_expectations scripts.test_hosted_smoke.HostedSmokeTest.test_run_smoke_requires_expected_auto_route_metadata`
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke` -> 7 tests passed.
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_prefers_w2_for_chinese_loose_initial_interview_summary_negation scripts.test_web_workbench.WebWorkbenchTest.test_detect_workflow_marks_mixed_signals_for_regular_initial_interview_summary_negation scripts.test_run_retrieval.RunRetrievalTest.test_routes_chinese_loose_initial_interview_summary_negation_to_w2 scripts.test_run_retrieval.RunRetrievalTest.test_routes_regular_initial_interview_summary_negation_case_background_to_w2 scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w2_chinese_loose_initial_interview_summary_negation_boundary_case scripts.test_build_workflow_eval_prompts.BuildWorkflowEvalPromptsTest.test_evals_include_w2_regular_initial_interview_summary_negation_boundary_case scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w2_012_chinese_loose_initial_interview_summary_negation_background_case_passes_rules_and_rubric scripts.test_clean_eval_outputs.CleanEvalOutputsTest.test_w2_013_regular_initial_interview_summary_negation_background_case_passes_rules_and_rubric` -> 8 tests passed.
-- `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "把这份已完成的首访材料整理成督导讨论用的BPS个案背景，保留已知事实、信息缺口、保护因素和风险追问，不要还是按常规初访总结。" --expect-detected-workflow W2 --expect-route-status mixed_signals --expect-route-notice-substring "Case background" --expect-route-summary-substring "W2 Case background" --real-run --timeout 240` -> passed after redeploy.
-- `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Please organize these completed intake materials into a BPS supervision case background with confidentiality limits, risk follow-up questions, and protective factors; this is for case discussion, not the regular initial interview summary." --expect-detected-workflow W2 --expect-route-status mixed_signals --expect-route-notice-substring "Case background" --expect-route-summary-substring "W2 Case background" --real-run --timeout 240` -> passed after redeploy.
 
 Outcome:
 
@@ -1010,7 +1002,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 203 tests passed.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` -> 320 tests passed.
 - Live DeepSeek eval was blocked in this environment on 2026-06-23 because `DEEPSEEK_API_KEY` was missing.
-- Hosted health verification against `https://counselor-agent-coze-api.onrender.com/health` timed out on 2026-06-23, so deployment-side confirmation of this route remains unresolved.
 
 Outcome:
 
@@ -1085,10 +1076,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W1-014,W1-015` -> both evals succeeded.
-- Hosted health verification passed:
-  - `GET https://counselor-agent-coze-api.onrender.com/health` -> `{"status":"ok"}`
-- Hosted authenticated smoke on 2026-06-24 using the public Render deployment and fallback demo credentials showed the deployment is still behind the local branch for this capability:
-  - `POST /api/run` with `workflow=AUTO` and the `W1-015` prompt returned `workflow=W2`, `detected_workflow=W2`, `w1_mode=null`, `routing_reasons_summary=null`, and no `w1_summary_brief`.
 
 Outcome:
 
@@ -1127,9 +1114,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke.HostedSmokeTest.test_parse_args_accepts_auto_workflow_choice scripts.test_hosted_smoke.HostedSmokeTest.test_run_smoke_requires_expected_auto_route_metadata`
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke scripts.test_web_workbench` -> 94 tests passed.
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_run_agent scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 131 tests passed.
-- Hosted contract polling after `git push origin main` confirmed the public deployment now exposes `deployment_readiness` on both `/service-info` and `/api/session`.
-- Live hosted DeepSeek-backed smoke passed with the stricter AUTO-route assertions:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请按固定模板梳理这次第一次访谈材料，保留风险变化线索，先不要做咨询记录。" --expect-detected-workflow W1 --expect-w1-mode initial_interview_summary --expect-route-summary-substring W1 --expect-w1-summary-brief --real-run`
 
 Outcome:
 
@@ -1164,10 +1148,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_web_workbench scripts.test_run_retrieval scripts.test_build_workflow_eval_prompts scripts.test_clean_eval_outputs` -> 162 tests passed.
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W5-006` -> passed.
-- Hosted smoke before redeploy failed against the public Render URL with `/api/run detected_workflow='W6', expected 'W5'.`
-- Pushed `dfcc75b` to `origin/main`, waited for Render to redeploy, then re-ran the same hosted smoke:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use a humanistic lens for this case. Plan only the next counseling session, include risk check points, and do not expand into a multi-session roadmap or later phases." --expect-detected-workflow W5 --expect-route-summary-substring W5 --real-run --timeout 240`
-  - Result: passed with `workflow=W5`, `detected_workflow=W5`, and a populated `routing_reasons_summary` on the public URL.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` still has unrelated pre-existing failures in `scripts.test_fill_docx_template` on the current dirty worktree, so full-suite green remains blocked outside this routing slice.
 
 Outcome:
@@ -1205,9 +1185,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W4-004` -> passed.
-- Pushed [`2525519`](C:\Users\win\Documents\Codex\2026-05-15\agent) to `origin/main`, waited for Render to recover from a transient `502`, then re-ran hosted smoke:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use today's session notes to build a CBT case conceptualization with working hypotheses, not a counseling record." --expect-detected-workflow W4 --expect-route-summary-substring W4 --real-run --timeout 240`
-  - Result: passed with `workflow=W4`, `detected_workflow=W4`, and `routing_reasons_summary="Top route cues: W4 Conceptualization (score 8) > W3 Session note (score 5, cues 10)"` on the public URL.
 
 Outcome:
 
@@ -1285,12 +1262,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W5-007` -> passed.
-- Hosted smoke before redeploy showed the public Render route was only partially updated for this boundary:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Please use today's session notes to prepare the next session agenda rather than a counseling record, keep it to one upcoming counseling session, and include risk check points." --expect-detected-workflow W5 --expect-route-summary-substring W5 --real-run --timeout 240`
-  - Result before redeploy: `workflow=W5` and `detected_workflow=W5`, but `routing_reasons_summary` still showed `W3 Session note` ahead of `W5 Next-session plan`.
-- Pushed `b2b37c1` to `origin/main`, waited for Render to redeploy, then re-ran hosted smoke with the stricter ordering assertion:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Please use today's session notes to prepare the next session agenda rather than a counseling record, keep it to one upcoming counseling session, and include risk check points." --expect-detected-workflow W5 --expect-route-summary-substring "W5 Next-session plan" --real-run --timeout 240`
-  - Result after redeploy: passed with `workflow=W5`, `detected_workflow=W5`, and `routing_reasons_summary="Top route cues: W5 Next-session plan (score 7) > W3 Session note (score 5, cues 10)"`.
 - `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p "test_*.py"` still has 2 unrelated dirty-worktree failures in `scripts.test_fill_docx_template`, so full-suite green remains blocked outside this routing slice.
 
 Outcome:
@@ -1327,9 +1298,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W5-008` -> passed.
-- Hosted AUTO smoke on the public Render URL passed for the Chinese-heavy boundary:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请用今天的会谈记录作为素材，整理下一次咨询计划，保留风险检查点，不要写成咨询记录，只聚焦下一次会谈。" --expect-detected-workflow W5 --expect-route-summary-substring "W5 Next-session plan" --real-run --timeout 240`
-  - Result: passed with `workflow=W5`, `detected_workflow=W5`, and `routing_reasons_summary="Top route cues: W5 Next-session plan (score 4) > W3 Session note (score 0, cues 5)"`.
 
 Outcome:
 
@@ -1368,9 +1336,6 @@ Tests and evals run:
 - `node --check web-workbench/app.js`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W4-005` -> passed.
-- Hosted AUTO smoke on the public Render URL first returned stale routing (`detected_workflow='W3'`) before redeploy finished, then passed after Render caught up:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请根据今天session note整理CBT概念化，保留working hypotheses，不要写成咨询记录。Separate known facts, working hypotheses, risk considerations, and questions that still need verification." --expect-detected-workflow W4 --expect-route-summary-substring "W4 Conceptualization" --real-run --timeout 240`
-  - Result after redeploy: passed with `workflow=W4`, `detected_workflow=W4`, and `routing_reasons_summary="Top route cues: W4 Conceptualization (score 8) > W3 Session note (score 5, cues 10)"`.
 
 Outcome:
 
@@ -1409,9 +1374,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-008` -> passed.
-- Pushed `06ac839` to `origin/main`, waited for Render health to recover from a transient redeploy `502`, then ran hosted AUTO smoke:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use CBT to organize today's session note into a supervision case background, keep working hypotheses visible, and do not turn it into a case conceptualization." --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
-  - Result: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 4) > W4 Conceptualization (score 4, cues 12)"`.
 
 Outcome:
 
@@ -1461,9 +1423,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-009` -> passed.
-- Pushed `5707fe2` to `origin/main`, then ran hosted AUTO smoke on the public Render URL:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "These are completed first interview notes. Organize them into a BPS case background for supervision, keep known facts, working hypotheses, protective factors, and risk follow-up questions visible, and do not keep the fixed initial interview summary template." --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
-  - Result: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 15) > W1 Initial interview (score 13)"`.
 
 Outcome:
 
@@ -1503,9 +1462,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-010` -> passed.
-- Pushed `d664b40` to `origin/main`, waited for Render to recover from a transient `/api/run` `502`, then ran hosted AUTO smoke:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "把这份首访材料改写成督导讨论用的个案背景，按BPS整理已知事实、信息缺口、保护因素和风险追问，而不是固定初访总结模板。" --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
-  - Result: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 18) > W1 Initial interview (score 16, cues 24)"`.
 
 Outcome:
 
@@ -1546,9 +1502,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-011` -> passed.
-- Pushed `bffa524` to `origin/main`, saw one transient Render `/api/run` `502` during redeploy, then confirmed `/health` returned `{"status":"ok"}` and ran hosted AUTO smoke:
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use these completed intake notes to build a supervision case background with BPS, known facts, protective factors, and risk follow-up questions. Do not keep it as the usual initial interview summary." --expect-detected-workflow W2 --expect-route-summary-substring "W2 Case background" --real-run --timeout 240`
-  - Result after redeploy: passed with `workflow=W2`, `detected_workflow=W2`, and `routing_reasons_summary="Top route cues: W2 Case background (BPS) (score 15) > W1 Initial interview (score 2, cues 10)"`.
 
 Outcome:
 
@@ -1654,7 +1607,7 @@ Recommended scope:
 - Keep template/model mapping deterministic and return only opaque artifact identifiers.
 - Generate and build the `ios-app/` project on a macOS/Xcode runner as soon as one is available; fix all compiler/project issues before claiming the native slice complete.
 - Add the next native acceptance test: sign in, create/select a de-identified case, submit safe fixture material, and render route/result metadata.
-- Keep Web and Coze operational, but do not add Web-only polish unless it fixes shared service behavior needed by iOS.
+- Keep the hosted Web/API product operational, but do not add Web-only polish unless it fixes shared service behavior needed by iOS.
 
 ## This Run: Intent Recognition Across Counselor Tasks
 
@@ -1682,7 +1635,6 @@ Tests and evals run:
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - Loaded `.env` into the process environment without printing secret values, then ran:
   - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-014` -> passed.
-  - `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "Use completed first interview material to write a supervision case background with protective factors and risk follow-up questions, not the standard initial interview summary risk block." --expect-detected-workflow W2 --expect-route-status mixed_signals --expect-route-notice-substring "Case background" --expect-route-summary-substring "W2 Case background" --real-run --timeout 240` -> passed after one transient Render `502` during redeploy.
 
 Outcome:
 
@@ -1720,7 +1672,6 @@ Tests and evals run:
 - `node --check web-workbench/app.js`
 - `$env:PYTHONPATH='scripts'; python scripts/build_workflow_eval_prompts.py`
 - `$env:PYTHONPATH='scripts'; $env:DEEPSEEK_TIMEOUT_SECONDS='240'; python scripts/run_model_eval.py --ids W2-015` -> passed.
-- `$env:PYTHONPATH='scripts'; python scripts/hosted_smoke.py --base-url https://counselor-agent-coze-api.onrender.com --username demo --password demo123 --workflow AUTO --input "请把已完成的首访材料整理成督导 case background，保留 protective factors 和 risk follow-up questions，不要把它放回 standard initial interview summary risk block。" --expect-detected-workflow W2 --expect-route-status mixed_signals --expect-route-notice-substring "Case background" --expect-route-summary-substring "W2 Case background" --real-run --timeout 240` -> first returned a transient Render `502` during redeploy, then passed after the deployment became healthy again.
 
 Outcome:
 

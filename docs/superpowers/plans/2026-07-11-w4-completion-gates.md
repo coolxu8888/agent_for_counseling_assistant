@@ -111,7 +111,7 @@
 - [ ] Write failing tests for `--w4-acceptance` and `run_w4_acceptance`.
 - [ ] Implement W4 hosted scenario using a de-identified CBT conceptualization prompt.
 - [ ] Require detected W4, real model metadata, structured PASS, conceptualization factors, risk considerations, working hypotheses, questions, and DOCX PASS.
-- [ ] Run hosted W4 against `https://counselor-agent-coze-api.onrender.com` after the branch is deployed.
+- [ ] Run hosted W4 against `https://counselor-agent-web.onrender.com` after the branch is deployed.
 - [ ] Write `eval-results/acceptance/w4/hosted.json`.
 - [ ] Commit: `Record hosted W4 acceptance evidence`
 

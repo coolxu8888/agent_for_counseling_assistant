@@ -1,6 +1,6 @@
 # 咨询师助理 Agent
 
-当前主产品是面向咨询师的原生 iOS 应用，产品阶段为 `App Store Release Candidate`，首个公开版本为 `1.0.0 (1)`。`ios-app/` 是唯一 App Store 应用根目录；Web 工作台和 Coze 插件继续作为市场验证、兼容与服务通道，但不会进入 iOS 包。
+当前产品由两个表面组成：`ios-app/` 是面向咨询师的原生 iOS 客户端，也是唯一 App Store 应用根目录；`web-workbench/` 与 `scripts/web_workbench.py` 组成保留的独立托管 Web/API 产品。产品阶段为 `App Store Release Candidate`，首个公开版本为 `1.0.0 (1)`。Web 服务及其服务端能力不会进入 iOS 包。
 
 文件名、路径、schema 或 API 中的 `v0.1` / `0.1.0` / `MVP` 仅为历史兼容标识，不代表当前产品阶段或能力版本。版本与目录边界以 [`docs/product-editions-and-directory-contract.md`](docs/product-editions-and-directory-contract.md) 为准，当前迭代状态以 [`docs/product-loop-state.md`](docs/product-loop-state.md) 为准。
 
@@ -11,9 +11,9 @@
 | 目录 | 定位 | 是否进入 App Store 包 |
 |---|---|---|
 | `ios-app/` | 原生 SwiftUI 主产品、iOS 测试与上架元数据 | 是，且仅限该 target 声明的资源 |
-| `scripts/` | 共享后端、Agent、RAG、评测、Web host 与适配器 | 否 |
-| `web-workbench/` | 保留的 Web 验证与兼容客户端 | 否 |
-| `docs/coze-*`、Coze API、`render.yaml` | 保留的 Coze/Render 集成 | 否 |
+| `scripts/` | 共享后端、Agent、RAG、评测与独立 Web/API host | 否 |
+| `web-workbench/` | 保留的托管 Web 产品前端 | 否 |
+| `render.yaml` | 独立 Web 服务的 Render 部署定义 | 否 |
 | `rag/`、`eval-*` | 服务端知识与工程评测 | 否 |
 
 ## 本地 Web 运行
@@ -48,6 +48,10 @@ python scripts/workflow_completion.py --check
 
 ## Render Web
 
+Render 只部署一个服务：`counselor-agent-web`。
+
+规范生产地址：`https://counselor-agent-web.onrender.com`
+
 启动命令：
 
 ```text
@@ -55,6 +59,18 @@ python scripts/web_workbench.py --host 0.0.0.0 --port $PORT
 ```
 
 健康检查：`/health`
+
+托管 smoke 依次检查 `/health`、`/api/session` 和认证；未使用 `--skip-run` 时还会检查可选的 `/api/run` 模型调用。先把凭据放入环境变量，再运行不触发模型调用的产品接口检查：
+
+```powershell
+python scripts/hosted_smoke.py --base-url https://counselor-agent-web.onrender.com --username $env:WORKBENCH_USER --password $env:WORKBENCH_PASSWORD --skip-run
+```
+
+需要验证真实 Agent 运行时，再显式执行：
+
+```powershell
+python scripts/hosted_smoke.py --base-url https://counselor-agent-web.onrender.com --username $env:WORKBENCH_USER --password $env:WORKBENCH_PASSWORD --workflow AUTO --real-run
+```
 
 公开部署必要变量：
 

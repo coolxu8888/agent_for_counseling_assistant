@@ -29,7 +29,7 @@ foreach ($name in $forbiddenNames) {
     }
 }
 
-$forbiddenSegments = @("web-workbench", "agent-runs", "workbench-data", "eval-results", "rag", "coze")
+$forbiddenSegments = @("web-workbench", "agent-runs", "workbench-data", "eval-results", "rag")
 $allPaths = Get-ChildItem -LiteralPath $iosRoot -Recurse -Force
 foreach ($item in $allPaths) {
     $relative = $item.FullName.Substring($iosRoot.Length).TrimStart([char[]]@("\", "/")).Replace("\", "/").ToLowerInvariant()
@@ -40,7 +40,7 @@ foreach ($item in $allPaths) {
     }
 }
 
-$secretPattern = '(?i)(sk-[a-z0-9]{16,}|deepseek_api_key\s*=\s*[^$\s]|coze_demo_api_key\s*=\s*[^$\s])'
+$secretPattern = '(?i)(sk-[a-z0-9]{16,}|deepseek_api_key\s*=\s*[^$\s])'
 $textFiles = Get-ChildItem -LiteralPath $iosRoot -Recurse -Force -File | Where-Object {
     $_.Extension -in @(".swift", ".plist", ".xcprivacy", ".xcconfig", ".yml", ".yaml", ".md", ".json")
 }

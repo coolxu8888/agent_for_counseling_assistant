@@ -98,7 +98,7 @@
 - [ ] Write failing tests for `--w3-acceptance` and `run_w3_acceptance`.
 - [ ] Implement W3 hosted scenario using a de-identified counseling-record prompt that requests SOAP/DAP/BIRP structure.
 - [ ] Require detected W3, real model metadata, structured PASS, HTTP 200, risk-change fields, next-session focus, and DOCX PASS.
-- [ ] Run hosted W3 against `https://counselor-agent-coze-api.onrender.com` after the branch is deployed.
+- [ ] Run hosted W3 against `https://counselor-agent-web.onrender.com` after the branch is deployed.
 - [ ] Write `eval-results/acceptance/w3/hosted.json`.
 - [ ] Run: `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_hosted_smoke scripts.test_w3_acceptance -q`
 - [ ] Commit: `Record hosted W3 acceptance evidence`

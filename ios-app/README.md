@@ -21,7 +21,7 @@ xcodegen generate
 open CounselorAssistant.xcodeproj
 ```
 
-The native app calls the hosted product API. Web assets, Python code, RAG source cards, Coze files, `.env`, and local run data are intentionally outside the target.
+The native app calls the hosted product API at `https://counselor-agent-web.onrender.com`. Web assets, Python code, RAG source cards, `.env`, and local run data are intentionally outside the target.
 
 ## Mobile API contract
 
@@ -37,7 +37,7 @@ The native client uses `/api/mobile/v1`:
 - `GET /runs/{run_id}` (opaque history reopen)
 - `GET /runs/{run_id}/artifacts/{artifact_key}` (authenticated whitelist download)
 
-Authentication uses a workspace bearer session stored in the iOS Keychain. The model-provider key remains server-side. The Web cookie endpoints and Coze plugin routes are separate compatibility surfaces.
+Authentication uses a workspace bearer session stored in the iOS Keychain. The model-provider key remains server-side. Browser cookie endpoints and native bearer endpoints are served by the same hosted Web/API service.
 
 ## Validation
 

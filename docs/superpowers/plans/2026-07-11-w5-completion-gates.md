@@ -109,7 +109,7 @@
 - [ ] Write failing tests for `--w5-acceptance` and `run_w5_acceptance`.
 - [ ] Implement W5 hosted scenario using a de-identified single-session next-session planning prompt.
 - [ ] Require detected W5, real model metadata, structured PASS, HTTP 200, W5 fields, and DOCX PASS.
-- [ ] Run hosted W5 against `https://counselor-agent-coze-api.onrender.com`.
+- [ ] Run hosted W5 against `https://counselor-agent-web.onrender.com`.
 - [ ] Write `eval-results/acceptance/w5/hosted.json`.
 - [ ] Commit: `Record hosted W5 acceptance evidence`
 

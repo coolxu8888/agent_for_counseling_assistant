@@ -22,7 +22,6 @@ README 作为唯一人工入口，内容限制为版本声明、本地启动、R
 - `README.md`：精简后的唯一操作入口。
 - `counselor-agent-v0.1-system-prompt.md`：代码直接读取的系统 prompt；文件名暂留以兼容现有路径。
 - `rag/**/*.md`：Web 运行时检索和组装 prompt 的 RAG 内容；排除纯索引、评审指南、测试报告等未参与运行时检索的文件。
-- `docs/coze-render-deployment.md`：仅当其命令或部署参数未能无损并入 README 时保留；优先合并后删除。
 
 运行产物中的 `clean_output.md` 不属于仓库文档，不改变其生成逻辑。
 
