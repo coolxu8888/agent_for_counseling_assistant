@@ -1,40 +1,205 @@
 # Product Loop State
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 This file is the durable handoff state for autonomous product iterations. Future automation runs should read this file before planning. It exists so the project can continue from repository state instead of relying on chat context.
 
 ## Product Objective
 
-Build a market-validation-ready web product for a counselor assistant agent.
+Build a usable native iOS counselor-assistant product that can pass TestFlight validation and be submitted to the Apple App Store.
 
-The product is not just a generic web app. The core value is a counselor-facing agent that can understand raw counselor materials, route the user's intent, produce structured clinical-assistant outputs, use RAG-backed professional boundaries, generate editable documents, and preserve privacy/ethics constraints.
+The App Store app is now the primary product deliverable. It must let counselors use the agent's core capabilities through an iOS-native experience while preserving de-identification, ethics, risk, audit, document, and professional-boundary behavior. The existing Web and Coze implementations remain supported validation and compatibility channels, but they are not the final packaging target.
+
+## Product Surfaces And Package Boundary
+
+- `ios-app/`: the only App Store application root. Xcode project inputs, Swift source, Apple resources, privacy manifests, tests, and release metadata belong here.
+- `web-workbench/`: retained browser client and market-validation surface. It must not be copied into the iOS application bundle.
+- `scripts/`: shared backend, agent runtime, eval, Web server, and Coze adapters. The iOS app calls a hosted HTTPS API; it does not bundle Python or local `.env` files.
+- `docs/coze-*`, Coze endpoints, and `render.yaml`: retained compatibility/integration infrastructure. They are outside the iOS target and App Store archive.
+- `rag/`, prompts, and model credentials remain server-side. The iOS bundle must contain neither full RAG source material nor DeepSeek/API secrets.
+
+See `docs/product-editions-and-directory-contract.md` for the authoritative version and directory contract.
+
+## Release Target
+
+- Product phase: `App Store Release Candidate` until submission gates pass.
+- First public iOS marketing version: `1.0.0`.
+- Initial build number: `1`, incremented for every uploaded archive.
+- Existing names containing `v0.1`, `0.1.0`, or `MVP` are historical compatibility identifiers only. Do not use them as the current App Store version or product phase.
+- Completion means a signed iOS archive is ready for TestFlight/App Store Connect validation, required privacy/support metadata exists, and the production API used by the app has passed its acceptance suite.
+
+## Active Priority: Native iOS Product Foundation And App Store Acceptance
+
+The next iterations must establish the native iOS client and App Store delivery path before adding more Web-only polish. Reuse the validated server-side agent capabilities rather than porting model execution or secrets into the app.
+
+The required native acceptance path is: launch app, authenticate to an isolated workspace, create/select a de-identified case, submit counselor material, let the server automatically route intent, review structured output and safety checks, reopen history, and export/share an editable artifact through iOS system surfaces.
+
+Web/Coze work is allowed only when it fixes shared API behavior, validates an agent capability used by iOS, or keeps an existing compatibility channel healthy.
+
+## This Run: App Store Product Pivot And Package Isolation
+
+Capability worked on:
+
+- Native iOS product foundation and App Store packaging boundary.
+
+What changed:
+
+- Changed the durable product objective and automation stop condition from Web deployment to a native iOS app that passes TestFlight and App Store Connect validation.
+- Added `docs/product-editions-and-directory-contract.md` as the authoritative version and packaging contract.
+- Created the isolated `ios-app/` root with a SwiftUI entry point, XcodeGen project definition, release configuration, `Info.plist`, privacy manifest, asset catalog placeholders, initial test, and package-boundary validator.
+- Kept Web, Coze, Render, Python, RAG, and eval assets in their existing locations and explicitly excluded them from the iOS application target.
+- Updated README version semantics: App Store release starts at `1.0.0 (1)`; `v0.1`, `0.1.0`, and `MVP` are legacy compatibility identifiers only.
+
+Tests run:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File ios-app\scripts\validate-package-boundary.ps1` -> PASS.
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_clean_eval_outputs` -> 47 tests passed, including pre-existing uncommitted eval fixes.
+- Parsed iOS `Info.plist`, `PrivacyInfo.xcprivacy`, and asset-catalog JSON as UTF-8 -> PASS.
+- `git diff --check` -> no whitespace errors; line-ending notices only.
+
+Remaining gaps:
+
+- This Windows environment cannot generate/build/sign an Xcode archive. The next macOS/Xcode-capable run must generate the project, compile it, run tests on a current iPhone simulator, and record any XcodeGen/project corrections.
+- Authentication, versioned mobile API, native case workspace, agent result UI, Files/DOCX workflow, Keychain session handling, account deletion, accurate final privacy declarations, app icons, signing, TestFlight, and App Store metadata remain incomplete.
+
+## Previous Priority: Real Counselor Web End-to-End Acceptance
+
+Stop adding routing-boundary variants unless a routing defect blocks a realistic counselor journey. The active P0 acceptance path is: sign in, create/select a de-identified case, submit realistic counselor material, review the generated record and checks, obtain an editable Word artifact, reopen the run from case history, and export a complete case bundle.
+
+On 2026-07-02 this path passed locally with a real DeepSeek-backed W3 counseling-record run. The run produced structured output, a valid `output.docx`, case-history entries, and a ZIP export containing `case-summary.json`, `audit-log.json`, and the generated Word file. The journey exposed and fixed one counselor-visible false warning: W3 safety scoring previously required the phrase “材料中未提供风险相关信息” even when the record documented negative self-harm/suicide/harm-to-others findings, substance-use status, and protective factors.
+
+## This Run: Native Authentication And Case List Slice
+
+Capability worked on:
+
+- Native iOS authentication and the first isolated-workspace case-list journey.
+
+What changed:
+
+- Added a versioned mobile API under `/api/mobile/v1` with:
+  - `POST /login` returning a bearer workspace session without setting a browser cookie
+  - `GET /session` for native session restoration
+  - `POST /logout` for server and local token invalidation
+  - `GET /cases` and guarded `POST /cases` support for de-identified case workspaces
+- Kept existing Web cookie authentication and Coze routes compatible; the hosted wrapper delegates mobile routes to the shared workbench service.
+- Added HTTP-level contract tests that start a real local server and verify login, bearer session, case isolation, cache-control, and unauthorized behavior.
+- Added native Swift code for:
+  - versioned API models and client
+  - Keychain-backed bearer token storage using `AfterFirstUnlockThisDeviceOnly`
+  - session restoration and logout
+  - accessible login UI with de-identification warning
+  - native case list, pull-to-refresh, empty state, and professional-boundary reminder
+
+Tests run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_mobile_api_contract scripts.test_web_workbench scripts.test_coze_api_server` -> 130 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p 'test_*.py'` -> 406 tests passed.
+- HTTP contract test exercised `POST /api/mobile/v1/login`, `GET /session`, authenticated `GET /cases`, and unauthenticated `GET /cases`.
+- `python -m py_compile scripts/web_workbench.py scripts/coze_api_server.py scripts/test_mobile_api_contract.py` -> PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File ios-app/scripts/validate-package-boundary.ps1` -> PASS.
+- `git diff --check` -> PASS with line-ending notices only.
+
+Remaining gaps:
+
+- Swift and XcodeGen are unavailable on this Windows machine, so native compilation and tests remain unproven until a macOS/Xcode run.
+- Native case creation, case detail/history, account deletion, agent run API/UI, artifact transfer, template Files integration, and App Store metadata remain incomplete.
+- The `/api/mobile/v1` routes are covered locally but are not yet deployed or validated against the production HTTPS URL.
 
 ## Current Product Snapshot
 
 - Repository: `C:\Users\win\Documents\Codex\2026-05-15\agent`
-- Main branch status at last check: local `main` was ahead of `origin/main` by 20 commits.
+- Main branch status at last check: local `main` was ahead of `origin/main` by 2 commits and behind by 1, with unrelated and user-owned worktree changes preserved.
 - Hosted product URL: `https://counselor-agent-coze-api.onrender.com`
 - Hosted health endpoint previously returned: `{"status":"ok"}`
 - Current implementation shape:
+  - Native iOS application root under `ios-app/` (new primary release target)
   - Python backend / API service under `scripts/`
-  - Deployable web workbench under `web-workbench/`
+  - Retained deployable Web validation client under `web-workbench/`
   - RAG source cards and retrieval map under `rag/`
   - Eval prompts/results under `eval-prompts/` and `eval-results/`
   - Local workbench runtime data under `workbench-data/` and `agent-runs/`; keep these out of git unless there is an explicit fixture need.
+
+## This Run: Native Case Workspace And Automatic Agent Run
+
+Capability worked on:
+
+- Native de-identified case creation/detail and the first automatic-intent Agent run journey.
+
+What changed:
+
+- Extended `/api/mobile/v1` with:
+  - guarded case creation and `GET /cases/{id}` detail
+  - `POST /runs`, which always forces server-side `AUTO` routing regardless of client input
+  - ownership checks preventing a counselor from binding a run to another workspace's case
+  - a sanitized run response that exposes output, structured/safety checks, and route explanation without server filesystem paths
+- Added native SwiftUI flows for:
+  - creating a case using only a de-identified title and client code
+  - navigating from case list to case detail/history
+  - entering counselor material without workflow buttons
+  - displaying automatic route explanation and switching between output, structured JSON, and validation results
+- Added recursive `JSONValue` decoding for structured and safety output without weakening the fixed mobile contract.
+- Extended real HTTP contract coverage through login, case creation, detail, AUTO run, result sanitization, and unauthorized rejection.
+
+Tests run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_mobile_api_contract scripts.test_web_workbench scripts.test_coze_api_server` -> 134 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p 'test_*.py'` -> 410 tests passed.
+- `python -m py_compile scripts/web_workbench.py scripts/coze_api_server.py scripts/test_mobile_api_contract.py` -> PASS.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File ios-app/scripts/validate-package-boundary.ps1` -> PASS.
+- XcodeBuildMCP project discovery found no generated `.xcodeproj` or `.xcworkspace`; this correctly leaves native build verification open.
+
+Remaining gaps:
+
+- Native Swift code still needs generation and compilation on macOS/Xcode; XcodeBuildMCP cannot build the source-only XcodeGen definition from this Windows workspace.
+- Run history can be summarized but not reopened natively yet.
+- Native case deletion, account deletion, DOCX artifact download/share, template import/fill, upload progress, and production mobile API deployment remain incomplete.
+
+## This Run: Native History, DOCX Artifact, And Case Deletion
+
+Capability worked on:
+
+- Native run-history reopen, authenticated Word artifact delivery, and privacy-safe case deletion.
+
+What changed:
+
+- Added opaque mobile history routes:
+  - `GET /api/mobile/v1/runs/{run_id}` reopens a run owned by the current workspace
+  - `GET /api/mobile/v1/runs/{run_id}/artifacts/{artifact_key}` downloads only whitelisted artifacts
+- Mobile responses never expose `run_dir` or another server filesystem path. `run_id` accepts only a constrained identifier and is resolved against the authenticated workspace's database records.
+- Word delivery is limited to known `docx` and `filled_template` keys, carries `no-store`/`nosniff` headers, and rejects cross-workspace access.
+- Mobile Agent runs now request deterministic DOCX rendering by default and return authenticated artifact metadata when available.
+- Added mobile case deletion with matching case-ID confirmation while reusing existing audit, upload, run-artifact, and filesystem cleanup behavior.
+- Added native SwiftUI behavior for reopening recent runs, downloading Word files to a temporary app directory, Quick Look preview, system share, and destructive case-deletion confirmation.
+
+Tests run:
+
+- `$env:PYTHONPATH='scripts'; python -m unittest scripts.test_mobile_api_contract scripts.test_web_workbench scripts.test_coze_api_server` -> 137 tests passed.
+- `$env:PYTHONPATH='scripts'; python -m unittest discover -s scripts -p 'test_*.py'` -> 413 tests passed.
+- HTTP acceptance covered login, case create/detail, AUTO run, opaque run reopen, authenticated DOCX bytes, confirmed case deletion, and unauthorized rejection.
+- Cross-workspace artifact access and mismatched deletion confirmation are covered by unit tests.
+- Package-boundary validation, Python compilation, and `git diff --check` passed.
+
+Remaining gaps:
+
+- Native Swift compilation, Quick Look behavior, and ShareLink behavior remain unverified until an Xcode simulator run.
+- Template file import/upload/fill is not yet exposed in the native app.
+- Account deletion and complete App Store privacy/account-lifecycle metadata remain open.
+- The new mobile routes are not yet deployed and tested against production HTTPS.
 
 ## Loop Operating Rules
 
 Automation should continue from this file, not restart from a blank plan.
 
 1. Prefer P0 agent capabilities over generic product polish.
-2. Pick exactly one unfinished P0 capability per run unless all P0 items are complete or blocked.
+2. Pick exactly one unfinished P0 capability or App Store release gate per run unless all are complete or blocked.
 3. Do not prioritize password changes, cosmetic UI tweaks, settings pages, or account-management polish unless they directly unblock a P0/P1 capability.
 4. For model-behavior changes, update prompts/schemas/evals and run a real or fixture-backed eval. Use DeepSeek only through configured environment variables; never commit API keys.
-5. For product behavior changes, update backend, frontend, tests, and docs together when needed.
+5. New user-facing product work belongs in `ios-app/`. Update the shared backend/API and tests when needed. Do not implement a feature only in Web and call the App Store product complete.
 6. Preserve privacy and ethics boundaries: do not ask users to enter direct identifiers in test data; do not produce diagnosis or final risk classification; keep risk changes separately documented.
 7. After each run, update this file with the capability worked on, changes made, tests/evals run, remaining gaps, and next recommended capability.
 8. Commit coherent changes after tests pass. Do not commit secrets, local runtime data, uploaded client documents, or generated private outputs.
+9. Keep iOS, Web, and Coze packaging boundaries explicit. App archives must not contain Web assets, Python runtime files, RAG source cards, `.env` files, or service credentials.
+10. On a macOS/Xcode-capable runner, validate the iOS target with build, unit tests, simulator smoke, archive, and App Store validation. Windows-only checks do not prove App Store readiness.
 
 ## Definition Of Done For A Capability
 
@@ -43,7 +208,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 - intent routing or a clear user-facing entry without exposing internal workflow codes as the main UX
 - backend/API support
 - prompt/schema/retrieval logic when model behavior is involved
-- web workbench integration where relevant
+- native iOS integration for user-facing behavior; Web integration is supporting evidence only
 - at least one automated test or eval fixture
 - risk/privacy/ethics boundary handling
 - documentation in this file
@@ -67,7 +232,14 @@ A capability is not complete just because a prompt exists. It is considered prod
 
 | Priority | Capability | Status | Evidence | Next Step |
 |---|---|---|---|---|
-| P0 | Intent recognition across counselor tasks | shipped partial | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals `W5-006`, `W4-004`, `W4-005`, `W5-007`, `W5-008`, `W2-008`, `W2-009`, `W2-010`, `W2-011`, `W2-012`, `W2-013`, `W2-014`, `W2-015`, and `W6-005`, and the hosted Render deployment now agrees on the loose Chinese-first W1-vs-W3 summary prompts (`W1-014`, `W1-015`), the W5-vs-W6 negated-roadmap boundary `W5-006`, the English W3-vs-W4 negated-record conceptualization boundary `W4-004`, the bilingual W3-vs-W4 shorthand conceptualization boundary `W4-005`, the English W3-vs-W5 source-material planning boundary `W5-007`, the Chinese-heavy W3-vs-W5 source-material planning boundary `W5-008`, the bilingual W2-vs-W4 case-background-versus-conceptualization boundary `W2-008`, the English completed-intake-material W1-vs-W2 boundary `W2-009`, the Chinese-heavy completed-intake-material W1-vs-W2 boundary `W2-010`, the loose-summary-negation W1-vs-W2 boundary `W2-011`, the Chinese-heavy loose-negation W1-vs-W2 boundary `W2-012`, the regular-summary-negation W1-vs-W2 boundary `W2-013`, the standard-risk-block negation W1-vs-W2 boundary `W2-014`, and the bilingual standard-risk-block negation W1-vs-W2 boundary `W2-015` with public hosted parity restored through `detected_workflow=W2`, `route_status=mixed_signals`, and `W2 Case background` route summaries | move to another unproven public-route ambiguity such as a new bilingual W1-vs-W2 mixed-risk intake-material organization cue beyond the now-covered standard risk-block wording |
+| P0 | Native iOS product shell | foundation partial | isolated `ios-app/`, SwiftUI entry point, release metadata, privacy manifest, package validator, and authenticated navigation exist | generate with XcodeGen and build/test on a current iPhone simulator |
+| P0 | iOS authentication and workspace isolation | partial | `/api/mobile/v1` bearer login/session/logout, Keychain token storage, native login UI, HTTP contract tests | add signup/account deletion policy, token lifecycle hardening, and production HTTPS verification |
+| P0 | iOS de-identified case workspace | shipped partial | native create/list/detail, history reopen, confirmed deletion, privacy guidance, bearer ownership checks, and HTTP isolation coverage | verify on Xcode and add richer history labels/pagination |
+| P0 | iOS agent conversation and automatic intent routing | partial | native composer, forced AUTO route, route explanation, output/JSON/check views, opaque history reopen | run real DeepSeek hosted acceptance and add resilient retry/cancellation |
+| P0 | iOS document/template workflow | partial | generated DOCX metadata, authenticated whitelist download, native Quick Look and ShareLink implemented | add Files importer, template upload/inspect/fill, progress and failure recovery |
+| P0 | App Store privacy/account lifecycle | not started | initial empty privacy manifest only | implement accurate privacy manifest, account deletion, retention controls, policy/support metadata and review notes |
+| P0 | TestFlight/App Store delivery | not started | version and package contract established | add signing/CI configuration, simulator/UI tests, archive/export validation and TestFlight acceptance |
+| P0 | Intent recognition across counselor tasks | shipped partial / frozen for acceptance | local runner, product router, retrieval selector, eval prompts, scorers, live DeepSeek evals through `W2-015`, and hosted parity for the covered route families | do not add another boundary variant; fix routing only when a realistic counselor acceptance journey is blocked or misrouted |
 | P0 | W1 initial interview preparation guide | 历史交付：`shipped partial`；当前完成状态[以统一矩阵为准](#w1-w6-unified-completion-matrix) | W1 now extracts partial intake clues, prefills the intake guide contract, exposes an explicit product-facing prep-mode summary, and passes live DeepSeek eval `W1-007` plus a real structured run | extend bilingual clue extraction coverage and verify the hosted deployment shows the new prep-mode summary |
 | P0 | W1 initial interview summary into fixed template | 历史交付：`shipped partial`；当前完成状态[以统一矩阵为准](#w1-w6-unified-completion-matrix) | W1 now normalizes collapsed summary sections back into the fixed template, auto-fills missing split fields, exposes a dedicated `W1 summary brief` in the workbench, and passes live DeepSeek evals `W1-005` and `W1-009` plus a real structured run with `structured_status=PASS` | verify the hosted deployment uses the new summary brief and broaden section-label normalization for more bilingual raw-note variants |
 | P0 | W2 case background organization with BPS | 历史交付：`shipped partial`；当前完成状态[以统一矩阵为准](#w1-w6-unified-completion-matrix) | dedicated BPS structure, AUTO routing, DOCX rendering, split-template alias coverage, and live evals `W2-005` plus `W2-006` now ship in runner/web/eval | verify hosted deployment and extend more real counselor template label coverage |
@@ -83,7 +255,7 @@ A capability is not complete just because a prompt exists. It is considered prod
 | P1 | File upload/download and docx export | partial | render_docx and template flow exist | improve UX for template upload, generated output, and error reporting |
 | P1 | Audit log and data governance controls | partial | workbench run log and governance controls exist | confirm user-facing privacy copy and retention behavior |
 | P1 | Hosted deployment diagnostics | partial | hosted smoke/health tests exist | run after pushing latest local commits |
-| P2 | Minimal high-end web UX | partial | liquid-style workbench exists | continue only when it improves core workflow usability |
+| P2 | Native iOS visual UX and accessibility | not started | Web visual direction exists only as reference | establish native design system after the authenticated core journey works |
 | P3 | Generic account settings | partial | password rotation exists | defer unless required for deployment validation |
 
 ## Recently Completed
@@ -1473,13 +1645,16 @@ Remaining gaps:
 
 ## Next Recommended Capability
 
-Continue `intent recognition across counselor tasks` as the next P0 capability.
+Build the `Native template Files workflow and account deletion` as the next P0 capability, while taking the Xcode build gate immediately when a macOS runner is available.
 
 Recommended scope:
 
-- Move to another unproven W1-vs-W2 ambiguity beyond the now-covered bilingual standard risk-block wording, such as a bilingual intake-material organization cue that says to keep risk wording as source material rather than in a fixed summary danger section.
-- Keep the same local-test, eval-fixture, live DeepSeek, and hosted-parity loop.
-- Do not shift to P1/P2 work unless it directly blocks verification of a remaining P0 boundary.
+- Add native Files importer and authenticated template upload/inspect/fill APIs without accepting arbitrary server paths.
+- Add account deletion in the shared store, versioned mobile API, and native destructive confirmation required for App Store account lifecycle compliance.
+- Keep template/model mapping deterministic and return only opaque artifact identifiers.
+- Generate and build the `ios-app/` project on a macOS/Xcode runner as soon as one is available; fix all compiler/project issues before claiming the native slice complete.
+- Add the next native acceptance test: sign in, create/select a de-identified case, submit safe fixture material, and render route/result metadata.
+- Keep Web and Coze operational, but do not add Web-only polish unless it fixes shared service behavior needed by iOS.
 
 ## This Run: Intent Recognition Across Counselor Tasks
 
@@ -1558,13 +1733,15 @@ Remaining gaps:
 - Full-suite verification outside this capability slice is still affected by the unrelated dirty-worktree template-fill files already noted in prior runs: [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\fill_docx_template.py), [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_fill_docx_template.py), and [`C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py`](C:\Users\win\Documents\Codex\2026-05-15\agent\scripts\test_run_template_fill_eval.py).
 - The hosted deployment still is not `pilot_ready` because it uses the default `demo/demo123` operator login, has no configured retention window, and still relies on local-filesystem storage.
 
-## Deployment Readiness Notes
+## App Store Readiness Notes
 
-Do not claim deployment-ready until:
+Do not claim App Store ready until:
 
 - `git status` is clean except allowed ignored runtime files.
 - Tests for changed areas pass.
-- Latest commits are pushed to the remote.
-- Render deployment completes.
-- Hosted health and at least one hosted workflow smoke test pass.
+- The native iOS target builds and tests with a supported Xcode version.
+- A signed archive validates and is accepted by TestFlight/App Store Connect.
+- The native end-to-end counselor journey passes on simulator and TestFlight.
+- Required App Store privacy, support, review, age-rating, and account-deletion materials are complete.
+- Latest backend commits are pushed, the production API deployment completes, and hosted acceptance tests pass.
 - No secrets or local sensitive runtime data are committed.

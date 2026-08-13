@@ -1,12 +1,30 @@
-# 咨询师助理 Agent v0.1
+# 咨询师助理 Agent
 
-这是一个面向心理咨询师端的咨询助理 Agent MVP。v0.1 阶段聚焦三个基础能力：
+当前目标是形成可通过 TestFlight 验证并提交 Apple App Store 的原生 iOS 咨询师助理。`ios-app/` 是唯一 App Store 应用根目录；现有 Web 工作台和 Coze 插件继续保留为验证、兼容与服务通道，但不会被打入 iOS 包。
+
+当前产品阶段：`App Store Release Candidate`。首个公开 iOS 版本使用 `1.0.0 (1)`。
+
+仓库中包含 `v0.1`、`0.1.0` 或 `MVP` 的文件名、schema 和评测产物是历史兼容标识，不代表当前产品版本。版本与目录边界以 `docs/product-editions-and-directory-contract.md` 为准，当前迭代状态以 `docs/product-loop-state.md` 为准。
+
+## 产品目录
+
+| 目录 | 定位 | 是否进入 App Store 包 |
+|---|---|---|
+| `ios-app/` | 原生 SwiftUI 主产品、iOS 测试与上架元数据 | 是，且仅限该 target 声明的资源 |
+| `scripts/` | 后端、Agent、RAG、评测、文档与适配器 | 否 |
+| `web-workbench/` | 保留的 Web 验证与兼容客户端 | 否 |
+| `docs/coze-*`、Coze API、`render.yaml` | 保留的 Coze/Render 集成 | 否 |
+| `rag/`、`eval-*` | 服务端知识与工程评测 | 否 |
+
+## 历史基础能力
+
+早期兼容阶段聚焦三个基础能力：
 
 1. 初访信息收集表生成
 2. 个案信息整理
 3. Session 总结与咨询记录生成
 
-v0.1 的核心原则是：先建立统一、流派无关的基础信息抓取系统。CPS/中国本地伦理与法律资料作为伦理、风险、记录规范和专业边界的主要参考；境外专业资料只作为补充参考，并需标注地域限制。CBT、人本、精神动力、家庭系统等流派框架留到后续个案概念化和咨询方案设计中使用。
+历史基础能力的核心原则是：先建立统一、流派无关的信息抓取系统。当前产品已经继续扩展到个案概念化、下次咨询计划和多阶段 roadmap；旧文档中的“不纳入 v0.1”仅描述当时范围，不是当前功能限制。
 
 当前 RAG 已完成第一批正式 chunk 切分：共 18 个 approved chunk，覆盖伦理风险、个案记录、session 记录、初访评估和表单字段。
 
@@ -73,7 +91,17 @@ python scripts/workflow_completion.py --check
 17. 参考 `agent-runtime-architecture.md` 接入路由、检索、提示词组装和输出检查。
 18. 根据测试结果微调系统提示词、RAG 文档和输出模板。
 
-## Local Web Workbench
+## Native iOS App
+
+iOS 工程与生成说明见 `ios-app/README.md`。在本机可先运行包边界检查：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ios-app\scripts\validate-package-boundary.ps1
+```
+
+真正的 App Store readiness 必须在 macOS/Xcode 环境完成生成、编译、单元/UI 测试、签名归档、TestFlight 与 App Store Connect 校验。
+
+## Retained Local Web Workbench
 
 启动本地咨询师助理工作台：
 
@@ -103,9 +131,9 @@ http://127.0.0.1:8765
 
 ## Coze Demo API
 
-## Web MVP Deployment
+## Retained Web Deployment
 
-The fastest market-validation path is the hosted Web MVP. The repository includes a Render Blueprint with two services:
+The hosted Web surface remains a validation and compatibility path. It is not the App Store deliverable. The repository includes a Render Blueprint with two services:
 
 - `counselor-agent-web`: the user-facing web product.
 - `counselor-agent-coze-api`: the Coze plugin API.
@@ -307,7 +335,7 @@ agent-runs/<timestamp>-<workflow>/
 
 每次运行会保存 `input.json`、`prompt_package.txt`、`metadata.json`；真实 API 调用成功后还会保存 `raw_output.txt`、`clean_output.md` 和 `safety_check.json`。使用 `-Structured` 时，还会保存 `structured_output.json` 和 `structured_check.json`，供后续 Word renderer 或模板填充使用。使用 `-Docx` 时，还会保存 `output.docx` 和 `docx_check.json`。
 
-## v0.1 不做的事
+## 历史 v0.1 边界（兼容说明）
 
 - 不做自动诊断
 - 不替代咨询师做治疗决策
@@ -315,17 +343,15 @@ agent-runs/<timestamp>-<workflow>/
 - 真实个案中不做最终危机等级分级；训练/评测语境可输出候选等级和依据
 - 不直接面向来访者提供咨询
 - 不按流派切换基础信息收集模板
-- 不生成完整咨询 Road Map
+- 当时不生成完整咨询 Road Map；当前 W6 已支持有边界的多阶段 roadmap
 
-## 后续版本方向
+## 已进入当前路线的扩展能力
 
-v0.2 可以继续扩展：
-
-- 个案概念化
+- 个案概念化（W4）
 - 按 CBT、人本、精神动力、家庭系统等流派生成概念化假设
-- 咨询方案设计
+- 下次咨询计划（W5）
 - 访谈问题提纲
-- 阶段性 Road Map
+- 阶段性 Road Map（W6）
 - 报告生成与机构模板适配
 
 ## DeepSeek API Eval Runner

@@ -1,0 +1,4 @@
+#include "Shared.xcconfig"
+
+COUNSELOR_API_BASE_URL = https:/$()/counselor-agent-coze-api.onrender.com/
+// Set DEVELOPMENT_TEAM locally or in CI/App Store Connect signing configuration.

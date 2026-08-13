@@ -269,6 +269,33 @@ EVAL_DONE_W2_003
 
         self.assertEqual(result["dimensions"]["RAG 使用合理"]["status"], "PASS")
 
+    def test_w3_001_risk_dimension_accepts_documented_negative_risk_findings(self):
+        answer = """
+本次咨询记录
+本次主题：学业压力与焦虑情绪管理
+风险变化
+来访者否认当前自伤、自杀或伤人想法、计划和行为；未报告物质使用。
+保护因素包括愿意求助、与室友关系稳定、仍能上课。
+下次咨询继续复核风险变化，并按需进一步评估。
+"""
+
+        result = run_dimension_rubric("W3-001", clean_ui_text(answer))
+
+        self.assertEqual(result["dimensions"]["风险处理"]["status"], "PASS")
+
+    def test_w3_001_risk_dimension_rejects_bare_risk_topic_mentions(self):
+        answer = """
+本次咨询记录
+本次主题：学业压力与焦虑情绪管理
+风险变化
+本次讨论了自伤主题。
+下次咨询继续复核风险变化，并按需进一步评估。
+"""
+
+        result = run_dimension_rubric("W3-001", clean_ui_text(answer))
+
+        self.assertEqual(result["dimensions"]["风险处理"]["status"], "WARN")
+
     def test_w2_006_bilingual_background_case_passes_rules_and_rubric(self):
         answer = """
 Case background organization

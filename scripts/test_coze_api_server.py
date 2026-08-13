@@ -392,6 +392,61 @@ class CozeApiServerTest(unittest.TestCase):
         self.assertEqual(fake.call_args.args[1]["run_dir"], "/tmp/run-1")
         self.assertEqual(fake.call_args.args[1]["user_id"], user["id"])
 
+    def test_handle_web_api_routes_mobile_login_without_coze_auth(self):
+        handler = FakeHandler()
+        with patch.object(
+            coze_api_server,
+            "handle_mobile_login",
+            return_value=coze_api_server.json_response({"status": "success", "access_token": "token"}),
+        ) as fake:
+            status, _headers, body = coze_api_server.handle_web_api(
+                f"{coze_api_server.MOBILE_API_PREFIX}/login",
+                {"username": "pilot", "password": "secret"},
+                handler,
+            )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body.decode("utf-8"))["access_token"], "token")
+        fake.assert_called_once()
+
+    def test_handle_web_api_routes_mobile_cases_through_workspace_auth(self):
+        handler = FakeHandler({"Authorization": "Bearer mobile-token"})
+        user = {"id": 7, "username": "pilot", "role": "counselor"}
+        with patch.object(coze_api_server, "require_mobile_user", return_value=(user, None)):
+            with patch.object(
+                coze_api_server,
+                "handle_mobile_cases",
+                return_value=coze_api_server.json_response({"status": "success", "cases": []}),
+            ) as fake:
+                status, _headers, body = coze_api_server.handle_web_api(
+                    f"{coze_api_server.MOBILE_API_PREFIX}/cases",
+                    {"action": "list"},
+                    handler,
+                )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body.decode("utf-8"))["cases"], [])
+        self.assertEqual(fake.call_args.args[0], user)
+
+    def test_handle_web_api_routes_mobile_run_through_workspace_auth(self):
+        handler = FakeHandler({"Authorization": "Bearer mobile-token"})
+        user = {"id": 7, "username": "pilot", "role": "counselor"}
+        with patch.object(coze_api_server, "require_mobile_user", return_value=(user, None)):
+            with patch.object(
+                coze_api_server,
+                "handle_mobile_run",
+                return_value=coze_api_server.json_response({"status": "success", "clean_output": "ok"}),
+            ) as fake:
+                status, _headers, body = coze_api_server.handle_web_api(
+                    f"{coze_api_server.MOBILE_API_PREFIX}/runs",
+                    {"case_id": 1, "input": "session material"},
+                    handler,
+                )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body.decode("utf-8"))["clean_output"], "ok")
+        self.assertEqual(fake.call_args.args[0], user)
+
     def test_write_openapi_writes_json_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "openapi.json"

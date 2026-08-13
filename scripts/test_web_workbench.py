@@ -844,6 +844,189 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertIn("Set-Cookie", headers)
         self.assertIn(web_workbench.SESSION_COOKIE, headers["Set-Cookie"])
 
+    def test_mobile_login_returns_bearer_token_without_cookie(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_LOG_PATH", Path(tmp) / "run-log.jsonl"):
+                    status, headers, body = web_workbench.handle_mobile_login(
+                        {"username": "demo", "password": "demo123"}
+                    )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["api_version"], "v1")
+        self.assertEqual(payload["token_type"], "Bearer")
+        self.assertTrue(payload["access_token"])
+        self.assertNotIn("Set-Cookie", headers)
+        self.assertEqual(headers["Cache-Control"], "no-store")
+
+    def test_bearer_token_authenticates_mobile_session_and_case_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            store.create_case(auth["user"]["id"], "Case A-001", client_code="A001")
+            handler = FakeHandler({"Authorization": f"Bearer {auth['token']}"})
+            with patch.object(web_workbench, "STORE", store):
+                session_status, _headers, session_body = web_workbench.handle_mobile_session(handler)
+                user, error = web_workbench.require_user(handler)
+                case_status, _headers, case_body = web_workbench.handle_mobile_cases(user)
+
+        self.assertIsNone(error)
+        self.assertEqual(session_status, 200)
+        self.assertTrue(json.loads(session_body.decode("utf-8"))["authenticated"])
+        self.assertEqual(case_status, 200)
+        cases = json.loads(case_body.decode("utf-8"))["cases"]
+        self.assertEqual(cases[0]["client_code"], "A001")
+
+    def test_web_session_cookie_does_not_authenticate_mobile_api(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            handler = FakeHandler(
+                {"Cookie": f"{web_workbench.SESSION_COOKIE}={auth['token']}"}
+            )
+            with patch.object(web_workbench, "STORE", store):
+                session_status, _headers, session_body = web_workbench.handle_mobile_session(handler)
+                user, error = web_workbench.require_mobile_user(handler)
+
+        self.assertIsNone(user)
+        self.assertIsNotNone(error)
+        self.assertEqual(session_status, 401)
+        self.assertEqual(
+            json.loads(session_body.decode("utf-8"))["code"],
+            "authentication_required",
+        )
+
+    def test_mobile_case_create_requires_title(self):
+        user = {"id": 7, "username": "demo", "role": "counselor"}
+        status, _headers, body = web_workbench.handle_mobile_cases(user, {"action": "create"})
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["code"], "title_required")
+
+    def test_mobile_case_detail_does_not_expose_run_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            case_record = store.create_case(auth["user"]["id"], "Case A-001", client_code="A001")
+            run_dir = Path(tmp) / "run-W3-001"
+            run_dir.mkdir()
+            store.register_run_artifact(auth["user"]["id"], str(run_dir), workflow="W3", case_id=case_record["id"])
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_mobile_case_detail(
+                    auth["user"], case_record["id"]
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["case"]["client_code"], "A001")
+        self.assertEqual(payload["recent_runs"][0]["run_id"], "run-W3-001")
+        self.assertNotIn("run_dir", payload["recent_runs"][0])
+
+    def test_mobile_run_forces_auto_and_rejects_foreign_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            owner = store.authenticate("demo", "demo123")["user"]
+            other = store.create_user("other.user", "safe-pass-123")
+            foreign_case = store.create_case(other["id"], "Other case", client_code="B001")
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_mobile_run(
+                    owner,
+                    {"case_id": foreign_case["id"], "input": "Create a session record.", "workflow": "W3"},
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["code"], "case_not_found")
+
+    def test_mobile_run_returns_safe_auto_route_payload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            case_record = store.create_case(auth["user"]["id"], "Case A-001", client_code="A001")
+            run_dir = Path(tmp) / "run-W3-001"
+            run_dir.mkdir()
+            (run_dir / "clean_output.md").write_text("Session record", encoding="utf-8")
+            (run_dir / "structured_output.json").write_text('{"workflow":"W3"}', encoding="utf-8")
+            fake_result = web_workbench.AgentRunResult("W3", "success", run_dir)
+            with patch.object(web_workbench, "STORE", store):
+                with patch.object(web_workbench, "RUN_LOG_PATH", Path(tmp) / "run-log.jsonl"):
+                    with patch.object(web_workbench, "run_agent_once", return_value=fake_result):
+                        status, _headers, body = web_workbench.handle_mobile_run(
+                            auth["user"],
+                            {"case_id": case_record["id"], "input": "Write today's session record.", "workflow": "W1"},
+                        )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["detected_workflow"], "W3")
+        self.assertEqual(payload["run_id"], "run-W3-001")
+        self.assertNotIn("run_dir", payload)
+        self.assertEqual(payload["clean_output"], "Session record")
+
+    def test_mobile_run_detail_and_docx_download_use_opaque_run_id(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            case_record = store.create_case(auth["user"]["id"], "Case A-001", client_code="A001")
+            run_dir = Path(tmp) / "run-W3-opaque"
+            run_dir.mkdir()
+            (run_dir / "clean_output.md").write_text("Session record", encoding="utf-8")
+            (run_dir / "output.docx").write_bytes(b"docx-bytes")
+            store.register_run_artifact(auth["user"]["id"], str(run_dir), workflow="W3", case_id=case_record["id"])
+            with patch.object(web_workbench, "STORE", store):
+                detail_status, _headers, detail_body = web_workbench.handle_mobile_run_detail(
+                    auth["user"], "run-W3-opaque"
+                )
+                file_status, file_headers, file_body = web_workbench.handle_mobile_artifact_download(
+                    auth["user"], "run-W3-opaque", "docx"
+                )
+
+        detail = json.loads(detail_body.decode("utf-8"))
+        self.assertEqual(detail_status, 200)
+        self.assertEqual(detail["run_id"], "run-W3-opaque")
+        self.assertNotIn("run_dir", detail)
+        self.assertEqual(detail["artifacts"][0]["key"], "docx")
+        self.assertNotIn(str(run_dir), json.dumps(detail))
+        self.assertEqual(file_status, 200)
+        self.assertEqual(file_body, b"docx-bytes")
+        self.assertEqual(file_headers["Cache-Control"], "no-store")
+
+    def test_mobile_artifact_download_rejects_foreign_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            owner = store.authenticate("demo", "demo123")["user"]
+            other = store.create_user("other.user", "safe-pass-123")
+            run_dir = Path(tmp) / "run-W3-private"
+            run_dir.mkdir()
+            (run_dir / "output.docx").write_bytes(b"private")
+            store.register_run_artifact(other["id"], str(run_dir), workflow="W3")
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_mobile_artifact_download(
+                    owner, "run-W3-private", "docx"
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["code"], "run_not_found")
+
+    def test_mobile_case_delete_requires_matching_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")
+            auth = store.authenticate("demo", "demo123")
+            case_record = store.create_case(auth["user"]["id"], "Case A-001", client_code="A001")
+            with patch.object(web_workbench, "STORE", store):
+                status, _headers, body = web_workbench.handle_mobile_cases(
+                    auth["user"],
+                    {"action": "delete", "case_id": case_record["id"], "confirm_case_id": 999},
+                )
+
+        payload = json.loads(body.decode("utf-8"))
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["code"], "confirmation_required")
+
     def test_handle_login_marks_cookie_secure_on_https(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = WorkbenchStore(Path(tmp) / "workbench.sqlite3", Path(tmp) / "uploads")

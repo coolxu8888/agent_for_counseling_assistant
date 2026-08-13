@@ -16,6 +16,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from web_workbench import (
     RUN_ROOT,
+    MOBILE_API_PREFIX,
     deployment_readiness,
     error_response,
     handle_api_run,
@@ -27,6 +28,14 @@ from web_workbench import (
     handle_file_download,
     handle_inspect_template,
     handle_login,
+    handle_mobile_cases,
+    handle_mobile_case_detail,
+    handle_mobile_artifact_download,
+    handle_mobile_login,
+    handle_mobile_logout,
+    handle_mobile_session,
+    handle_mobile_run,
+    handle_mobile_run_detail,
     handle_logout,
     handle_render_docx,
     handle_runs,
@@ -37,7 +46,10 @@ from web_workbench import (
     handle_workspace,
     json_response,
     read_json_body,
+    mobile_case_id_from_path,
+    mobile_run_route,
     require_user,
+    require_mobile_user,
     resolve_static_path,
     send_response_tuple,
 )
@@ -471,6 +483,31 @@ class CozeApiHandler(BaseHTTPRequestHandler):
         if path == "/api/session":
             send_response_tuple(self, handle_session(self))
             return
+        if path == f"{MOBILE_API_PREFIX}/session":
+            send_response_tuple(self, handle_mobile_session(self))
+            return
+        if path == f"{MOBILE_API_PREFIX}/cases":
+            user, error = require_mobile_user(self)
+            send_response_tuple(self, error or handle_mobile_cases(user))
+            return
+        mobile_case_id = mobile_case_id_from_path(path)
+        if mobile_case_id is not None:
+            user, error = require_mobile_user(self)
+            send_response_tuple(self, error or handle_mobile_case_detail(user, mobile_case_id))
+            return
+        mobile_run = mobile_run_route(path)
+        if mobile_run is not None:
+            user, error = require_mobile_user(self)
+            if error:
+                send_response_tuple(self, error)
+            elif mobile_run["artifact_key"]:
+                send_response_tuple(
+                    self,
+                    handle_mobile_artifact_download(user, mobile_run["run_id"], mobile_run["artifact_key"]),
+                )
+            else:
+                send_response_tuple(self, handle_mobile_run_detail(user, mobile_run["run_id"]))
+            return
         if path == "/service-info":
             base_url = request_base_url(self) or "https://your-domain.example"
             send_response_tuple(self, json_response(service_info(base_url=base_url)))
@@ -511,6 +548,16 @@ class CozeApiHandler(BaseHTTPRequestHandler):
 
 
 def handle_web_api(path, payload, handler):
+    if path == f"{MOBILE_API_PREFIX}/login":
+        return handle_mobile_login(payload)
+    if path == f"{MOBILE_API_PREFIX}/logout":
+        return handle_mobile_logout(handler)
+    if path == f"{MOBILE_API_PREFIX}/cases":
+        user, error = require_mobile_user(handler)
+        return error or handle_mobile_cases(user, payload)
+    if path == f"{MOBILE_API_PREFIX}/runs":
+        user, error = require_mobile_user(handler)
+        return error or handle_mobile_run(user, payload)
     if path == "/api/login":
         return handle_login(payload, handler=handler)
     if path == "/api/signup":

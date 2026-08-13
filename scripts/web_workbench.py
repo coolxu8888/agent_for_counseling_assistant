@@ -41,6 +41,8 @@ DB_PATH = DATA_ROOT / "workbench.sqlite3"
 ICON_PATH = ROOT / "Gemini_Generated_Image_agent\u56fe\u6807.png"
 RUN_LOG_PATH = ROOT / "workbench-run-log.jsonl"
 SESSION_COOKIE = "workbench_session"
+MOBILE_API_VERSION = "v1"
+MOBILE_API_PREFIX = f"/api/mobile/{MOBILE_API_VERSION}"
 STORE = WorkbenchStore(DB_PATH, UPLOAD_ROOT)
 WORKSPACE_BACKUP_VERSION = 1
 RUN_ARTIFACT_FILE_NAMES = {
@@ -1136,8 +1138,24 @@ def cookie_token(handler):
     return morsel.value if morsel else ""
 
 
+def bearer_token(handler):
+    header = str(handler.headers.get("Authorization", "")).strip()
+    scheme, separator, token = header.partition(" ")
+    if not separator or scheme.lower() != "bearer":
+        return ""
+    return token.strip()
+
+
+def request_session_token(handler):
+    return bearer_token(handler) or cookie_token(handler)
+
+
 def current_user(handler):
-    return STORE.session_user(cookie_token(handler))
+    return STORE.session_user(request_session_token(handler))
+
+
+def current_mobile_user(handler):
+    return STORE.session_user(bearer_token(handler))
 
 
 def env_flag(name, default=False):
@@ -1273,6 +1291,13 @@ def require_user(handler):
     user = current_user(handler)
     if not user:
         return None, error_response(401, "Login required.")
+    return user, None
+
+
+def require_mobile_user(handler):
+    user = current_mobile_user(handler)
+    if not user:
+        return None, mobile_error_response(401, "authentication_required", "Authentication required.")
     return user, None
 
 
@@ -1857,6 +1882,281 @@ def handle_login(payload, handler=None):
         },
         {"Set-Cookie": cookie_header(auth["token"], secure=request_is_https(handler))},
     )
+
+
+def mobile_json_response(payload, status=200):
+    return json_response_with_headers(
+        {"api_version": MOBILE_API_VERSION, **payload},
+        {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+        status=status,
+    )
+
+
+def mobile_error_response(status, code, message):
+    return mobile_json_response(
+        {"status": "error", "code": code, "message": message},
+        status=status,
+    )
+
+
+def handle_mobile_login(payload):
+    username = str(payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    auth = STORE.authenticate(username, password)
+    if not auth:
+        return mobile_error_response(401, "invalid_credentials", "Invalid username or password.")
+    STORE.audit(auth["user"]["id"], None, "auth.mobile_login", {"username": username})
+    append_run_log("auth.mobile_login", user_id=auth["user"]["id"], details={"username": username})
+    return mobile_json_response(
+        {
+            "status": "success",
+            "access_token": auth["token"],
+            "token_type": "Bearer",
+            "expires_at": auth["expires_at"],
+            "user": auth["user"],
+            "workspace_policy": workspace_policy(),
+        }
+    )
+
+
+def handle_mobile_session(handler):
+    user = current_mobile_user(handler)
+    if not user:
+        return mobile_error_response(401, "authentication_required", "Authentication required.")
+    return mobile_json_response(
+        {
+            "status": "success",
+            "authenticated": True,
+            "user": user,
+            "workspace_policy": workspace_policy(),
+        }
+    )
+
+
+def handle_mobile_logout(handler):
+    token = bearer_token(handler)
+    user = STORE.session_user(token)
+    if user:
+        STORE.audit(user["id"], None, "auth.mobile_logout", {})
+        append_run_log("auth.mobile_logout", user_id=user["id"])
+    if token:
+        STORE.logout(token)
+    return mobile_json_response({"status": "success"})
+
+
+def handle_mobile_cases(user, payload=None):
+    payload = payload or {}
+    action = str(payload.get("action") or "list").strip().lower()
+    if action == "list":
+        return mobile_json_response({"status": "success", "cases": STORE.list_cases(user["id"])})
+    if action == "create":
+        title = str(payload.get("title") or "").strip()
+        client_code = str(payload.get("client_code") or "").strip()
+        if not title:
+            return mobile_error_response(400, "title_required", "A de-identified case title is required.")
+        case_record = STORE.create_case(user["id"], title, client_code=client_code, notes="")
+        append_run_log(
+            "case.mobile_create",
+            user_id=user["id"],
+            case_id=case_record["id"],
+            details={"title": case_record["title"], "client_code": case_record["client_code"]},
+        )
+        return mobile_json_response({"status": "success", "case": case_record}, status=201)
+    if action == "delete":
+        try:
+            case_id = int(payload.get("case_id") or 0)
+            confirmed_case_id = int(payload.get("confirm_case_id") or 0)
+        except (TypeError, ValueError):
+            case_id = confirmed_case_id = 0
+        if not case_id or confirmed_case_id != case_id:
+            return mobile_error_response(400, "confirmation_required", "Case deletion confirmation does not match.")
+        status, _headers, body = handle_cases(user, {"action": "delete", "case_id": case_id})
+        result = json.loads(body.decode("utf-8"))
+        if status >= 400:
+            return mobile_error_response(status, "case_delete_failed", str(result.get("message") or "Case deletion failed."))
+        return mobile_json_response(
+            {
+                "status": "success",
+                "deleted_case_id": case_id,
+                "cases": result.get("cases") or [],
+            }
+        )
+    return mobile_error_response(400, "unsupported_action", "Unsupported case action.")
+
+
+def handle_mobile_case_detail(user, case_id):
+    case_record = STORE.get_case(user["id"], int(case_id))
+    if not case_record:
+        return mobile_error_response(404, "case_not_found", "Case not found.")
+    run_records = STORE.list_run_artifacts(user["id"], case_id=int(case_id))
+    recent_runs = []
+    for record in run_records:
+        run_dir = Path(record["run_dir"])
+        recent_runs.append(
+            {
+                "run_id": run_dir.name,
+                "workflow": str(record.get("workflow") or ""),
+                "created_at": record.get("created_at"),
+            }
+        )
+    return mobile_json_response(
+        {
+            "status": "success",
+            "case": case_record,
+            "recent_runs": recent_runs,
+        }
+    )
+
+
+def mobile_case_id_from_path(path):
+    prefix = f"{MOBILE_API_PREFIX}/cases/"
+    if not path.startswith(prefix):
+        return None
+    raw_id = path[len(prefix):].strip("/")
+    if not raw_id.isdigit():
+        return None
+    return int(raw_id)
+
+
+def handle_mobile_run(user, payload):
+    try:
+        case_id = int(payload.get("case_id") or 0)
+    except (TypeError, ValueError):
+        case_id = 0
+    if not case_id or not STORE.get_case(user["id"], case_id):
+        return mobile_error_response(404, "case_not_found", "Select a case in this workspace before running the agent.")
+    user_input = str(payload.get("input") or "").strip()
+    if not user_input:
+        return mobile_error_response(400, "input_required", "Counselor material is required.")
+
+    run_payload = {
+        "workflow": "AUTO",
+        "input": user_input,
+        "structured": True,
+        "render_docx": bool(payload.get("render_docx", True)),
+        "dry_run": False,
+        "output_style": str(payload.get("output_style") or "default"),
+        "custom_output_style": str(payload.get("custom_output_style") or ""),
+        "user_id": user["id"],
+        "case_id": case_id,
+    }
+    status, _headers, body = handle_api_run(run_payload)
+    result = json.loads(body.decode("utf-8"))
+    if status >= 400:
+        return mobile_error_response(
+            status,
+            "agent_run_failed",
+            str(result.get("message") or "Agent run failed."),
+        )
+
+    run_dir = Path(str(result.get("run_dir") or ""))
+    safe_payload = mobile_safe_run_payload(result, case_id=case_id, run_id=run_dir.name)
+    return mobile_json_response(safe_payload)
+
+
+def valid_mobile_run_id(run_id):
+    return bool(re.fullmatch(r"[A-Za-z0-9._-]{1,160}", str(run_id or "")))
+
+
+def find_mobile_run_record(user_id, run_id):
+    if not valid_mobile_run_id(run_id):
+        return None
+    for record in STORE.list_run_artifacts(user_id, limit=1000):
+        if Path(record["run_dir"]).name == run_id:
+            return record
+    return None
+
+
+def mobile_run_artifacts(run_dir):
+    artifacts = []
+    for key in ("docx", "filled_template"):
+        filename = RUN_ARTIFACT_FILE_NAMES[key]
+        path = run_dir / filename
+        if path.is_file():
+            artifacts.append(
+                {
+                    "key": key,
+                    "name": filename,
+                    "content_type": mimetypes.guess_type(filename)[0] or "application/octet-stream",
+                    "download_path": f"{MOBILE_API_PREFIX}/runs/{run_dir.name}/artifacts/{key}",
+                }
+            )
+    return artifacts
+
+
+def mobile_safe_run_payload(result, case_id, run_id):
+    run_dir = Path(str(result.get("run_dir") or ""))
+    return {
+        "status": "success",
+        "case_id": case_id,
+        "run_id": run_id,
+        "detected_workflow": result.get("detected_workflow"),
+        "detected_workflow_label": workflow_label(result.get("detected_workflow") or result.get("workflow")),
+        "route_status": result.get("route_status"),
+        "route_notice": result.get("route_notice"),
+        "clean_output": result.get("clean_output") or "",
+        "structured_output": result.get("structured_output"),
+        "structured_check": result.get("structured_check"),
+        "safety_check": result.get("safety_check"),
+        "issues": result.get("issues") or [],
+        "artifacts": mobile_run_artifacts(run_dir),
+    }
+
+
+def handle_mobile_run_detail(user, run_id):
+    record = find_mobile_run_record(user["id"], run_id)
+    if not record:
+        return mobile_error_response(404, "run_not_found", "Run not found.")
+    try:
+        require_run_dir_access(user["id"], Path(record["run_dir"]))
+        result = load_saved_run_payload(record)
+    except (FileNotFoundError, PermissionError, ValueError) as exc:
+        return mobile_error_response(404, "run_not_found", str(exc))
+    return mobile_json_response(
+        mobile_safe_run_payload(
+            result,
+            case_id=record.get("case_id"),
+            run_id=run_id,
+        )
+    )
+
+
+def handle_mobile_artifact_download(user, run_id, artifact_key):
+    record = find_mobile_run_record(user["id"], run_id)
+    if not record:
+        return mobile_error_response(404, "run_not_found", "Run not found.")
+    if artifact_key not in {"docx", "filled_template"}:
+        return mobile_error_response(404, "artifact_not_found", "Artifact not found.")
+    run_dir = Path(record["run_dir"]).resolve()
+    target = run_dir / RUN_ARTIFACT_FILE_NAMES[artifact_key]
+    try:
+        require_run_dir_access(user["id"], run_dir)
+        if not target.is_file():
+            raise FileNotFoundError(target)
+    except (FileNotFoundError, PermissionError, ValueError):
+        return mobile_error_response(404, "artifact_not_found", "Artifact not found.")
+    return (
+        200,
+        {
+            "Content-Type": mimetypes.guess_type(target.name)[0] or "application/octet-stream",
+            "Content-Disposition": safe_content_disposition(target.name),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+        target.read_bytes(),
+    )
+
+
+def mobile_run_route(path):
+    prefix = f"{MOBILE_API_PREFIX}/runs/"
+    if not path.startswith(prefix):
+        return None
+    parts = [part for part in path[len(prefix):].split("/") if part]
+    if len(parts) == 1 and valid_mobile_run_id(parts[0]):
+        return {"run_id": parts[0], "artifact_key": None}
+    if len(parts) == 3 and parts[1] == "artifacts" and valid_mobile_run_id(parts[0]):
+        return {"run_id": parts[0], "artifact_key": parts[2]}
+    return None
 
 
 def handle_signup(payload, handler=None):
@@ -2821,6 +3121,31 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         if path == "/api/session":
             send_response_tuple(self, handle_session(self))
             return
+        if path == f"{MOBILE_API_PREFIX}/session":
+            send_response_tuple(self, handle_mobile_session(self))
+            return
+        if path == f"{MOBILE_API_PREFIX}/cases":
+            user, error = require_mobile_user(self)
+            send_response_tuple(self, error or handle_mobile_cases(user))
+            return
+        mobile_case_id = mobile_case_id_from_path(path)
+        if mobile_case_id is not None:
+            user, error = require_mobile_user(self)
+            send_response_tuple(self, error or handle_mobile_case_detail(user, mobile_case_id))
+            return
+        mobile_run = mobile_run_route(path)
+        if mobile_run is not None:
+            user, error = require_mobile_user(self)
+            if error:
+                send_response_tuple(self, error)
+            elif mobile_run["artifact_key"]:
+                send_response_tuple(
+                    self,
+                    handle_mobile_artifact_download(user, mobile_run["run_id"], mobile_run["artifact_key"]),
+                )
+            else:
+                send_response_tuple(self, handle_mobile_run_detail(user, mobile_run["run_id"]))
+            return
         if path in {"/api/demo-catalog", "/api/demo_catalog"}:
             user, error = require_user(self)
             if error:
@@ -2865,6 +3190,20 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
             return
 
         path = urlparse(self.path).path
+        if path == f"{MOBILE_API_PREFIX}/login":
+            send_response_tuple(self, handle_mobile_login(payload))
+            return
+        if path == f"{MOBILE_API_PREFIX}/logout":
+            send_response_tuple(self, handle_mobile_logout(self))
+            return
+        if path == f"{MOBILE_API_PREFIX}/cases":
+            user, error = require_mobile_user(self)
+            send_response_tuple(self, error or handle_mobile_cases(user, payload))
+            return
+        if path == f"{MOBILE_API_PREFIX}/runs":
+            user, error = require_mobile_user(self)
+            send_response_tuple(self, error or handle_mobile_run(user, payload))
+            return
         if path == "/api/login":
             response = handle_login(payload, handler=self)
             send_response_tuple(self, response)
