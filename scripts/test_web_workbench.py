@@ -814,7 +814,11 @@ class WebWorkbenchTest(unittest.TestCase):
                     {
                         "workflow": "W1",
                         "document_type": "intake_form",
-                        "known_clues": ["poor sleep for two weeks", "roommate conflict"],
+                        "known_clues": [
+                            "poor sleep for two weeks",
+                            {"id": "K1", "content": "roommate conflict", "source": "appointment notes"},
+                            None,
+                        ],
                     }
                 ),
                 encoding="utf-8",
@@ -836,6 +840,8 @@ class WebWorkbenchTest(unittest.TestCase):
         self.assertEqual(payload["workflow_mode_label"], "Initial interview prep")
         self.assertIn("prefill", payload["workflow_mode_notice"].lower())
         self.assertIn("poor sleep for two weeks", payload["workflow_mode_notice"].lower())
+        self.assertIn("roommate conflict (source: appointment notes)", payload["workflow_mode_notice"])
+        self.assertEqual(payload["structured_output"]["known_clues"][1]["id"], "K1")
 
     def test_handle_run_passes_explicit_summary_negation_to_runner_as_prep_scope(self):
         prompt = (

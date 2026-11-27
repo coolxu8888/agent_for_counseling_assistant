@@ -140,3 +140,11 @@ It may set only W1's three remaining gates to passed, using report paths. W2-W6 
 - [x] Matrix derives W1 complete and W2-W6 unchanged
 - [x] Broader W1 regression passes
 - [x] Notion synchronized
+
+## 2026-11-27 首访准备模板变更记录
+
+- 首访准备与访谈后总结分别使用各自的输出结构。首访准备保留各方陈述的来源，以及安全线索、优先追问和用户要求的中英提问。给定会谈时长时，按总时长安排各环节。
+- 默认 Word 以正文和提问开头，已提供线索按原编号列在文末。每条以编号起首并保留来源。导出省略重复的必填、敏感、风险信号和线索状态标记。结构化数据保留这些属性供验证和追溯。
+- 结构化生成默认输出上限由 8192 调整为 32768，可用 `DEEPSEEK_MAX_OUTPUT_TOKENS` 配置。达到输出上限而截断的结果不生成可下载的 Word。
+- 现有 Web 结果兼容字符串及带来源的对象线索。生成和重新导出 Word 使用同一默认渲染器。该远端版本的文档入口为生成结果与 Word 下载，本地独立的编辑器兼容处理留在较新的工作版本。
+- 本次使用合成资料验证首访路由、结果摘要、Word 下载和重新导出。116 项相关脚本测试通过，并通过 `python scripts/workflow_completion.py --check`。现有真实模板验收对应访谈后总结模板，本次没有新增托管或真实模型验收证据。

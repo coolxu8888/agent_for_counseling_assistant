@@ -12,6 +12,7 @@ from run_model_eval import (
     build_chat_payload,
     deepseek_chat_completions_url,
     extract_answer_text,
+    extract_finish_reason,
     load_deepseek_config,
     post_json,
 )
@@ -1036,6 +1037,21 @@ def validate_retrieval_coverage(workflow, chunks):
 
 def detect_w1_mode(user_input):
     text = str(user_input or "").strip().lower()
+    interview = r"(?:首访|首次访谈|第一次访谈)"
+    completed_summary = (
+        re.search(interview + r"(?:已经|已|刚刚|刚)(?:完成|结束|做完|进行)", text)
+        or re.search(r"(?:已经|已|刚刚|刚)(?:完成|结束|做完).{0,6}" + interview, text)
+    ) and re.search(r"整理|总结|梳理", text)
+    if completed_summary:
+        return "initial_interview_summary"
+    prep_patterns = [
+        interview + r"(?:之)?前[，,：:\s]*(?:请)?.{0,24}(?:准备|提问提纲|信息收集表)",
+        r"(?:准备|生成|拟定|设计|制定).{0,16}" + interview + r"(?:之)?前",
+        interview + r"[，,：:\s]*(?:尚未|还未|还没有|未)(?:进行|开展|开始)",
+        r"(?:尚未|还未|还没有)(?:进行|开展|开始).{0,6}" + interview,
+    ]
+    if any(re.search(pattern, text) for pattern in prep_patterns):
+        return "intake_prep"
     summary_patterns = [
         r"initial interview summary",
         r"first interview summary",
@@ -1044,9 +1060,8 @@ def detect_w1_mode(user_input):
         r"fixed intake template",
         r"initial interview template",
         r"fixed template.*(?:summarize|organize|structure)",
-        r"\u9996\u8bbf",
-        r"\u9996\u6b21\u8bbf\u8c08",
-        r"\u7b2c\u4e00\u6b21\u8bbf\u8c08",
+        r"(?:首访|首次访谈|第一次访谈)(?:的)?\s*(?:原始)?\s*(?:记录|笔记|材料|总结)",
+        r"(?:整理|总结|梳理).{0,16}(?:首访|首次访谈|第一次访谈)(?!前)",
         r"\u521d\u8bbf\u603b\u7ed3",
         r"\u9996\u8bbf\u539f\u59cb\u8bb0\u5f55",
         r"\u9996\u6b21\u8bbf\u8c08\u539f\u59cb\u8bb0\u5f55",
@@ -1056,6 +1071,7 @@ def detect_w1_mode(user_input):
         r"\u56fa\u5b9a\u521d\u8bbf\u6a21\u677f",
         r"\u56fa\u5b9a\u6a21\u677f\u603b\u7ed3",
         r"\u56fa\u5b9a\u6a21\u677f.*(?:\u6574\u7406|\u68b3\u7406|\u7ed3\u6784\u5316)",
+        r"初始访谈材料.{0,12}(?:整理|总结|梳理)",
     ]
     for pattern in summary_patterns:
         if re.search(pattern, text):
@@ -1144,37 +1160,30 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
                 + "\n```",
             ]
         )
-        if workflow.workflow_id == "W1":
+        if workflow.workflow_id == "W1" and w1_mode == "initial_interview_summary":
             parts.extend(
                 [
                     "# W1 初始访谈材料总结模式",
                     "仅当用户明确说明输入是已经完成的初始访谈材料、笔记或口述记录，并要求整理/总结时，才使用下面结构。若无法判断用户想要“初访前提问表”还是“已有初访材料总结”，先追问确认。",
-                    "```json\n"
-                    + json.dumps(
-                        W1_INITIAL_SESSION_SUMMARY_CONTRACT,
-                        ensure_ascii=False,
-                        indent=2,
-                    )
-                    + "\n```",
                 ]
             )
-            if w1_known_clues:
-                parts.extend(
-                    [
-                        "# Known intake clues already provided",
-                        "Use these clues to prefill matching W1 intake-prep fields, and ask follow-up questions only for what is still missing or unclear.",
-                        json.dumps(w1_known_clues, ensure_ascii=False, indent=2),
-                        "Do not leave the prep guide blank or generic when these clues are already known.",
-                    ]
-                )
-        if workflow.workflow_id == "W1":
+        if workflow.workflow_id == "W1" and w1_known_clues:
+            parts.extend(
+                [
+                    "# Known intake clues already provided",
+                    "Use these clues to prefill matching W1 intake-prep fields, and ask follow-up questions only for what is still missing or unclear.",
+                    json.dumps(w1_known_clues, ensure_ascii=False, indent=2),
+                    "Do not leave the prep guide blank or generic when these clues are already known.",
+                ]
+            )
+        if workflow.workflow_id == "W1" and w1_mode == "initial_interview_summary":
             parts.append(
                 "每个 section 都必须拆成 known_facts、unclear_or_missing、follow_up_questions 三部分。known_facts 只写材料中已出现的事实；unclear_or_missing 用于标注模糊、缺失或仍需核实的信息；follow_up_questions 只写咨询师后续可继续核实的问题。"
             )
             parts.append(
                 "risk_crisis section 必须明确区分：已看到的风险线索、材料中未提供或不清楚的风险信息、以及需要继续核实的安全问题。不得输出最终风险等级、诊断或替代机构危机处置决定。"
             )
-        if workflow.workflow_id == "W1":
+        if workflow.workflow_id == "W1" and w1_mode == "initial_interview_summary":
             parts.append(
                 "For W1 initial_session_summary, every section must use known_facts, unclear_or_missing, and follow_up_questions. known_facts may contain only facts explicitly present in the source notes."
             )
@@ -1187,13 +1196,19 @@ def build_prompt_package(workflow, user_input, rag_chunks, structured=False):
             parts.append(
                 "The risk_crisis section must separate observed risk clues, missing or unclear risk information, and counselor-facing safety follow-up questions. Do not output a final diagnosis or final risk rating."
             )
-            if w1_mode == "intake_prep":
-                parts.append(
-                    "For W1 intake_form, include a top-level known_clues list. Each field may include known_clues_used showing which counselor-provided clues were used to prefill that field."
-                )
-                parts.append(
-                    "When known_clues is non-empty, at least one field should trace those clues in known_clues_used and reflect them in value instead of leaving every value blank."
-                )
+        if workflow.workflow_id == "W1" and w1_mode == "intake_prep":
+            parts.extend(
+                [
+                    "# 初访前准备模式",
+                    "初访准备使用 intake_form 结构：sections 内为 fields，逐条把提问写在 suggested_questions。供咨询师阅读的正文保留具体安全线索和优先追问，省略必填、敏感、风险相关字段的布尔标记。",
+                    "For W1 intake_form, include a top-level known_clues list. Each field may include known_clues_used showing which counselor-provided clues were used to prefill that field.",
+                    "When known_clues is non-empty, at least one field should trace those clues in known_clues_used and reflect them in value instead of leaving every value blank.",
+                    "保留信息来源和原意：逐项区分来访者自述、伴侣陈述、助理转述及咨询师推测。不得将第三方提出的安排、需求或意愿改写为来访者的需求或同意。来访者尚未确认不等于第三方提供的安全线索可以忽略；据其安排安全追问，不以当事人承认为前提。",
+                    "若涉及个别会谈、伴侣会谈或多位工作人员：说明待明确本次是个别咨询还是伴侣咨询中的单独评估；区分预约信息收集与临床评估、各工作人员职责、汇总及反馈方式。信息共享需明确同意范围与保密例外，不能只询问共享偏好。未来共同会谈取决于双方知情自愿及安全适合性，不因一人愿意就默认推进。",
+                    "若用户要求限定时长的会谈顺序，给出连续、具体的分钟区间，各环节合计必须等于要求时长；不要用范围相加后可能超时的安排。说明出现重要安全线索时应优先处理、压缩或延后哪些非紧急收集内容，不能将所有内容都列为本次必须完成。",
+                    "若用户要求中英提问，逐条在 suggested_questions 中保留中文和对应的自然英文；不要只给字段标题或仅中文说明。",
+                ]
+            )
 
         if workflow.workflow_id == "W2":
             parts.append(
@@ -1795,9 +1810,15 @@ def run_agent_once(
     workflow = normalize_workflow(workflow_value)
     input_source, user_input = read_user_input(inline_input, input_file)
     w1_mode = detect_w1_mode(user_input) if workflow.workflow_id == "W1" else None
+    is_intake_prep = w1_mode == "intake_prep"
     created_at = now or datetime.now(LOCAL_TIMEZONE)
     output_dir = Path(run_dir) if run_dir else create_run_dir(run_root, workflow.workflow_id, created_at)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if run_dir and any(
+        (output_dir / filename).exists()
+        for filename in ("metadata.json", "clean_output.md", "structured_output.json", "output.docx")
+    ):
+        raise AgentInputError("Run output directory already contains a previous run.")
 
     retrieval_map = load_retrieval_map(retrieval_map_path)
     chunk_ids = selected_chunk_ids_for_workflow(workflow, retrieval_map)
@@ -1805,16 +1826,25 @@ def run_agent_once(
     validate_retrieval_coverage(workflow, chunks)
     prompt_package = build_prompt_package(workflow, user_input, chunks, structured=structured)
 
-    write_json(
-        output_dir / "input.json",
-        {
-            "workflow": workflow.workflow_id,
-            "workflow_name": workflow.name,
-            "input_source": input_source,
-            "user_input": user_input,
-            "created_at": _isoformat(created_at),
-        },
-    )
+    try:
+        input_file_path = output_dir / "input.json"
+        with input_file_path.open("x", encoding="utf-8") as run_input_file:
+            json.dump(
+                {
+                    "workflow": workflow.workflow_id,
+                    "workflow_name": workflow.name,
+                    "input_source": input_source,
+                    "user_input": user_input,
+                    "created_at": _isoformat(created_at),
+                },
+                run_input_file,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            run_input_file.write("\n")
+    except FileExistsError as exc:
+        raise AgentInputError("Run output directory already contains a previous run.") from exc
     (output_dir / "prompt_package.txt").write_text(prompt_package, encoding="utf-8")
 
     if dry_run:
@@ -1840,18 +1870,25 @@ def run_agent_once(
             model=model_override,
             base_url=api_config.base_url,
             timeout_seconds=api_config.timeout_seconds,
+            max_output_tokens=api_config.max_output_tokens,
         )
     http_post_json = http_post_json or post_json
     payload = build_chat_payload(api_config.model, prompt_package)
     if structured:
-        payload["max_tokens"] = 8192
+        payload["max_tokens"] = api_config.max_output_tokens
     url = deepseek_chat_completions_url(api_config.base_url)
     headers = {"Authorization": f"Bearer {api_config.api_key}"}
     started = time.monotonic()
 
     try:
         response_json = http_post_json(url, headers, payload, api_config.timeout_seconds)
-        answer = extract_answer_text(response_json)
+        finish_reason = extract_finish_reason(response_json)
+        try:
+            answer = extract_answer_text(response_json)
+        except ValueError:
+            if finish_reason != "length":
+                raise
+            answer = ""
     except Exception as exc:
         write_json(
             output_dir / "metadata.json",
@@ -1863,6 +1900,7 @@ def run_agent_once(
                 "workflow_name": workflow.name,
                 "provider": "deepseek",
                 "model": api_config.model,
+                "max_tokens": payload["max_tokens"],
                 "selected_rag_chunks": chunk_ids,
                 "rag_chunks": _metadata_rag_chunks(chunks),
                 "w1_mode": w1_mode,
@@ -1872,38 +1910,13 @@ def run_agent_once(
         )
         return AgentRunResult(workflow.workflow_id, "error", output_dir)
 
-    (output_dir / "raw_output.txt").write_text(answer.rstrip("\n") + "\n", encoding="utf-8")
-    clean_answer = strip_agent_marker(answer, workflow)
-    safety_check = None
-    if not no_clean:
-        (output_dir / "clean_output.md").write_text(clean_answer, encoding="utf-8")
-        safety_check = run_safety_check(workflow, clean_answer)
-        write_json(output_dir / "safety_check.json", safety_check)
-
-    structured_check = None
-    docx_check = None
-    if structured:
-        structured_data, extraction_check = extract_structured_json(answer, workflow)
-        if structured_data is None:
-            structured_check = extraction_check
-        else:
-            structured_data = normalize_structured_output(workflow, structured_data)
-            write_json(output_dir / "structured_output.json", structured_data)
-            structured_check = validate_structured_output(workflow, structured_data)
-        write_json(output_dir / "structured_check.json", structured_check)
-        if docx:
-            if structured_data is not None and structured_check["status"] == "PASS":
-                docx_check = render_docx(structured_data, output_dir / "output.docx")
-            else:
-                docx_check = docx_failure("DOCX rendering skipped because structured output did not pass validation.")
-            write_json(output_dir / "docx_check.json", docx_check)
-
     metadata = {
         "status": "success",
         "workflow": workflow.workflow_id,
         "workflow_name": workflow.name,
         "provider": "deepseek",
         "model": api_config.model,
+        "max_tokens": payload["max_tokens"],
         "selected_rag_chunks": chunk_ids,
         "rag_chunks": _metadata_rag_chunks(chunks),
         "structured": structured,
@@ -1913,6 +1926,61 @@ def run_agent_once(
     }
     if "usage" in response_json:
         metadata["usage"] = response_json["usage"]
+    if finish_reason is not None:
+        metadata["finish_reason"] = finish_reason
+    (output_dir / "raw_output.txt").write_text(answer.rstrip("\n") + "\n", encoding="utf-8")
+
+    clean_answer = strip_agent_marker(answer, workflow)
+    generation_error = None
+    if finish_reason == "length":
+        generation_error = ("output_truncated", "Model output reached the token limit before completion.")
+    elif is_intake_prep and not clean_answer.strip():
+        generation_error = ("incomplete_output", "The model returned no document content.")
+
+    # Validate W1 preparation before publishing its Markdown or structured artifact.
+    structured_data = None
+    structured_check = None
+    if structured:
+        if generation_error:
+            structured_check = structured_failure(workflow, generation_error[1])
+        else:
+            structured_data, structured_check = extract_structured_json(answer, workflow)
+            if is_intake_prep and structured_check["status"] == "PASS" and (
+                not isinstance(structured_data, dict)
+                or structured_data.get("document_type") != "intake_form"
+            ):
+                structured_check = structured_failure(
+                    workflow, "Expected a W1 intake_form JSON object.", path="document_type"
+                )
+            elif structured_data is not None:
+                structured_data = normalize_structured_output(workflow, structured_data)
+                structured_check = validate_structured_output(workflow, structured_data)
+            if is_intake_prep and structured_check["status"] != "PASS":
+                generation_error = ("incomplete_output", "The model did not return a valid intake document.")
+        write_json(output_dir / "structured_check.json", structured_check)
+
+    safety_check = None
+    if not generation_error:
+        if not no_clean:
+            display_answer = clean_answer
+            if is_intake_prep and structured:
+                json_blocks = list(re.finditer(r"```json\s*.*?\s*```", clean_answer, flags=re.IGNORECASE | re.DOTALL))
+                if json_blocks and not clean_answer[json_blocks[-1].end():].strip():
+                    display_answer = clean_answer[:json_blocks[-1].start()].rstrip() + "\n"
+            (output_dir / "clean_output.md").write_text(display_answer, encoding="utf-8")
+            safety_check = run_safety_check(workflow, clean_answer)
+            write_json(output_dir / "safety_check.json", safety_check)
+        if structured_data is not None:
+            write_json(output_dir / "structured_output.json", structured_data)
+
+    docx_check = None
+    if docx:
+        if not generation_error and structured_data is not None and structured_check["status"] == "PASS":
+            docx_check = render_docx(structured_data, output_dir / "output.docx")
+        else:
+            docx_check = docx_failure("DOCX rendering skipped because structured output did not pass validation.")
+        write_json(output_dir / "docx_check.json", docx_check)
+
     if safety_check is not None:
         metadata["safety_status"] = safety_check["status"]
         metadata["rubric_status"] = safety_check["rubric_status"]
@@ -1920,8 +1988,11 @@ def run_agent_once(
         metadata["structured_status"] = structured_check["status"]
     if docx_check is not None:
         metadata["docx_status"] = docx_check["status"]
+    if generation_error:
+        error_type, error_message = generation_error
+        metadata.update(status="error", error_type=error_type, error_message=error_message)
     write_json(output_dir / "metadata.json", metadata)
-    return AgentRunResult(workflow.workflow_id, "success", output_dir)
+    return AgentRunResult(workflow.workflow_id, metadata["status"], output_dir)
 
 
 def parse_args(argv=None):

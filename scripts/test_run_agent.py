@@ -483,9 +483,9 @@ class RunAgentTest(unittest.TestCase):
             structured=True,
         )
 
-        self.assertIn("known_facts", prompt)
-        self.assertIn("unclear_or_missing", prompt)
-        self.assertIn("follow_up_questions", prompt)
+        self.assertIn('"document_type": "intake_form"', prompt)
+        self.assertIn('"suggested_questions"', prompt)
+        self.assertNotIn('"document_type": "initial_session_summary"', prompt)
         for label in [
             "初访信息收集表（咨询师访谈辅助版）",
             "咨询目的与个人需求",
@@ -1540,7 +1540,7 @@ AGENT_DONE_W3
             rag_root, retrieval_map_path = self.make_rag_fixture(tmp_path)
 
             def fake_post_json(_url, _headers, _payload, _timeout):
-                self.assertEqual(_payload["max_tokens"], 8192)
+                self.assertEqual(_payload["max_tokens"], 32768)
                 return {
                     "choices": [
                         {

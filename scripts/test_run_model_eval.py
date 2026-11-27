@@ -94,6 +94,7 @@ class RunModelEvalTest(unittest.TestCase):
         self.assertEqual(config.model, "deepseek-v4-flash")
         self.assertEqual(config.base_url, "https://api.deepseek.com")
         self.assertEqual(config.timeout_seconds, 120)
+        self.assertEqual(config.max_output_tokens, 32768)
 
     def test_load_deepseek_config_reads_default_env_file_when_no_values_passed(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -101,7 +102,8 @@ class RunModelEvalTest(unittest.TestCase):
             env_path.write_text(
                 "DEEPSEEK_API_KEY=from-file\n"
                 "DEEPSEEK_MODEL=file-model\n"
-                "DEEPSEEK_TIMEOUT_SECONDS=75\n",
+                "DEEPSEEK_TIMEOUT_SECONDS=75\n"
+                "DEEPSEEK_MAX_OUTPUT_TOKENS=65536\n",
                 encoding="utf-8",
             )
 
@@ -113,6 +115,30 @@ class RunModelEvalTest(unittest.TestCase):
         self.assertEqual(config.api_key, "from-file")
         self.assertEqual(config.model, "file-model")
         self.assertEqual(config.timeout_seconds, 75)
+        self.assertEqual(config.max_output_tokens, 65536)
+
+    def test_load_deepseek_config_validates_output_budget(self):
+        with patch.dict(os.environ, {}, clear=True):
+            for value in ("1", "131072"):
+                with self.subTest(value=value):
+                    config = load_deepseek_config({
+                        "DEEPSEEK_API_KEY": "from-file",
+                        "DEEPSEEK_MAX_OUTPUT_TOKENS": value,
+                    })
+                    self.assertEqual(config.max_output_tokens, int(value))
+            for value in ("0", "131073", "4.5", "invalid"):
+                with self.subTest(value=value):
+                    with self.assertRaisesRegex(ValueError, "DEEPSEEK_MAX_OUTPUT_TOKENS"):
+                        load_deepseek_config({
+                            "DEEPSEEK_API_KEY": "from-file",
+                            "DEEPSEEK_MAX_OUTPUT_TOKENS": value,
+                        })
+
+    def test_config_constructor_rejects_noninteger_and_out_of_range_output_budget(self):
+        for value in (True, 1.0, 0, 131073):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "DEEPSEEK_MAX_OUTPUT_TOKENS"):
+                    DeepSeekConfig(api_key="test-key", max_output_tokens=value)
 
     def test_load_deepseek_config_honors_timeout_seconds_from_env_values(self):
         with patch.dict(os.environ, {}, clear=True):
@@ -139,6 +165,7 @@ class RunModelEvalTest(unittest.TestCase):
                 "DEEPSEEK_API_KEY": "from-env",
                 "DEEPSEEK_MODEL": "model-from-env",
                 "DEEPSEEK_BASE_URL": "https://env.example",
+                "DEEPSEEK_MAX_OUTPUT_TOKENS": "49152",
             },
             clear=True,
         ):
@@ -147,12 +174,14 @@ class RunModelEvalTest(unittest.TestCase):
                     "DEEPSEEK_API_KEY": "from-file",
                     "DEEPSEEK_MODEL": "model-from-file",
                     "DEEPSEEK_BASE_URL": "https://file.example",
+                    "DEEPSEEK_MAX_OUTPUT_TOKENS": "65536",
                 }
             )
 
         self.assertEqual(config.api_key, "from-env")
         self.assertEqual(config.model, "model-from-env")
         self.assertEqual(config.base_url, "https://env.example")
+        self.assertEqual(config.max_output_tokens, 49152)
 
     def test_load_deepseek_config_missing_api_key_mentions_name(self):
         with patch.dict(os.environ, {}, clear=True):
@@ -389,6 +418,7 @@ class RunModelEvalTest(unittest.TestCase):
                 model="deepseek-test",
                 base_url="https://api.test/",
                 timeout_seconds=7,
+                max_output_tokens=65536,
             )
 
             result = run_single_eval(
@@ -413,7 +443,9 @@ class RunModelEvalTest(unittest.TestCase):
             calls[0]["payload"]["messages"][0]["content"], "完整提示\n包含换行"
         )
         self.assertEqual(calls[0]["timeout"], 7)
+        self.assertEqual(calls[0]["payload"]["max_tokens"], 4096)
         self.assertEqual(meta["status"], "success")
+        self.assertEqual(meta["max_tokens"], 4096)
         self.assertEqual(meta["raw_file"], str(raw_path))
         self.assertEqual(meta["model"], "deepseek-test")
         self.assertEqual(meta["base_url"], "https://api.test/")

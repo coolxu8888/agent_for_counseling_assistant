@@ -44,20 +44,6 @@ def paragraph(text="", style=None):
     )
 
 
-def table(rows):
-    row_xml = []
-    for row in rows:
-        cells = []
-        for cell in row:
-            cells.append(f"<w:tc>{paragraph(cell)}</w:tc>")
-        row_xml.append("<w:tr>" + "".join(cells) + "</w:tr>")
-    return "<w:tbl>" + "".join(row_xml) + "</w:tbl>"
-
-
-def truth_label(value):
-    return "是" if value is True else "否"
-
-
 def append_list(parts, title, items, empty_text="未提供"):
     parts.append(paragraph(title, "Heading2"))
     if items:
@@ -67,28 +53,51 @@ def append_list(parts, title, items, empty_text="未提供"):
         parts.append(paragraph(empty_text))
 
 
+def _intake_clue_text(clue):
+    if not isinstance(clue, dict):
+        return _text(clue)
+    labels = {
+        "source": "来源",
+        "source_type": "来源类型",
+    }
+    clue_id = _text(clue.get("id")).strip()
+    content = _text(clue.get("content"))
+    lead = f"{clue_id}：{content}" if clue_id and content else clue_id or content
+    parts = [lead] if lead else []
+    parts.extend(
+        f"{labels.get(key, key)}：{_text(value)}"
+        for key, value in clue.items()
+        if key not in {"id", "content", "status"}
+    )
+    return "；".join(parts)
+
+
 def render_intake_form(data):
-    parts = [paragraph(data.get("title") or "初访信息收集表", "Heading1")]
+    parts = [paragraph(data.get("title") or "初访信息收集表", "Title")]
     for section in data.get("sections", []):
-        parts.append(paragraph(section.get("heading", "未命名栏目"), "Heading2"))
-        fields = section.get("fields", [])
-        if fields:
-            rows = [["字段", "内容", "必填", "敏感", "风险信号", "备注"]]
-            for field in fields:
-                rows.append(
-                    [
-                        field.get("label", field.get("id", "")),
-                        field.get("value", "") or "待填写",
-                        truth_label(field.get("required")),
-                        truth_label(field.get("sensitive")),
-                        truth_label(field.get("risk_signal")),
-                        field.get("notes", ""),
-                    ]
-                )
-            parts.append(table(rows))
-        elif section.get("content"):
+        parts.append(paragraph(section.get("heading", "未命名栏目"), "Heading1"))
+        if "content" in section:
             parts.append(paragraph(section.get("content")))
-    append_list(parts, "边界说明", data.get("boundary_notes", []))
+        for field in section.get("fields", []):
+            parts.append(paragraph(field.get("label", field.get("id", "")), "Heading2"))
+            value = field.get("value")
+            parts.append(paragraph("内容：" + (_text(value) if value not in (None, "") else "待填写")))
+            if field.get("notes"):
+                parts.append(paragraph("备注：" + _text(field["notes"])))
+            if field.get("suggested_questions"):
+                parts.append(paragraph("建议提问", "IntakeLabel"))
+                for index, question in enumerate(field["suggested_questions"], start=1):
+                    parts.append(paragraph(f"{index}. {_text(question)}"))
+            if field.get("known_clues_used"):
+                parts.append(paragraph("使用的已知线索：" + _text(field["known_clues_used"])))
+    parts.append(paragraph("边界说明", "Heading1"))
+    for note in data.get("boundary_notes", []) or ["未提供"]:
+        parts.append(paragraph("• " + _text(note)))
+    if data.get("known_clues"):
+        parts.append(paragraph("已提供线索", "Heading1"))
+        for clue in data["known_clues"]:
+            prefix = "" if isinstance(clue, dict) and _text(clue.get("id")).strip() else "• "
+            parts.append(paragraph(prefix + _intake_clue_text(clue)))
     return parts
 
 
@@ -304,10 +313,17 @@ def render_body(data):
 
 def build_document_xml(data):
     body = "".join(render_body(data))
+    section_properties = "<w:sectPr/>"
+    if data.get("document_type") == "intake_form":
+        section_properties = (
+            '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>'
+            '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>'
+            "</w:sectPr>"
+        )
     return (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         f'<w:document xmlns:w="{WORD_NS}">'
-        f"<w:body>{body}<w:sectPr/></w:body>"
+        f"<w:body>{body}{section_properties}</w:body>"
         "</w:document>"
     )
 
@@ -329,34 +345,80 @@ def package_rels_xml():
 </Relationships>"""
 
 
-def document_rels_xml():
-    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+def document_rels_xml(*, intake_layout=False):
+    if not intake_layout:
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>"""
+    return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>"""
 
 
-def styles_xml():
-    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+def styles_xml(*, intake_layout=False):
+    if not intake_layout:
+        return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="{WORD_NS}">
   <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/></w:style>
   <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/></w:style>
 </w:styles>"""
+    return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="{WORD_NS}">
+  <w:docDefaults>
+    <w:rPrDefault><w:rPr>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei" w:cs="Calibri"/>
+      <w:color w:val="000000"/><w:sz w:val="22"/><w:szCs w:val="22"/>
+    </w:rPr></w:rPrDefault>
+    <w:pPrDefault><w:pPr>
+      <w:widowControl/>
+      <w:spacing w:after="80" w:line="276" w:lineRule="auto"/>
+    </w:pPr></w:pPrDefault>
+  </w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+    <w:name w:val="Normal"/><w:qFormat/>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Title">
+    <w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>
+    <w:pPr><w:keepNext/><w:spacing w:before="0" w:after="240"/></w:pPr>
+    <w:rPr><w:b/><w:color w:val="000000"/><w:sz w:val="36"/><w:szCs w:val="36"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1">
+    <w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>
+    <w:pPr><w:keepNext/><w:spacing w:before="240" w:after="100"/><w:outlineLvl w:val="0"/></w:pPr>
+    <w:rPr><w:b/><w:color w:val="000000"/><w:sz w:val="30"/><w:szCs w:val="30"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2">
+    <w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>
+    <w:pPr><w:keepNext/><w:spacing w:before="160" w:after="60"/><w:outlineLvl w:val="1"/></w:pPr>
+    <w:rPr><w:b/><w:color w:val="000000"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="IntakeLabel">
+    <w:name w:val="Intake label"/><w:basedOn w:val="Normal"/>
+    <w:pPr><w:keepNext/><w:spacing w:before="80" w:after="40"/></w:pPr>
+    <w:rPr><w:b/></w:rPr>
+  </w:style>
+</w:styles>"""
 
 
-def write_docx_package(output_path, document_xml):
+def write_docx_package(output_path, document_xml, *, intake_layout=False):
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as package:
         package.writestr("[Content_Types].xml", content_types_xml())
         package.writestr("_rels/.rels", package_rels_xml())
         package.writestr("word/document.xml", document_xml)
-        package.writestr("word/styles.xml", styles_xml())
-        package.writestr("word/_rels/document.xml.rels", document_rels_xml())
+        package.writestr("word/styles.xml", styles_xml(intake_layout=intake_layout))
+        package.writestr(
+            "word/_rels/document.xml.rels", document_rels_xml(intake_layout=intake_layout)
+        )
 
 
 def render_docx(data, output_path):
     if not isinstance(data, dict):
         return docx_failure("Input data must be a JSON object.")
-    write_docx_package(output_path, build_document_xml(data))
+    write_docx_package(
+        output_path, build_document_xml(data), intake_layout=data.get("document_type") == "intake_form"
+    )
     return docx_success(output_path)
 
 

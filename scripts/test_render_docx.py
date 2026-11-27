@@ -3,8 +3,13 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
-from render_docx import main, parse_args, render_docx
+from render_docx import WORD_NS, main, parse_args, render_docx
+
+
+NS = {"w": WORD_NS}
+W = f"{{{WORD_NS}}}"
 
 
 class RenderDocxTest(unittest.TestCase):
@@ -187,17 +192,171 @@ class RenderDocxTest(unittest.TestCase):
         self.assertIn("word/document.xml", names)
         self.assertIn("word/styles.xml", names)
 
-    def test_render_w1_contains_title_risk_section_and_table(self):
+    def bilingual_w1(self):
+        return {
+            "workflow": "W1",
+            "document_type": "intake_form",
+            "title": "初访准备 & Intake <guide>",
+            "known_clues": ["顶层线索 A & B <初次访谈>", "Top-level source: uses \"weekly\" check-ins."],
+            "sections": [
+                {
+                    "heading": "日常安排 & Routine",
+                    "content": "栏目说明：保留 <原文> & context。",
+                    "fields": [
+                        {
+                            "label": "活动偏好 <A>",
+                            "value": "喜欢阅读 & walking。",
+                            "required": True,
+                            "sensitive": False,
+                            "risk_signal": False,
+                            "notes": "记录原话：\"A < B\"。",
+                            "suggested_questions": [
+                                "你偏好阅读还是散步？ English: Do you prefer reading & walking?",
+                                "每次活动时长是否 < 30 分钟？ English: Is each activity < 30 minutes?",
+                            ],
+                            "known_clues_used": ["字段一来源：偏好 A & B。", "Field-one source: said \"reading\"."],
+                        },
+                        {
+                            "label": "每周安排",
+                            "value": "",
+                            "required": False,
+                            "sensitive": True,
+                            "risk_signal": True,
+                            "notes": "按每周频次记录。",
+                            "suggested_questions": [
+                                "一周安排几次？ English: How many times per week?",
+                                "哪些安排最方便？ English: Which times work best?",
+                            ],
+                            "known_clues_used": ["字段二来源：每周安排尚未确认。"],
+                        },
+                    ],
+                },
+                {
+                    "heading": "支持与资源",
+                    "fields": [
+                        {
+                            "label": "现有资源",
+                            "value": "图书馆",
+                            "required": False,
+                            "sensitive": False,
+                            "risk_signal": False,
+                            "notes": "核对开放时间。",
+                            "suggested_questions": [
+                                "你会使用哪些资源？ English: Which resources do you use?",
+                                "还想了解什么？ English: What else would you like to know?",
+                            ],
+                            "known_clues_used": ["字段三来源：提及图书馆。"],
+                        }
+                    ],
+                },
+            ],
+            "boundary_notes": ["边界说明：仅用于访谈准备 & review。"],
+        }
+
+    def test_render_w1_keeps_every_bilingual_question_verbatim_and_in_field_order(self):
+        data = self.bilingual_w1()
         with tempfile.TemporaryDirectory() as tmp:
-            output_path = Path(tmp) / "w1.docx"
+            output_path = Path(tmp) / "w1-bilingual.docx"
+            render_docx(data, output_path)
+            document = ET.fromstring(self.read_document_xml(output_path))
+        paragraphs = ["".join(p.itertext()) for p in document.findall(".//w:body/w:p", NS)]
+        question_paragraphs = [text for text in paragraphs if "English:" in text]
+        expected_questions = [
+            "你偏好阅读还是散步？ English: Do you prefer reading & walking?",
+            "每次活动时长是否 < 30 分钟？ English: Is each activity < 30 minutes?",
+            "一周安排几次？ English: How many times per week?",
+            "哪些安排最方便？ English: Which times work best?",
+            "你会使用哪些资源？ English: Which resources do you use?",
+            "还想了解什么？ English: What else would you like to know?",
+        ]
+        self.assertEqual(len(question_paragraphs), 6)
+        for question, paragraph_text in zip(expected_questions, question_paragraphs):
+            self.assertIn(question, paragraph_text)
+        all_text = "\n".join(paragraphs)
+        self.assertIn("初访准备 & Intake <guide>", all_text)
+        self.assertLess(all_text.index("活动偏好 <A>"), all_text.index(expected_questions[0]))
+        self.assertLess(all_text.index(expected_questions[1]), all_text.index("每周安排"))
+        self.assertLess(all_text.index("现有资源"), all_text.index(expected_questions[4]))
+        self.assertIsNone(document.find(".//w:tbl", NS))
 
-            render_docx(self.minimal_w1(), output_path)
-            document_xml = self.read_document_xml(output_path)
+    def test_render_w1_formats_object_clues_with_readable_labels_and_keeps_extra_keys(self):
+        data = self.minimal_w1()
+        data["known_clues"] = [
+            {
+                "id": "K1",
+                "content": "偏好阅读 & walking <周末>。",
+                "source": "咨询师提供的 \"原话\"。",
+                "source_type": "counselor_input",
+                "status": "reported",
+                "extra_context": "补充内容 <A & B>。",
+            },
+            "字符串线索仍按原文保留。",
+        ]
+        risk = data["sections"][0]
+        risk["content"] = "风险信息仍待核实。"
+        risk["fields"][0]["notes"] = "保留原话与信息来源。"
+        risk["fields"][0]["known_clues_used"] = ["K1"]
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w1-object-clues.docx"
+            render_docx(data, output_path)
+            document = ET.fromstring(self.read_document_xml(output_path))
+        text = "\n".join("".join(p.itertext()) for p in document.findall(".//w:body/w:p", NS))
+        for expected in [
+            "K1：偏好阅读 & walking <周末>。",
+            '来源：咨询师提供的 "原话"。',
+            "来源类型：counselor_input",
+            "extra_context：补充内容 <A & B>。",
+            "字符串线索仍按原文保留。",
+            "风险信息仍待核实。",
+            "自杀意念",
+            "保留原话与信息来源。",
+            "本表不构成诊断。",
+        ]:
+            self.assertIn(expected, text)
+        self.assertNotIn("source_type:", text)
+        self.assertNotIn("content:", text)
+        self.assertNotIn("内容：偏好阅读", text)
+        for marker in ("status", "reported", "状态", "必填", "敏感", "风险信号"):
+            self.assertNotIn(marker, text)
+        self.assertIn("使用的已知线索：K1", text)
+        self.assertLess(text.index("风险评估"), text.index("已提供线索"))
+        self.assertLess(text.index("边界说明"), text.index("已提供线索"))
+        clue_paragraph = next(
+            "".join(p.itertext()) for p in document.findall(".//w:body/w:p", NS)
+            if "偏好阅读 & walking <周末>。" in "".join(p.itertext())
+        )
+        self.assertTrue(clue_paragraph.startswith("K1："))
 
-        self.assertIn("初访信息收集表", document_xml)
-        self.assertIn("风险评估", document_xml)
-        self.assertIn("自杀意念", document_xml)
-        self.assertIn("<w:tbl>", document_xml)
+    def test_w1_package_has_linked_readable_styles_and_flowing_body(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_path = Path(tmp) / "w1-styles.docx"
+            render_docx(self.bilingual_w1(), output_path)
+            with zipfile.ZipFile(output_path) as package:
+                document = ET.fromstring(package.read("word/document.xml"))
+                styles = ET.fromstring(package.read("word/styles.xml"))
+                relationships = ET.fromstring(package.read("word/_rels/document.xml.rels"))
+        self.assertTrue(any(
+            relation.get("Type", "").endswith("/styles") and relation.get("Target") == "styles.xml"
+            for relation in relationships
+        ))
+        defaults = styles.find("w:docDefaults/w:rPrDefault/w:rPr", NS)
+        self.assertIsNotNone(defaults)
+        self.assertEqual(defaults.find("w:color", NS).get(W + "val"), "000000")
+        self.assertEqual(defaults.find("w:sz", NS).get(W + "val"), "22")
+        for style_id in ["Title", "Heading1", "Heading2"]:
+            style = styles.find(f'w:style[@w:styleId="{style_id}"]', NS)
+            self.assertIsNotNone(style)
+            self.assertIsNotNone(style.find("w:pPr/w:keepNext", NS))
+        self.assertIsNone(styles.find("w:docDefaults/w:pPrDefault/w:pPr/w:keepNext", NS))
+        self.assertIsNone(styles.find("w:docDefaults/w:pPrDefault/w:pPr/w:keepLines", NS))
+        styles_used = [p.get(W + "val") for p in document.findall(".//w:pStyle", NS)]
+        self.assertIn("Title", styles_used)
+        self.assertIn("Heading1", styles_used)
+        self.assertIn("Heading2", styles_used)
+        self.assertIsNone(document.find(".//w:keepLines", NS))
+        margins = document.find(".//w:sectPr/w:pgMar", NS)
+        for side in ["top", "right", "bottom", "left"]:
+            self.assertEqual(margins.get(W + side), "1440")
 
     def test_render_w2_contains_bps_and_questions(self):
         with tempfile.TemporaryDirectory() as tmp:

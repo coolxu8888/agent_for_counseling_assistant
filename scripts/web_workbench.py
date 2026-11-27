@@ -627,6 +627,24 @@ def describe_workflow_mode(payload):
     known_clues = structured_output.get("known_clues") if isinstance(structured_output, dict) else None
     if not isinstance(known_clues, list):
         known_clues = []
+    clue_summaries = []
+    for clue in known_clues:
+        if isinstance(clue, str):
+            text = clue.strip()
+        elif isinstance(clue, dict):
+            content = clue.get("content")
+            if not isinstance(content, str) or not content.strip():
+                continue
+            text = content.strip()
+            source = clue.get("source")
+            if isinstance(source, str) and source.strip():
+                text += " (source: " + source.strip() + ")"
+        else:
+            continue
+        if text:
+            clue_summaries.append(text)
+        if len(clue_summaries) == 3:
+            break
 
     if w1_mode == "initial_interview_summary":
         return {
@@ -636,8 +654,8 @@ def describe_workflow_mode(payload):
         }
 
     notice = "Using the pre-interview intake guide mode."
-    if known_clues:
-        notice = "Using the pre-interview intake guide mode with prefill from known clues: " + ", ".join(known_clues[:3]) + "."
+    if clue_summaries:
+        notice = "Using the pre-interview intake guide mode with prefill from known clues: " + ", ".join(clue_summaries) + "."
     return {
         "workflow_mode": "intake_prep",
         "workflow_mode_label": "Initial interview prep",

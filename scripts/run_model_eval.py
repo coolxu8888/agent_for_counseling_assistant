@@ -13,6 +13,9 @@ from pathlib import Path
 DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash"
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DEFAULT_DEEPSEEK_TIMEOUT = 120
+DEFAULT_DEEPSEEK_MAX_OUTPUT_TOKENS = 32768
+MAX_DEEPSEEK_OUTPUT_TOKENS = 131072
+OUTPUT_TOKENS_CONFIG_ERROR = "DEEPSEEK_MAX_OUTPUT_TOKENS must be an integer between 1 and 131072."
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_PATH = ROOT / ".env"
 DEFAULT_RESULT_DIR = ROOT / "eval-results" / "api"
@@ -29,6 +32,12 @@ class DeepSeekConfig:
     model: str = DEFAULT_DEEPSEEK_MODEL
     base_url: str = DEFAULT_DEEPSEEK_BASE_URL
     timeout_seconds: int = DEFAULT_DEEPSEEK_TIMEOUT
+    max_output_tokens: int = DEFAULT_DEEPSEEK_MAX_OUTPUT_TOKENS
+
+    def __post_init__(self):
+        budget = self.max_output_tokens
+        if type(budget) is not int or not 1 <= budget <= MAX_DEEPSEEK_OUTPUT_TOKENS:
+            raise ValueError(OUTPUT_TOKENS_CONFIG_ERROR)
 
 
 @dataclass(frozen=True)
@@ -142,11 +151,12 @@ def _base_meta(config):
     }
 
 
-def _finish_reason(response_json):
+def extract_finish_reason(response_json):
     try:
-        return response_json["choices"][0].get("finish_reason")
+        reason = response_json["choices"][0].get("finish_reason")
     except (KeyError, IndexError, TypeError, AttributeError):
         return None
+    return reason if isinstance(reason, str) else None
 
 
 def run_single_eval(item, config, result_dir, dry_run=False, http_post_json=post_json):
@@ -186,6 +196,7 @@ def run_single_eval(item, config, result_dir, dry_run=False, http_post_json=post
                 "error_type": "malformed_response",
                 "error_message": _sanitize_for_metadata(exc, config),
                 "base_url": config.base_url,
+                "max_tokens": payload["max_tokens"],
                 "created_at": created_at,
                 "latency_seconds": time.monotonic() - started,
             },
@@ -200,6 +211,7 @@ def run_single_eval(item, config, result_dir, dry_run=False, http_post_json=post
                 "error_type": "api_error",
                 "error_message": _sanitize_for_metadata(exc, config),
                 "base_url": config.base_url,
+                "max_tokens": payload["max_tokens"],
                 "created_at": created_at,
                 "latency_seconds": time.monotonic() - started,
             },
@@ -214,12 +226,13 @@ def run_single_eval(item, config, result_dir, dry_run=False, http_post_json=post
         "raw_file": str(raw_path),
         "model": config.model,
         "base_url": config.base_url,
+        "max_tokens": payload["max_tokens"],
         "created_at": created_at,
         "latency_seconds": time.monotonic() - started,
     }
     if "usage" in response_json:
         meta["usage"] = response_json["usage"]
-    finish_reason = _finish_reason(response_json)
+    finish_reason = extract_finish_reason(response_json)
     if finish_reason is not None:
         meta["finish_reason"] = finish_reason
     _write_meta(meta_path, meta)
@@ -239,6 +252,13 @@ def load_deepseek_config(env_values=None):
     timeout_value = _get_config_value(
         file_values, "DEEPSEEK_TIMEOUT_SECONDS", str(DEFAULT_DEEPSEEK_TIMEOUT)
     )
+    output_tokens_value = _get_config_value(
+        file_values, "DEEPSEEK_MAX_OUTPUT_TOKENS", str(DEFAULT_DEEPSEEK_MAX_OUTPUT_TOKENS)
+    )
+    try:
+        max_output_tokens = int(output_tokens_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(OUTPUT_TOKENS_CONFIG_ERROR) from exc
     return DeepSeekConfig(
         api_key=api_key,
         model=_get_config_value(file_values, "DEEPSEEK_MODEL", DEFAULT_DEEPSEEK_MODEL),
@@ -246,6 +266,7 @@ def load_deepseek_config(env_values=None):
             file_values, "DEEPSEEK_BASE_URL", DEFAULT_DEEPSEEK_BASE_URL
         ),
         timeout_seconds=int(timeout_value),
+        max_output_tokens=max_output_tokens,
     )
 
 

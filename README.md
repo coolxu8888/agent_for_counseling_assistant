@@ -47,6 +47,7 @@ python scripts/web_workbench.py --host 0.0.0.0 --port $PORT
 - `DEEPSEEK_BASE_URL`
 - `DEEPSEEK_MODEL`
 - `DEEPSEEK_TIMEOUT_SECONDS`
+- `DEEPSEEK_MAX_OUTPUT_TOKENS`（结构化输出默认 32768）
 
 ## 运行时 Prompt 清单
 
